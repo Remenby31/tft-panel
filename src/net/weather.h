@@ -15,6 +15,8 @@ struct Now {
     int16_t minC = 0, maxC = 0;   // today
     uint8_t code = 0;          // WMO weather code
     String place;              // as the geocoder named it
+    String problem;            // why there is nothing to show, in words for the person who typed it
+    String located;            // the full match: "Montréal, Quebec, Canada (45.51, -73.59)"
 };
 
 void tick(uint32_t now);       // net task: resolves the place, then refreshes on its own schedule
