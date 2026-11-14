@@ -5,18 +5,26 @@
 A dedicated 7" touch screen for the living room: it shows the **synced lyrics** of what is
 playing in Roon, the cover and track, and drives play/pause/skip/volume/zone.
 
-It is a **client of the TextFromTrack Roon Companion** ([r45635/roon.app.textfromtrack.com](https://github.com/r45635/roon.app.textfromtrack.com))
-over its LAN HTTP API — the same contract the Apple Watch remote uses.
+It reads what is playing in one of two ways, chosen at setup and switchable later. By default it is
+a **client of the TextFromTrack Roon Companion** ([r45635/roon.app.textfromtrack.com](https://github.com/r45635/roon.app.textfromtrack.com))
+over its LAN HTTP API — the same contract the Apple Watch remote uses. In **direct mode** it is its
+own extension of the music server, through `tft-core-client`, and needs no companion.
 
 ```
- Roon Core ──(Roon extension API)── TFT Companion (Node, :3888) ──HTTP/JSON over LAN── TFT Panel (ESP32-S3)
-                                         │
-                                         └─ lyrics: local .lrc / tags / LRCLIB mirror / TextFromTrack
+ companion mode   Roon Core ──(extension API)── TFT Companion (Node, :3888) ──HTTP/JSON── TFT Panel
+                                                     └─ lyrics: local .lrc / tags / LRCLIB mirror / TextFromTrack
+
+ direct mode      Roon Core ──(discovery + extension API over a WebSocket)──────────────── TFT Panel
+                                                                                             └─ lyrics: a companion it finds, or an LRCLIB-compatible server
 ```
 
-- The panel never talks to Roon directly, never to a server of ours, and stores no lyrics.
-- The companion is the single source of truth; the panel is stateless apart from its settings
-  (Wi-Fi, companion address, chosen zone, brightness) in NVS.
+- The panel never talks to a server of ours and stores no lyrics.
+- Whatever answers is the single source of truth; the panel is stateless apart from its settings
+  (Wi-Fi, source, server address and pairing, lyrics server, chosen zone, brightness, weather town,
+  news feed) in NVS.
+- Lyrics are their own question in direct mode: the music server exposes none (checked 2026-11-14),
+  so the panel either finds a companion on the network by itself, asks an LRCLIB-compatible server
+  whose address it is given, or shows none.
 - Name never contains "Roon" (Roon Labs trademark).
 
 ## Companion API contract (as of companion v0.5.15)
@@ -50,7 +58,9 @@ Rules learned on the watch client:
 
 **Sources.** `src/net/source.h` is the only thing the net task knows about where the music
 information comes from. `source_companion.*` is the TextFromTrack companion over its LAN HTTP API,
-which is what the panel has always used and the only source with lyrics. The net task keeps
+which is what the panel has always used; `source_roon.*` (built where `-DSOURCE_ROON` is set) is the
+direct mode, which discovers the server, pairs with it once, subscribes to its zones and is pushed
+a position about once a second. Lyrics sit beside both, in `lyrics_source.*`. The net task keeps
 everything that is the same whatever answers: the snapshot and its version counter, the position
 clock, the track change, the covers, the lyrics retries, the command queue and the status line. A
 source only discovers a server, reads it, and calls the `publish*` functions of `net_internal.h`.
@@ -59,9 +69,11 @@ source's address while the net task changes it.
 
 **Boards.** `board.h` is the only interface the rest of the firmware sees; each board compiles
 its own file, chosen by the environment's `-DBOARD_…` flag: `board_crowpanel7.cpp` (ESP32-S3, RGB
-panel fed from bounce buffers, frozen update screen) and `board_waveshare_p4_7b.cpp` (ESP32-P4,
-MIPI-DSI panel; LVGL renders two internal-RAM strips and the PPA turns each one 180° straight into
-the framebuffer). Shared by both: `restart.cpp` (clean resets), `white_balance.cpp` (warmth, two
+panel fed from bounce buffers, frozen update screen) and `board_p4_mipi.cpp` (ESP32-P4, MIPI-DSI,
+shared by the Waveshare 7B and the VIEWE S070; LVGL renders two internal-RAM strips and the PPA
+turns each one 180° straight into the framebuffer where the panel is mounted upside down). Adding a
+MIPI board is a pin header, not a driver: panel supply rails, reset timing, lane rate, video
+timings, the vendor's init table and the orientation are all constants there. Shared by both: `restart.cpp` (clean resets), `white_balance.cpp` (warmth, two
 pixels per 32-bit word), `gt911.cpp`. Per-board
 constants (`pins_*.h`): resolution, `BOARD_NAME`, the release asset name `BOARD_ASSET`,
 `HAS_STATIC_SCREEN`, `DEFAULT_WARMTH`, `OTA_DOWNLOAD_FIRST`. Wi-Fi on the P4 goes through the
@@ -93,6 +105,22 @@ every frame. Lyrics are a `shared_ptr<const Lyrics>`, so copying a snapshot neve
    while no phone is on the AP; results go out in `Snapshot::networks`.
    The portal takes port 80 from the update page first (it waits for `webupdate::serving()` to drop).
 3. Stored Wi-Fi failing for 60 s → the AP comes back next to the station, so a changed password can be fixed.
+
+### The panel's own page (`src/net/web_update.cpp`)
+
+One `WebServer` on port 80 serves the settings page at `/`, the firmware upload at `/update` and a
+framebuffer dump at `/screenshot`. The panel announces it over mDNS as `_http._tcp` with its name,
+board, MAC and version in TXT records, so several panels on one network are told apart by something
+that never changes.
+
+Writing anything needs the **six digits shown on that panel's screen** (`activeCode()`, five
+minutes, also printed on the serial console): on the network is not enough, you have to be in front
+of it. A correct code sets a cookie carrying a random token kept in NVS (`settings::webToken()`),
+`HttpOnly`, `SameSite=Lax`, a month, so later changes ask nothing; the page's *Forget this browser*,
+`forget-wifi` and `erase-all` revoke it, and `/update` ignores it and always asks for a fresh code.
+A refusal saves nothing, says what was wrong at the top and beside the button, and keeps what was
+typed; a save names what moved. A field the request does not carry is left unchanged, so a partial
+form cannot blank a setting. GET only reads: no state changes behind a URL.
 
 ### Music library (both boards, `HAS_LIBRARY`)
 

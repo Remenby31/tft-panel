@@ -1,6 +1,6 @@
 # TFT Panel — user guide
 
-TFT Panel turns a 7" touch screen (Elecrow CrowPanel 7" or Waveshare ESP32-P4 7B) into a lyrics screen for the music you play with Roon:
+TFT Panel turns a 7" touch screen (Elecrow CrowPanel 7", Waveshare ESP32-P4 7B or VIEWE ESP32-P4 7") into a lyrics screen for the music you play with Roon:
 the words of the song scroll in time with the music, with the cover, and you can pause, skip,
 change the volume or the zone with a touch.
 
@@ -13,13 +13,19 @@ zones and cover are invented.*
 
 - One of these screens, and a USB-C cable that carries data:
   - **Elecrow CrowPanel ESP32 Display 7.0"** (DIS08070H), board **V3.0**;
-  - **Waveshare ESP32-P4-WIFI6-Touch-LCD-7B** (1024×600).
+  - **Waveshare ESP32-P4-WIFI6-Touch-LCD-7B** (1024×600);
+  - **VIEWE ESP32-P4 7"** (UEP4S070H1024V600C-WB-C, 1024×600) — flashed from a computer for now,
+    because the web installer cannot yet tell the two ESP32-P4 boards apart.
 
-  Other screens are not supported, even look-alikes with the same ESP32-P4 chip (for example the
-  Guition JC1060P470C): their display needs different settings, and the installer would give them the
-  Waveshare firmware. Their screen would stay dark.
-- A **Roon** system, and the free **TextFromTrack companion** running on a computer of the same
-  network: it finds the lyrics and tells the panel what plays.
+  Other screens are not supported, even look-alikes with the same ESP32-P4 chip and the same display
+  controller (for example the Guition JC1060P470C): their display needs different settings, and the
+  installer would give them the Waveshare firmware. Their screen would stay dark.
+- A **Roon** system. The panel can get what is playing in either of two ways:
+  - from the free **TextFromTrack companion** running on a computer of the same network, which also
+    finds and ranks the lyrics — the simplest setup, and the one these pages assume;
+  - straight from your **music server**, with no companion. You then enable *TFT Panel* once in
+    Roon's Settings → Extensions, and the lyrics come either from a companion the panel finds by
+    itself or from an LRCLIB-compatible server you give it (your own mirror works).
 - Your **Wi-Fi** network name and password (2.4 GHz).
 
 ## 1. Install the firmware (once)
@@ -138,14 +144,38 @@ with a live slider: move it until the white looks neutral to you.
 
 ![Colour test](images/colour-test.png)
 
-## 6. When nothing plays
+## 6. The clock, the weather and the news
 
-After a minute without music the screen dims and shows a clock; it turns off after the delay
-chosen in the settings. A touch, or music starting, wakes it.
+The clock is both an idle screen and a view of its own: swipe to it like the lyrics and the cover.
+After a minute without music the panel shows it by itself, dims, and turns the screen off after the
+delay chosen in the settings. A touch, or music starting, wakes it.
 
 ![Idle clock](images/idle-clock.png)
 
+Give it a **town** and it shows the temperature, the sky and today's range beside the time. Towns
+share their names, so add what tells yours apart: `Montreal, Canada`, `Paris, Texas`,
+`Lyon, France`. The page says which town it settled on, with its coordinates, and says so plainly
+when it cannot find the one you meant.
+
+Give it the address of an **RSS or Atom feed** and the headlines slide under the clock at reading
+pace. Both are typed on the panel's page, below.
+
+## 7. The panel's own page
+
+Everything that has to be typed lives on one page, in any browser on your network:
+`http://tft-panel-xxxx.local` — the settings screen shows it as a QR code, and its name, board,
+address and firmware are written at the top, so two panels are never confused.
+
+It carries where the music comes from, the companion's address and token, the lyrics server and its
+token, the weather town and the news feed.
+
+Changing something asks once for the **six digits shown on that panel's screen**: being on the
+network is not enough, you have to be in front of it. After that the panel remembers your browser
+for a month, so later changes are two taps; *Forget this browser* on the page undoes that, and so
+does forgetting the Wi-Fi or erasing the panel. A firmware upload always asks for a fresh code.
+
 ## Updates
+
 
 The panel looks for a new version every day. When there is one, **Update** appears at the top:
 
@@ -170,6 +200,9 @@ choose a firmware file, and type the 6-digit code the panel shows:
 |---|---|
 | The setup QR codes come back | The panel cannot join your Wi-Fi for a minute: check the password, or that the network is 2.4 GHz. |
 | "Looking for the TextFromTrack companion" | Start the companion on its computer; same network as the panel. |
+| "Enable TFT Panel in Roon" | Direct mode: open Roon → Settings → Extensions and enable it once. |
+| The weather shows the wrong town | On the panel's page, add a region or country after the name (`Paris, Texas`). |
+| The page says the code is wrong | The code on the screen changes every five minutes; read the new one. |
 | "No lyrics found for this track" | The companion found none; the cover view shows instead. |
 | Lyrics early or late for one song | Press and hold the lyrics, adjust *Earlier* / *Later*. |
 | Lyrics early or late for every song | Settings → *Lyrics ahead by*. |

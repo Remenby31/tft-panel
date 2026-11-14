@@ -25,7 +25,9 @@
       font (U+2010 in "Jean‐Luc" showed as a box), FPS overlay off; checked with `demo` + `screenshot`
 - [x] Timing: PositionClock (window ~36 ms on the board) + 250 ms display lead
 - [x] Vincent's eye check on the real LCD (white balance picked on the colour test card)
-- [ ] Flash budget: the CrowPanel image is at ~90 % of an OTA slot (1.85 MB, ~200 KB left); the P4 has 6 MB slots
+- [x] Flash budget, measured 2026-11-14: the CrowPanel image is 1,889,435 B of its 2,031,616 B OTA
+      slot (93.0 %, 139 KiB left); with direct mode compiled in it is 95.3 % (92 KiB left). The P4
+      boards have 6 MB slots and sit near 33 %.
 
 ## Phase 2 — lyrics and controls UI (in progress)
 
@@ -87,6 +89,49 @@
 - [x] Cover view: the artist and album lines open that artist or that album in the library
       (v0.1.18; search + exact match, the results shown when the name is not one thing)
 - [ ] Vincent's finger test on the CrowPanel, including the two new tappable lines
+
+## VIEWE ESP32-P4 7" (third board, 2026-11-14)
+
+- [x] UEP4S070H1024V600C-WB-C (JD9165, GT911, C6 Wi-Fi, CH340 serial, 16 MB flash) running the
+      firmware: image, touch, Wi-Fi, portal, library, OTA
+- [x] The P4 display layer is shared (`src/board/board_p4_mipi.cpp`) and the board is one pin header
+      (`src/board/pins_p4_s070_wba.h`), every value taken from the vendor's own BSP
+- [x] Root cause of a day of dark screen written down: two GPIO-switched panel supply rails nobody
+      drove, reset on GPIO 22 (`docs/HARDWARE.md`); three earlier "pitfalls" were its symptoms
+- [ ] Vincent's eye check (colours, warmth, orientation, touch comfort)
+- [ ] Web installer: a board choice, since it picks by chip and two P4 boards now share one — until
+      then this board is flashed over USB, and `tools/release.sh` does not publish its asset
+
+## Direct to the music server (2026-11-14)
+
+- [x] Protocol library `r45635/tft-core-client` (discovery, framing, WebSocket, registry, zones,
+      browse) with 159 host checks, four bugs caught before any hardware ran
+- [x] `Source` seam in the firmware: the companion and the direct source behind one interface, the
+      network task source-independent (`docs/ARCHITECTURE.md`)
+- [x] Direct source on the VIEWE P4: pairing kept in NVS, zones and now playing pushed about once a
+      second, covers over plain HTTP, library browse, volume and transport, healthy mark for OTA
+- [x] Position clock told apart a polled reading from a pushed one (uncertainty 821 ms → 7 ms)
+- [x] No lyrics come from the music server itself (checked, 2026-11-14), so lyrics are their own
+      question: a companion found on the network, an LRCLIB-compatible server, or none
+- [x] Flash cost on the ESP32-S3 measured: +46.4 KiB, image at 95.3 % of the slot — one image can
+      carry both modes
+- [ ] The other half of that decision: internal heap on the S3 with the connection open and the
+      library browsed (needs the CrowPanel plugged in). Until then `-DSOURCE_ROON` is only in the
+      `p4-s070-wba` env
+- [ ] Vincent's run in direct mode over a few days; then make the library public
+
+## The clock face, and what has to be typed (2026-11-14)
+
+- [x] The clock is a third swipe view as well as the idle screen, with the weather and a news
+      ticker (hand-animated: LVGL caps a scrolling label at 10 s whatever the length)
+- [x] The weather town is disambiguated (country, region or county after the name, most populated
+      match) and says what it settled on or why it failed
+- [x] One page per panel at `http://tft-panel-xxxx.local` for every typed setting, announced over
+      mDNS with the panel's name, board, MAC and version
+- [x] Code once, then a month-long cookie that the page, the Wi-Fi reset and `erase-all` revoke;
+      refusals keep what was typed and say what was wrong; a save names what moved; an unsent field
+      is left alone; a firmware upload still asks for a fresh code
+- [ ] Vincent's finger test of the clock view and his eye on the page from a phone
 
 ## Other boards (not started)
 
