@@ -19,6 +19,7 @@
 #include "web_update.h"
 #include "position_clock.h"
 #include "settings.h"
+#include "version.h"
 #include "source.h"
 #include "source_companion.h"
 #include "source_roon.h"
@@ -306,6 +307,22 @@ void fetchCover(const String &imageKey) {
 // a separate ESP32-C6) the same identity as on the S3, where it is also the station MAC.
 void baseMac(uint8_t mac[6]) { esp_efuse_mac_get_default(mac); }
 
+String macAddress() {
+    uint8_t mac[6];
+    baseMac(mac);
+    char s[18];
+    snprintf(s, sizeof s, "%02x:%02x:%02x:%02x:%02x:%02x", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+    return s;
+}
+
+String displayName() {
+    uint8_t mac[6];
+    baseMac(mac);
+    char s[20];
+    snprintf(s, sizeof s, "TFT Panel %02x%02x", mac[4], mac[5]);
+    return s;
+}
+
 String hostName() {
     uint8_t mac[6];
     baseMac(mac);
@@ -321,7 +338,15 @@ void startMdns() {
     if (g_mdnsStarted) return;
     String host = hostName();
     g_mdnsStarted = MDNS.begin(host.c_str());
-    if (g_mdnsStarted) Serial.printf("[net] this panel is %s.local\n", host.c_str());
+    if (g_mdnsStarted) {
+        MDNS.addService("http", "tcp", 80);
+        MDNS.addServiceTxt("http", "tcp", "panel", displayName());
+        MDNS.addServiceTxt("http", "tcp", "board", board::BOARD_NAME);
+        MDNS.addServiceTxt("http", "tcp", "mac", macAddress());
+        MDNS.addServiceTxt("http", "tcp", "version", FW_VERSION);
+        Serial.printf("[net] this panel is %s.local (%s, %s)\n", host.c_str(), displayName().c_str(),
+                      macAddress().c_str());
+    }
     else Serial.println("[net] WARNING: mDNS responder failed to start");
 }
 

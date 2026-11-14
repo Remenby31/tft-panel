@@ -154,6 +154,41 @@ void stepLead(int delta) {
     showLead();
 }
 
+lv_obj_t *g_pageSub = nullptr;
+
+String pageUrl() {
+    String ip = net::snapshot().staIp;
+    return "http://" + (ip.length() ? ip : net::hostName() + ".local") + "/";
+}
+
+void showPageAddress() {
+    if (!g_pageSub) return;
+    lv_label_set_text(g_pageSub, (net::displayName() + " at " + pageUrl() +
+                                  "  -  addresses and feeds are typed there, with the code this screen shows.")
+                                     .c_str());
+}
+
+// Point a phone at it rather than typing an address.
+void showPageQr() {
+    lv_obj_t *mb = lv_msgbox_create(nullptr);
+    lv_msgbox_add_title(mb, net::displayName().c_str());
+    lv_obj_t *content = lv_msgbox_get_content(mb);
+    lv_obj_t *qr = lv_qrcode_create(content);
+    lv_qrcode_set_size(qr, S(220));
+    lv_qrcode_set_dark_color(qr, lv_color_hex(0x000000));
+    lv_qrcode_set_light_color(qr, lv_color_hex(0xFFFFFF));
+    String url = pageUrl();
+    lv_qrcode_update(qr, url.c_str(), url.length());
+    lv_obj_set_style_border_width(qr, S(6), 0);
+    lv_obj_set_style_border_color(qr, lv_color_hex(0xFFFFFF), 0);
+    lv_msgbox_add_text(mb, url.c_str());
+    lv_obj_t *ok = lv_msgbox_add_footer_button(mb, "Close");
+    lv_obj_set_width(mb, X(520));
+    lv_obj_set_style_text_font(mb, fonts::ui20, 0);
+    lv_obj_add_event_cb(ok, [](lv_event_t *e) { lv_msgbox_close((lv_obj_t *)lv_event_get_user_data(e)); },
+                        LV_EVENT_CLICKED, mb);
+}
+
 lv_obj_t *g_sourceDrop = nullptr;
 lv_obj_t *g_lyricsDrop = nullptr;
 lv_obj_t *g_lyricsSub = nullptr;
@@ -352,6 +387,10 @@ void buildRows() {
         if (g_hooks.openWifi) g_hooks.openWifi();
     });
     button(wifiBox, "Forget...", [](lv_event_t *) { confirmForgetWifi(); });
+
+    r = row("Settings page", nullptr, &g_pageSub);
+    showPageAddress();
+    button(r, "QR code", [](lv_event_t *) { showPageQr(); });
 
     r = row("Firmware", &g_fwTitle, &g_fwStatus);
     g_fwButton = button(r, "Check now", [](lv_event_t *) {

@@ -145,7 +145,9 @@ struct Snapshot {
 };
 
 void begin();                // starts the network task
-String hostName();           // "tft-panel-xxxx" (mDNS: tft-panel-xxxx.local, the update page)
+String hostName();           // "tft-panel-xxxx" (mDNS: tft-panel-xxxx.local, its web page)
+String macAddress();         // "94:a9:90:e9:f0:68", the one identity that never changes
+String displayName();        // "TFT Panel f068", what a person calls this one
 uint32_t version();          // bumps on every snapshot change (cheap to poll)
 Snapshot snapshot();         // copy under the lock
 

@@ -571,8 +571,17 @@ void startNews(const char *text) {
     lv_anim_start(&a);
 }
 
+// Anything that takes over the screen: the clock face is a full-screen layer, so unlike the
+// other views it would show through all of these.
+bool overlayOpen() {
+    return settingsui::isOpen() || wifiui::isOpen() || (board::HAS_LIBRARY && libui::isOpen()) ||
+           !isHidden(g_picker) || !isHidden(g_volPopup) || !isHidden(g_offPopup) || !isHidden(g_codePopup) ||
+           !isHidden(g_otaConfirm) || !isHidden(g_otaProgress);
+}
+
 // The clock face is shown when the panel has gone quiet, and whenever it is the chosen view.
 bool clockWanted() {
+    if (overlayOpen()) return false;
     if (g_view == View::Clock && !g_s.portalActive && !g_demo) return true;
     time_t t = time(nullptr);
     struct tm lt;
@@ -881,7 +890,9 @@ void buildCodePopup() {
     lv_obj_set_width(t, X(640));
     lv_label_set_long_mode(t, LV_LABEL_LONG_MODE_WRAP);
     lv_obj_set_style_text_align(t, LV_TEXT_ALIGN_CENTER, 0);
-    setText(t, "Firmware update from a browser\n\nType this code on the page to allow the upload (valid 5 minutes):");
+    // The same code guards the settings page and a firmware upload, and tells apart two panels
+    // on one network: it is shown here and nowhere else.
+    setText(t, "This panel's web page\n\nType this code there to allow the change (valid 5 minutes):");
     lv_obj_align(t, LV_ALIGN_CENTER, 0, -Y(110));
     g_codeValue = label(g_codePopup, fonts::clock, COL_TEXT);
     lv_obj_align(g_codeValue, LV_ALIGN_CENTER, 0, Y(10));

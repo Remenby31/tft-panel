@@ -36,8 +36,9 @@ void printStatus() {
                   o.error.length() ? (", " + o.error).c_str() : "", s.status.c_str());
     Serial.printf("[status] wifi ssid=\"%s\" ip=%s dns=%s,%s portal=%d ap=\"%s\"\n", st.wifiSsid.c_str(), s.staIp.c_str(),
                   WiFi.dnsIP(0).toString().c_str(), WiFi.dnsIP(1).toString().c_str(), s.portalActive, s.apSsid.c_str());
-    Serial.printf("[status] companion=%s (%s) token=%s\n", s.companion.c_str(),
-                  st.companionUrl.length() ? "manual" : "mDNS", st.accessToken.length() ? "set" : "none");
+    Serial.printf("[status] source=%s server=%s (%s) token=%s\n",
+                  settings::source() == settings::SourceKind::Direct ? "direct" : "companion",
+                  s.companion.c_str(), st.companionUrl.length() ? "manual" : "mDNS", st.accessToken.length() ? "set" : "none");
     Serial.printf("[status] zone=\"%s\" %s state=%s track=\"%s - %s\" pos=%d/%u ms\n", s.zoneName.c_str(),
                   s.zonePinned ? "pinned" : "auto", s.state.c_str(), s.artist.c_str(), s.title.c_str(),
                   (int)s.positionAt(millis()), (unsigned)s.durationMs);
@@ -50,7 +51,8 @@ void printStatus() {
                                          net::weather::describe(s.weather.code) + ", today " +
                                          String((int)s.weather.minC) + " to " + String((int)s.weather.maxC))
                                             .c_str()
-                                      : "off");
+                      : s.weather.problem.length() ? s.weather.problem.c_str()
+                                                   : "off");
         Serial.printf("[status] news %s\n", s.news.length() ? s.news.substring(0, 120).c_str() : "off");
     }
     Serial.printf("[status] screen %s, view %s (saved %s), backdrop=%d scroll=%d sleep=%d min, brightness %d %%, "

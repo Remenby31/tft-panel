@@ -46,6 +46,7 @@ void begin() {
     g_s.serverToken = read("srv_token");
     g_s.lyricsUrl = read("lyrics_url");
     g_s.lyricsToken = read("lyrics_tok");
+    g_s.webToken = read("web_tok");
     g_s.weatherPlace = read("weather");
     g_s.newsUrl = read("news");
     g_s.apPass = read("ap_pass");
@@ -153,6 +154,28 @@ void setLyricsToken(const String &token) {
     g_s.lyricsToken = token;
     xSemaphoreGive(g_lock);
     putString("lyrics_tok", token);
+}
+
+String webToken() {
+    xSemaphoreTake(g_lock, portMAX_DELAY);
+    String t = g_s.webToken;
+    xSemaphoreGive(g_lock);
+    if (t.length()) return t;
+    char buf[33];
+    for (int i = 0; i < 4; i++) snprintf(buf + i * 8, 9, "%08x", (unsigned)esp_random());
+    t = buf;
+    xSemaphoreTake(g_lock, portMAX_DELAY);
+    g_s.webToken = t;
+    xSemaphoreGive(g_lock);
+    putString("web_tok", t);
+    return t;
+}
+
+void forgetWebTokens() {
+    xSemaphoreTake(g_lock, portMAX_DELAY);
+    g_s.webToken = "";
+    xSemaphoreGive(g_lock);
+    putString("web_tok", "");
 }
 
 void setWeatherPlace(const String &place) {

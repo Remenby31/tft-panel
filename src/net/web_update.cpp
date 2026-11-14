@@ -1,5 +1,9 @@
 #include "web_update.h"
 
+#include "lyrics_source.h"
+#include "news.h"
+#include "weather.h"
+
 #include <ESPmDNS.h>
 #include <Update.h>
 #include <WebServer.h>
@@ -12,8 +16,10 @@
 #include "../board/board.h"
 #include "../board/board_pins.h"
 #include "../version.h"
+#include "net.h"
 #include "ota.h"
 #include "portal.h"
+#include "settings.h"
 
 namespace webupdate {
 namespace {
@@ -26,6 +32,46 @@ volatile bool g_shots = false;
 uint32_t g_codeAt = 0;
 bool g_uploadAllowed = false, g_uploadOk = false;
 String g_uploadError;
+
+const char SETTINGS_PAGE[] PROGMEM = R"HTML(<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1"><title>%NAME%</title>
+<style>body{font:17px/1.5 system-ui,sans-serif;max-width:560px;margin:32px auto;padding:0 16px;background:#15161a;color:#f6f4ee}
+h1{margin-bottom:2px}.who{color:#8a8b87;font-size:14px;margin-top:0}
+label{display:block;margin-top:18px}small{color:#8a8b87}
+input,select,button{font:inherit;width:100%;box-sizing:border-box;padding:10px;border-radius:8px;
+border:1px solid #2f3037;background:#202127;color:#f6f4ee;margin-top:4px}
+button{background:#6db56d;color:#15161a;border:0;margin-top:22px}
+.msg{background:#202127;border-left:3px solid #6db56d;padding:8px 12px;border-radius:4px}
+.warn{background:#202127;border-left:3px solid #d08a3e;padding:8px 12px;border-radius:4px;font-size:15px}
+.found{color:#8a8b87;font-size:15px;margin:6px 0 0}
+.bad{background:#2a1d1b;border-left:3px solid #d2605a;padding:8px 12px;border-radius:4px}
+.forget{margin-top:28px}.forget button{background:#2f3037;color:#c9cac6;width:auto;padding:6px 14px;margin:0}
+a{color:#6db56d}</style></head><body>
+<h1>%NAME%</h1><p class=who>%WHO%</p>
+%MSG%
+<form method=post action=/settings>
+%CODEROW%
+<label>Where the music information comes from
+<select name=source><option value=companion%CSEL%>The TextFromTrack companion</option>
+<option value=direct%DSEL%>The music server, directly</option></select></label>
+<label>Companion address <small>(empty = found on the network)</small>
+<input name=companion placeholder="http://192.168.1.20:3888" value="%COMPANION%"></label>
+<label>Companion access token <small>(only if it has one; empty leaves it unchanged)</small>
+<input name=token type=password autocomplete=off></label>
+<label>Lyrics <small>(empty = a companion on the network, <code>none</code> = no lyrics,
+ or the address of an LRCLIB-compatible server)</small>
+<input name=lyrics placeholder="http://192.168.1.30:3300" value="%LYRICS%"></label>
+<label>Lyrics server token <small>(only if it asks for one)</small>
+<input name=lyricstoken type=password autocomplete=off></label>
+<label>Weather town <small>(add a region or country if the name is shared:
+ <code>Montreal, Canada</code>, <code>Paris, Texas</code>, <code>Lyon, France</code>)</small>
+<input name=weather placeholder="Montreal" value="%WEATHER%"></label>%WNOTE%
+<label>News feed <small>(RSS or Atom, slid under the clock; empty = none)</small>
+<input name=news placeholder="https://example.com/rss" value="%NEWS%"></label>
+%BMSG%<button>Save</button></form>
+%FORGET%
+<p><small>Firmware update: <a href=/update>/update</a></small></p>
+</body></html>)HTML";
 
 const char PAGE[] PROGMEM = R"HTML(<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1"><title>TFT Panel update</title>
@@ -44,8 +90,45 @@ x.onload=()=>{msg.textContent=x.responseText};x.onerror=()=>{msg.textContent='Up
 x.open('POST','/update?code='+encodeURIComponent(code.value));x.send(fd);go.disabled=true}
 </script></body></html>)HTML";
 
+// The code lives on the panel's screen; it is also printed here, because a USB cable already
+// gives this console `token` and `erase-all` — and it is how you read the code screen-off.
+uint32_t newCode() {
+    g_code = 100000 + esp_random() % 900000;
+    g_codeAt = millis();
+    Serial.printf("[web] code %lu, good for %lu minutes\n", (unsigned long)g_code,
+                  (unsigned long)(CODE_VALID_MS / 60000));
+    return g_code;
+}
+
 bool codeValid(const String &typed) {
     return g_code && millis() - g_codeAt < CODE_VALID_MS && typed.toInt() == (long)g_code;
+}
+
+// A browser that typed the code once gets a cookie, so changing a setting later asks nothing.
+// The cookie is per panel (the token lives in that panel's NVS) and dies with `forget-wifi`,
+// `erase-all` or the Forget button on the page. Firmware upload always asks for a fresh code.
+bool g_trustedNow = false;      // set during the request that typed a correct code
+
+bool trustedBrowser() {
+    if (g_trustedNow) return true;
+    String cookies = g_server->header("Cookie");
+    if (!cookies.length()) return false;
+    String want = "tftpanel=" + settings::webToken();
+    for (int at = 0; at >= 0; ) {
+        int end = cookies.indexOf(';', at);
+        String one = end < 0 ? cookies.substring(at) : cookies.substring(at, end);
+        one.trim();
+        if (one == want) return true;
+        at = end < 0 ? -1 : end + 1;
+    }
+    return false;
+}
+
+void trustThisBrowser() {
+    g_trustedNow = true;        // so the page we are about to send already hides the code field
+    // Path=/ so /update sees it too (it still asks for a code), a month before typing again.
+    g_server->sendHeader("Set-Cookie", "tftpanel=" + settings::webToken() +
+                                           "; Max-Age=2592000; Path=/; SameSite=Lax; HttpOnly");
 }
 
 // Download-first boards (board_pins.h) collect the upload in PSRAM and write it once complete:
@@ -130,14 +213,170 @@ void handleUploadDone() {
     Serial.printf("[web] upload refused: %s\n", g_uploadError.c_str());
 }
 
+String esc(const String &in) {
+    String o;
+    o.reserve(in.length() + 8);
+    for (unsigned i = 0; i < in.length(); i++) {
+        char c = in[i];
+        if (c == '&') o += "&amp;";
+        else if (c == '<') o += "&lt;";
+        else if (c == '>') o += "&gt;";
+        else if (c == '"') o += "&quot;";
+        else o += c;
+    }
+    return o;
+}
+
+// Everything that has to be typed lives here; the choices that do not are on the panel itself.
+// Saving needs the code on its screen, so being on the network is not enough, and so the code
+// also tells you which panel you have open.
+void sendSettings(const String &message, bool error = false, bool keepTyped = false) {
+    bool trusted = trustedBrowser();
+    if (trusted) g_code = 0;        // nothing to type, so nothing on the panel's screen
+    else newCode();
+    settings::Settings st = settings::get();
+    // On a refusal the page comes back with what was typed, not with what is stored.
+    auto val = [&](const char *name, const String &stored) {
+        return keepTyped ? g_server->arg(name) : stored;
+    };
+    String h = FPSTR(SETTINGS_PAGE);
+    h.replace("%NAME%", esc(net::displayName()));
+    // Escaped part by part: the separator is markup, not text.
+    h.replace("%WHO%", esc(board::BOARD_NAME) + " &middot; " + esc(net::macAddress()) + " &middot; " +
+                           esc(WiFi.localIP().toString()) + " &middot; " + esc(FW_VERSION));
+    String box = message.length()
+                     ? "<p class=" + String(error ? "bad" : "msg") + ">" + esc(message) + "</p>"
+                     : String();
+    h.replace("%MSG%", box);
+    // A refusal is repeated beside the button: the top of the form is scrolled away by then.
+    h.replace("%BMSG%", error ? box : String());
+    h.replace("%CODEROW%",
+              trusted ? String("<p class=found>This browser is remembered, so no code is needed.</p>")
+                      : String("<label>Code shown on this panel's screen<input name=code "
+                               "inputmode=numeric maxlength=6 required autocomplete=off "
+                               "placeholder=\"6 digits\"></label>"));
+    h.replace("%FORGET%", trusted ? String("<form class=forget method=post action=/forget>"
+                                           "<button>Forget this browser</button></form>")
+                                  : String());
+    bool direct = (keepTyped ? g_server->arg("source") == "direct"
+                             : st.source == settings::SourceKind::Direct);
+    h.replace("%COMPANION%", esc(val("companion", st.companionUrl)));
+    h.replace("%CSEL%", direct ? "" : " selected");
+    h.replace("%DSEL%", direct ? " selected" : "");
+    h.replace("%LYRICS%", esc(val("lyrics", st.lyricsUrl)));
+    h.replace("%WEATHER%", esc(val("weather", st.weatherPlace)));
+    net::weather::Now w = net::snapshot().weather;
+    String note;
+    if (w.problem.length()) note = "<p class=warn>" + esc(w.problem) + "</p>";
+    else if (w.located.length()) note = "<p class=found>Showing " + esc(w.located) + "</p>";
+    h.replace("%WNOTE%", note);
+    h.replace("%NEWS%", esc(val("news", st.newsUrl)));
+    g_server->send(200, "text/html; charset=utf-8", h);
+}
+
+void handleSettingsSave() {
+    g_trustedNow = false;
+    bool trusted = trustedBrowser();
+    if (!trusted) {
+        if (!codeValid(g_server->arg("code"))) {
+            sendSettings("That code is wrong or has expired. Nothing was saved. The panel's screen "
+                         "shows a new code; what you typed is still here.",
+                         true, true);
+            return;
+        }
+        trustThisBrowser();         // typed once, not asked again on this browser
+    }
+    // A field the request does not carry is left alone: a partial form must not blank a setting.
+    settings::Settings was = settings::get();
+    auto arg = [](const char *name, const String &unsent = String()) {
+        if (!g_server->hasArg(name)) return unsent;
+        String v = g_server->arg(name);
+        v.trim();
+        return v;
+    };
+    String companion = arg("companion", was.companionUrl), lyrics = arg("lyrics", was.lyricsUrl),
+           weather = arg("weather", was.weatherPlace), news = arg("news", was.newsUrl);
+    if (companion.length() && !companion.startsWith("http://")) {
+        sendSettings("Nothing was saved. The companion address starts with http://", true, true);
+        return;
+    }
+    if (lyrics.length() && lyrics != "none" && !lyrics.startsWith("http")) {
+        sendSettings("Nothing was saved. The lyrics server starts with http:// or https://, or is the word none.", true, true);
+        return;
+    }
+    if (news.length() && !news.startsWith("http")) {
+        sendSettings("Nothing was saved. The news feed starts with http:// or https://", true, true);
+        return;
+    }
+    while (companion.endsWith("/")) companion.remove(companion.length() - 1);
+    while (lyrics.endsWith("/")) lyrics.remove(lyrics.length() - 1);
+
+    settings::SourceKind wanted = !g_server->hasArg("source") ? was.source
+                                  : arg("source") == "direct" ? settings::SourceKind::Direct
+                                                              : settings::SourceKind::Companion;
+    bool restart = wanted != settings::source() || companion != was.companionUrl;
+    // The answer names what moved, so a typo in a field you did not mean to touch shows up.
+    String changed;
+    auto note = [&changed](const char *what) {
+        if (changed.length()) changed += ", ";
+        changed += what;
+    };
+    if (wanted != was.source) note("music source");
+    if (companion != was.companionUrl) note("companion address");
+    if (arg("token").length()) note("companion token");
+    if (lyrics != was.lyricsUrl) note("lyrics");
+    if (arg("lyricstoken").length()) note("lyrics token");
+    if (weather != was.weatherPlace) note("weather town");
+    if (news != was.newsUrl) note("news feed");
+    settings::setCompanion(companion);
+    if (arg("token").length()) settings::setToken(arg("token"));
+    settings::setSource(wanted);
+    settings::setLyricsUrl(lyrics);
+    if (arg("lyricstoken").length()) settings::setLyricsToken(arg("lyricstoken"));
+    settings::setWeatherPlace(weather);
+    settings::setNewsUrl(news);
+    net::lyricsrc::forgetDiscovered();
+    net::weather::reset();
+    net::news::reset();
+    g_code = 0;
+
+    Serial.println("[web] settings saved from the web page");
+    if (restart) {
+        g_server->send(200, "text/html; charset=utf-8",
+                       String("<!doctype html><meta charset=utf-8><body style=\"font:17px system-ui;background:#15161a;"
+                              "color:#f6f4ee;max-width:560px;margin:32px auto;padding:0 16px\">") +
+                           "<h1>Saved</h1><p>" + esc(changed) +
+                           ".</p><p>The panel restarts to use its new source.</p>");
+        delay(300);
+        board::restart();
+        return;
+    }
+    sendSettings(changed.length() ? "Saved: " + changed + "." : "Nothing to change; all the fields "
+                                                                 "already said that.");
+}
+
+void handleForget() {
+    g_trustedNow = false;
+    if (!trustedBrowser() && !codeValid(g_server->arg("code"))) {
+        sendSettings("Nothing was forgotten: this browser was not remembered.", true, false);
+        return;
+    }
+    settings::forgetWebTokens();    // every remembered browser, not only this one
+    g_trustedNow = false;
+    g_server->sendHeader("Set-Cookie", "tftpanel=; Max-Age=0; Path=/");
+    Serial.println("[web] remembered browsers forgotten");
+    sendSettings("Forgotten. The next change asks for the code on the panel's screen.");
+}
+
 void start() {
     g_server = new WebServer(80);
-    g_server->on("/", HTTP_GET, []() {
-        g_server->send(200, "text/plain", String("TFT Panel ") + FW_VERSION + "\nFirmware upload: /update\n");
-    });
+    static const char *kHeaders[] = {"Cookie"};   // trustedBrowser() reads it
+    g_server->collectHeaders(kHeaders, 1);
+    g_server->on("/", HTTP_GET, []() { g_trustedNow = false; sendSettings(""); });
+    g_server->on("/settings", HTTP_POST, handleSettingsSave);
+    g_server->on("/forget", HTTP_POST, handleForget);
     g_server->on("/update", HTTP_GET, []() {
-        g_code = 100000 + esp_random() % 900000;   // shown on the panel, typed in the browser
-        g_codeAt = millis();
+        newCode();                                 // shown on the panel, typed in the browser
         String page = FPSTR(PAGE);
         page.replace("%VERSION%", FW_VERSION);
         g_server->send(200, "text/html", page);

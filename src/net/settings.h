@@ -25,6 +25,7 @@ struct Settings {
     // network, "none" = do without, anything else = an LRCLIB-compatible server's base URL.
     String lyricsUrl;
     String lyricsToken;    // bearer token, for a lyrics server that asks for one
+    String webToken;       // what a browser shows instead of typing the code again
     String weatherPlace;   // town shown on the idle clock; empty = no weather
     String newsUrl;        // RSS or Atom feed slid under the clock; empty = no headlines
     String apPass;         // setup AP password, generated once per device
@@ -55,6 +56,8 @@ void setServerHost(const String &hostPort);
 void setLyricsUrl(const String &url);
 void setLyricsToken(const String &token);
 void setWeatherPlace(const String &place);
+String webToken();            // created on the first correct code, kept until forgotten
+void forgetWebTokens();
 void setNewsUrl(const String &url);
 // Direct mode's pairing, kept per server so a different one asks again.
 void setPairing(const String &serverId, const String &token);
