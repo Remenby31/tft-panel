@@ -1449,16 +1449,23 @@ void onRefr(lv_event_t *e) {
     }
 }
 
+uint8_t g_scrollsLogged = 0;
+
 void scrollDone(lv_anim_t *) {
-    static uint8_t logged = 0;
-    if (logged >= 3) return;   // a few samples per boot, for tuning
-    logged++;
+    if (g_scrollsLogged >= 3) return;   // a few samples per boot (and per profileScrolls()), for tuning
+    g_scrollsLogged++;
     uint32_t ms = millis() - g_scrollStartedAt, fc, fus;
     board::flushStats(fc, fus);
     Serial.printf("[ui] scroll: %u steps in %u ms, %u refreshes %u ms, %u flushes %u ms\n", (unsigned)g_scrollFrames,
                   (unsigned)ms, (unsigned)g_refrCount, (unsigned)(g_refrUs / 1000), (unsigned)(fc - g_flushCount0),
                   (unsigned)((fus - g_flushUs0) / 1000));
 }
+
+}  // namespace
+
+void profileScrolls() { g_scrollsLogged = 0; }
+
+namespace {
 
 void tickLyrics(uint32_t now) {
     if (g_s.portalActive || g_s.lyricsStatus != net::LyricsStatus::Found || !g_s.lyrics) return;

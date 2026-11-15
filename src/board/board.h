@@ -61,6 +61,12 @@ void touchDiag();
 // Cumulative flush count and time (µs) spent copying into the framebuffer, for profiling.
 void flushStats(uint32_t &count, uint32_t &us);
 
+// How LVGL's strips reach the framebuffer, switchable live to compare on the hardware: "cpu"
+// (default), "dma" or "dma2" on the CrowPanel; the P4 boards have one way (the PPA). Returns ""
+// on success, else why not. Call from the LVGL thread.
+String setFlushMode(const char *name);
+const char *flushMode();
+
 // Static screen for firmware updates: while flash is written, PSRAM stalls and a refill from
 // the framebuffer would jerk the image, so the panel shows what is on screen now, kept in
 // internal RAM: text rows [textY0, textY1) as a 1-bit mask (sampled colours), plus a progress

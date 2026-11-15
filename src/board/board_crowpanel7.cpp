@@ -9,6 +9,8 @@
 #include <esp_timer.h>
 
 #include <Wire.h>
+#include <esp_async_memcpy.h>
+#include <esp_cache.h>
 #include <esp_flash.h>
 #include <esp_heap_caps.h>
 #include <esp_lcd_panel_ops.h>
@@ -34,10 +36,11 @@ lv_indev_t *g_indev = nullptr;
 volatile bool g_touchDown = false;
 volatile uint16_t g_touchX = 0, g_touchY = 0;
 
-// LVGL renders into one internal-RAM strip; flush copies it into the PSRAM framebuffer
-// owned by the RGB driver. The flush is a synchronous CPU copy, so a second strip would
-// buy no overlap: one 48-line strip (same RAM as 2 x 24) halves the passes over the text,
-// which dominate a full-stage redraw (profiled: ~105 ms render vs ~30 ms flush at 24 lines).
+// LVGL renders into internal-RAM strips; flush copies them into the PSRAM framebuffer owned by
+// the RGB driver. One 48-line strip halves the passes over the text against 24 lines, and those
+// dominate a full-stage redraw (profiled: ~105 ms render vs ~30 ms flush at 24 lines). A second
+// 48-line strip does not fit (internal RAM is what Wi-Fi needs), so the flush modes below share
+// these 48 lines, and only the hardware can say which one is fastest.
 constexpr int DRAW_BUF_LINES = 48;
 
 // Bounce buffers: the RGB DMA reads from internal SRAM, refilled from the PSRAM
@@ -179,16 +182,90 @@ bool createPanel() {
 
 volatile uint32_t g_flushCount = 0, g_flushUs = 0;
 
+// How LVGL's strips reach the framebuffer (console `flush`, for A/B on the hardware):
+//   cpu   one 48-line strip, synchronous memcpy (the measured default)
+//   dma   one 48-line strip, GDMA copy; LVGL still waits for it (is the DMA copy faster?)
+//   dma2  two 24-line strips in the same RAM: LVGL renders one while the GDMA copies the other
+// The dma modes widen every redrawn area to the full width: a strip is then one contiguous copy,
+// aligned as the GDMA needs (64-byte PSRAM bursts; a row is 1600 bytes), at the price of
+// rendering whole rows for a small widget.
+struct FlushMode {
+    const char *name;
+    int strips;
+    bool dma;
+};
+constexpr FlushMode FLUSH_MODES[] = {{"cpu", 1, false}, {"dma", 1, true}, {"dma2", 2, true}};
+const FlushMode *g_mode = &FLUSH_MODES[0];
+
+uint8_t *g_drawBuf = nullptr;
+constexpr size_t DRAW_BUF_BYTES = LCD_H_RES * DRAW_BUF_LINES * sizeof(uint16_t);
+constexpr size_t FB_BYTES = (size_t)LCD_H_RES * LCD_V_RES * sizeof(uint16_t);
+constexpr size_t GDMA_BURST = 64;
+static_assert(LCD_H_RES * sizeof(uint16_t) % GDMA_BURST == 0, "full-width strips must start on a GDMA burst");
+static_assert(DRAW_BUF_BYTES / 2 % GDMA_BURST == 0, "dma2's second strip must start on a GDMA burst");
+// The net task warns below this much free internal RAM; the DMA driver must not push it there.
+constexpr size_t MIN_FREE_INTERNAL = 20 * 1024;
+
+async_memcpy_handle_t g_mcp = nullptr;
+volatile bool g_copying = false;   // a strip is on its way by GDMA
+uint16_t *g_copyDst = nullptr;
+size_t g_copyBytes = 0;
+int64_t g_flushT0 = 0;
+
+// Cache maintenance over the framebuffer, 32 KB at a time: each call masks interrupts, and the
+// bounce-buffer refill must not wait long (a late refill shifts the image).
+void syncFramebuffer(int dir) {
+    constexpr size_t CHUNK = 32 * 1024;
+    for (size_t off = 0; off < FB_BYTES; off += CHUNK)
+        esp_cache_msync((uint8_t *)g_fb + off, std::min(CHUNK, FB_BYTES - off), dir);
+}
+
+// Before the CPU reads the framebuffer (screenshot, update screen): the last strip copied, and
+// no line cached while the GDMA wrote under it. Nothing to do in cpu mode.
+void settleFramebuffer() {
+    while (g_copying) delay(1);
+    if (g_mode->dma) syncFramebuffer(ESP_CACHE_MSYNC_FLAG_DIR_M2C);
+}
+
+bool copyDone(async_memcpy_handle_t, async_memcpy_event_t *, void *disp) {
+    // The driver invalidated these lines before the copy; the bounce refill may have cached some
+    // since, still holding the previous frame.
+    esp_cache_msync(g_copyDst, g_copyBytes, ESP_CACHE_MSYNC_FLAG_DIR_M2C);
+    g_flushUs += (uint32_t)(esp_timer_get_time() - g_flushT0);
+    g_flushCount++;
+    g_copying = false;
+    lv_display_flush_ready((lv_display_t *)disp);   // only clears a flag: fine from the GDMA interrupt
+    return false;
+}
+
 void flushCb(lv_display_t *disp, const lv_area_t *area, uint8_t *px) {
-    // Synchronous CPU copy into the PSRAM framebuffer (num_fbs = 1).
     int64_t t0 = esp_timer_get_time();
-    wb::apply((uint16_t *)px, (size_t)lv_area_get_width(area) * lv_area_get_height(area));
     const int w = lv_area_get_width(area);
+    wb::apply((uint16_t *)px, (size_t)w * lv_area_get_height(area));
+    uint16_t *dst = g_fb + area->y1 * LCD_H_RES;
+    const size_t n = (size_t)w * lv_area_get_height(area) * sizeof(uint16_t);
+    if (g_mode->dma && w == LCD_H_RES) {
+        g_flushT0 = t0;
+        g_copyDst = dst;
+        g_copyBytes = n;
+        g_copying = true;
+        if (esp_async_memcpy(g_mcp, dst, px, n, copyDone, disp) == ESP_OK) return;
+        g_copying = false;
+    }
     const uint16_t *src = (const uint16_t *)px;
     for (int y = area->y1; y <= area->y2; y++, src += w) memcpy(g_fb + y * LCD_H_RES + area->x1, src, w * 2);
+    // In a dma mode (an area invalidated before the switch, or a refused copy): written back now,
+    // or a dirty line evicted later would land over a newer GDMA copy.
+    if (g_mode->dma) esp_cache_msync(dst, n, ESP_CACHE_MSYNC_FLAG_DIR_C2M | ESP_CACHE_MSYNC_FLAG_UNALIGNED);
     g_flushUs += (uint32_t)(esp_timer_get_time() - t0);
     g_flushCount++;
     lv_display_flush_ready(disp);
+}
+
+void roundToFullWidth(lv_event_t *e) {
+    lv_area_t *a = (lv_area_t *)lv_event_get_param(e);
+    a->x1 = 0;
+    a->x2 = LCD_H_RES - 1;
 }
 
 void touchReadCb(lv_indev_t *, lv_indev_data_t *data) {
@@ -215,16 +292,16 @@ bool createLvgl() {
     lv_init();
     lv_tick_set_cb([]() -> uint32_t { return millis(); });
 
-    const size_t bufBytes = LCD_H_RES * DRAW_BUF_LINES * sizeof(uint16_t);
-    void *buf1 = heap_caps_malloc(bufBytes, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
-    if (!buf1) {
+    // 64-byte aligned: the GDMA reads the strips' rows in the dma modes.
+    g_drawBuf = (uint8_t *)heap_caps_aligned_alloc(64, DRAW_BUF_BYTES, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
+    if (!g_drawBuf) {
         g_info.error = "LVGL draw buffers: out of internal RAM";
         return false;
     }
 
     g_disp = lv_display_create(LCD_H_RES, LCD_V_RES);
     lv_display_set_color_format(g_disp, LV_COLOR_FORMAT_RGB565);
-    lv_display_set_buffers(g_disp, buf1, nullptr, bufBytes, LV_DISPLAY_RENDER_MODE_PARTIAL);
+    lv_display_set_buffers(g_disp, g_drawBuf, nullptr, DRAW_BUF_BYTES, LV_DISPLAY_RENDER_MODE_PARTIAL);
     lv_display_set_flush_cb(g_disp, flushCb);
 
     if (g_info.touch) {
@@ -412,6 +489,7 @@ const Info &info() { return g_info; }
 lv_display_t *display() { return g_disp; }
 
 const uint16_t *frameBuffer() {
+    settleFramebuffer();
     return g_fb;
 }
 
@@ -419,6 +497,52 @@ void flushStats(uint32_t &count, uint32_t &us) {
     count = g_flushCount;
     us = g_flushUs;
 }
+
+String setFlushMode(const char *name) {
+    const FlushMode *m = nullptr;
+    for (const FlushMode &f : FLUSH_MODES)
+        if (!strcmp(f.name, name)) m = &f;
+    if (!m) return "unknown flush mode (cpu, dma, dma2)";
+    if (m == g_mode || !g_disp) return "";
+    while (g_copying) delay(1);   // the last strip of the previous frame may still be on its way
+
+    if (m->dma && !g_mcp) {
+        async_memcpy_config_t cfg = ASYNC_MEMCPY_DEFAULT_CONFIG();
+        cfg.backlog = 2;   // one strip in flight at a time
+        cfg.dma_burst_size = GDMA_BURST;
+        esp_err_t err = esp_async_memcpy_install(&cfg, &g_mcp);
+        if (err != ESP_OK) {
+            g_mcp = nullptr;
+            return String("GDMA copy driver: ") + esp_err_to_name(err);
+        }
+        size_t freeInternal = heap_caps_get_free_size(MALLOC_CAP_INTERNAL);
+        if (freeInternal < MIN_FREE_INTERNAL) {
+            esp_async_memcpy_uninstall(g_mcp);
+            g_mcp = nullptr;
+            return String("not enough internal RAM left for the GDMA driver (") + (unsigned)(freeInternal / 1024) +
+                   " KB free, needs " + (unsigned)(MIN_FREE_INTERNAL / 1024) + " KB)";
+        }
+        // Pixels the CPU wrote are still in the cache: to PSRAM before the GDMA writes under them.
+        syncFramebuffer(ESP_CACHE_MSYNC_FLAG_DIR_C2M);
+    } else if (!m->dma && g_mcp) {
+        esp_async_memcpy_uninstall(g_mcp);
+        g_mcp = nullptr;
+        // Lines the bounce refill cached while the GDMA wrote under them: drop them before the CPU
+        // writes partial lines (and writes the stale rest back).
+        syncFramebuffer(ESP_CACHE_MSYNC_FLAG_DIR_M2C);
+    }
+
+    lv_display_remove_event_cb_with_user_data(g_disp, roundToFullWidth, nullptr);
+    if (m->dma) lv_display_add_event_cb(g_disp, roundToFullWidth, LV_EVENT_INVALIDATE_AREA, nullptr);
+    const size_t stripBytes = DRAW_BUF_BYTES / m->strips;
+    lv_display_set_buffers(g_disp, g_drawBuf, m->strips > 1 ? g_drawBuf + stripBytes : nullptr, stripBytes,
+                           LV_DISPLAY_RENDER_MODE_PARTIAL);
+    g_mode = m;
+    lv_obj_invalidate(lv_display_get_screen_active(g_disp));
+    return "";
+}
+
+const char *flushMode() { return g_mode->name; }
 
 bool lastTouch(uint16_t &x, uint16_t &y) {
     x = g_touchX;
@@ -430,6 +554,7 @@ uint32_t luma(uint16_t c) { return ((c >> 11) & 0x1F) * 2 + ((c >> 5) & 0x3F) * 
 
 void staticScreenBegin(const StaticScreen &s) {
     if (g_static.on || !g_fb) return;
+    settleFramebuffer();
     int ty0 = std::max(0, s.textY0), ty1 = std::min(LCD_V_RES, s.textY1);
     size_t maskBytes = (size_t)(ty1 - ty0) * (LCD_H_RES / 8);
     uint8_t *mask = (uint8_t *)heap_caps_calloc(1, maskBytes, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
