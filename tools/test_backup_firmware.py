@@ -12,7 +12,8 @@ PIECE = backup.BOARDS[("ESP32-P4", 16)].piece
 
 
 class FakeBoard:
-    """`stops[offset]` = how many reads at that offset die early, as the VIEWE's CH340 does."""
+    """`stops[offset]` = how many reads at that offset come back short yet exit 0: the size, not
+    the exit code, is what proves a piece arrived (a real stop exits 2 and leaves no file)."""
 
     def __init__(self, flash, stops=None):
         self.flash, self.stops, self.reads = flash, dict(stops or {}), []
@@ -24,7 +25,7 @@ class FakeBoard:
         self.stops[off] = self.stops.get(off, 0) - 1
         with open(path, "wb") as f:
             f.write(self.flash[off:off + (1000 if cut else length)])
-        return (2 if cut else 0), ""
+        return 0, ""
 
 
 class Backup(unittest.TestCase):
