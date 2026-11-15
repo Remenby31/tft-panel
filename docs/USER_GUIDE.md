@@ -15,8 +15,9 @@ zones and cover are invented.*
 - One of these screens, and a USB-C cable that carries data:
   - **Elecrow CrowPanel ESP32 Display 7.0"** (DIS08070H), board **V3.0**;
   - **Waveshare ESP32-P4-WIFI6-Touch-LCD-7B** (1024×600);
-  - **VIEWE ESP32-P4 7"** (UEP4S070H1024V600C-WB-C, 1024×600) — flashed from a computer for now,
-    because the web installer cannot yet tell the two ESP32-P4 boards apart.
+  - **VIEWE ESP32-P4 7"** (UEP4S070H1024V600C-WB-C, 1024×600) — this one is flashed from a computer
+    the first time, because the web installer cannot yet tell the two ESP32-P4 boards apart. Every
+    release carries its firmware, and it updates over the air afterwards like the others.
 
   Other screens are not supported, even look-alikes with the same ESP32-P4 chip and the same display
   controller (for example the Guition JC1060P470C): their display needs different settings, and the

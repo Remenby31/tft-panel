@@ -4,7 +4,8 @@
 #   tools/release.sh v0.1.0 "Short release notes"
 #
 # Assets, per board (what the panels' OTA and the web installer expect); <base> is the board's
-# BOARD_ASSET: tft-panel (CrowPanel, the first board kept the plain name), tft-panel-waveshare-p4-7b.
+# BOARD_ASSET: tft-panel (CrowPanel, the first board kept the plain name),
+# tft-panel-waveshare-p4-7b, tft-panel-p4-s070-wba.
 #   <base>-<tag>.bin          app image, installed over the air
 #   <base>-<tag>.sha256       its SHA-256 ("<hex>  <file>"), checked before the image is committed
 #   <base>-<tag>-factory.bin  bootloader + partitions + app, for a manual flash at the bootloader offset
@@ -31,10 +32,17 @@ if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then echo "tag $tag al
 git tag -a "$tag" -m "TFT Panel $tag"
 trap 'echo "failed: removing local tag $tag" >&2; git tag -d "$tag" >/dev/null' ERR
 
-# env  asset-base  chip-family  bootloader-offset
+# env  asset-base  chip-family  bootloader-offset  in-the-browser-installer
 boards=(
-    "crowpanel7 tft-panel ESP32-S3 0"
-    "waveshare-p4-7b tft-panel-waveshare-p4-7b ESP32-P4 8192"
+    "crowpanel7 tft-panel ESP32-S3 0 1"
+    "waveshare-p4-7b tft-panel-waveshare-p4-7b ESP32-P4 8192 1"
+    # Ships its files - so a VIEWE updates over the air and from its own page like any other
+    # panel - but stays out of the browser installer: ESP Web Tools picks a build by chip alone,
+    # and a second ESP32-P4 entry would hand one of the two screens the other's image and leave
+    # it dark. It joins the installer the day that page can ask which screen is connected.
+    # Built last: it shares the P4 framework with the Waveshare, so only one switch to the
+    # CrowPanel's custom_sdkconfig rebuild.
+    "p4-s070-wba tft-panel-p4-s070-wba ESP32-P4 8192 0"
 )
 out="dist/$tag"
 fw="$out/site-fw"   # the web installer's files (tools/site.sh)
@@ -45,7 +53,7 @@ builds=""
 # other environment can wipe .pio/build. Alternating environments makes it redo the CrowPanel's
 # (custom_sdkconfig), whose first pass can fail on a missing .sconsign file: one retry.
 for b in "${boards[@]}"; do
-    read -r env base chip boot <<<"$b"
+    read -r env base chip boot web <<<"$b"
     "$pio" run -e "$env" || "$pio" run -e "$env"
     version=$(grep -o '"v[^"]*"' src/generated/version.cpp | tr -d '"')
     [[ "$version" == "$tag" ]] || { echo "built version $version is not $tag" >&2; false; }
@@ -55,18 +63,20 @@ for b in "${boards[@]}"; do
     assets+=("$out/$base-$tag.bin" "$out/$base-$tag.sha256" "$out/$base-$tag-factory.bin")
     # Web installer: four parts, not the merged factory image, which fills the gap over NVS
     # (0x9000) with 0xFF and would wipe the Wi-Fi and settings of a panel being reinstalled.
-    cp ".pio/build/$env/bootloader.bin" "$fw/$env-bootloader.bin"
-    cp ".pio/build/$env/partitions.bin" "$fw/$env-partitions.bin"
-    cp "$HOME/.platformio/packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin" "$fw/$env-boot_app0.bin"
-    cp "$out/$base-$tag.bin" "$fw/"
-    [[ -z "$builds" ]] || builds+=","
-    builds+="
+    if [[ "$web" == 1 ]]; then
+        cp ".pio/build/$env/bootloader.bin" "$fw/$env-bootloader.bin"
+        cp ".pio/build/$env/partitions.bin" "$fw/$env-partitions.bin"
+        cp "$HOME/.platformio/packages/framework-arduinoespressif32/tools/partitions/boot_app0.bin" "$fw/$env-boot_app0.bin"
+        cp "$out/$base-$tag.bin" "$fw/"
+        [[ -z "$builds" ]] || builds+=","
+        builds+="
     { \"chipFamily\": \"$chip\", \"parts\": [
       { \"path\": \"$env-bootloader.bin\", \"offset\": $boot },
       { \"path\": \"$env-partitions.bin\", \"offset\": 32768 },
       { \"path\": \"$env-boot_app0.bin\", \"offset\": 57344 },
       { \"path\": \"$base-$tag.bin\", \"offset\": 65536 }
     ] }"
+    fi
 done
 # ESP Web Tools picks the build matching the chip it finds on the port.
 cat > "$fw/manifest.json" <<MANIFEST

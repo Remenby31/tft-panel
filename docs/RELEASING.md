@@ -14,7 +14,7 @@ tag. It then:
 1. tags, builds each board's environment, and checks that the built version is exactly the tag;
 2. writes `dist/<tag>/`, per board, with `<base>` = the board's `BOARD_ASSET`: `tft-panel` for
    the CrowPanel (the first board kept the plain name, which its panels already look for),
-   `tft-panel-waveshare-p4-7b` for the Waveshare:
+   `tft-panel-waveshare-p4-7b` for the Waveshare, `tft-panel-p4-s070-wba` for the VIEWE:
    - `<base>-<tag>.bin` — app image, what the panels install over the air;
    - `<base>-<tag>.sha256` — `<hex>  <file>`; the panel compares it before committing the image;
    - `<base>-<tag>-factory.bin` — bootloader + partition table + app (PlatformIO's
@@ -23,7 +23,10 @@ tag. It then:
 4. publishes the website with `tools/site.sh` (landing page, user guide rendered from
    `docs/USER_GUIDE.md`, installer page): an orphan `gh-pages` commit with the HTML,
    `manifest.json` (one build per chip family: ESP Web Tools picks the one matching the chip on
-   the port), and per board its bootloader, partition table, `boot_app0` and app — latest version only,
+   the port — which is why the VIEWE, an ESP32-P4 like the Waveshare, ships its release files but is
+   left out of the manifest: a second entry for that chip would give one of the two screens the
+   other's image. The board list's last column says which boards the installer carries), and per
+   board its bootloader, partition table, `boot_app0` and app — latest version only,
    so binaries never pile up in git. Four parts rather than the merged factory image: the merged
    image fills the NVS area (0x9000) with 0xFF and would wipe a reinstalled panel's Wi-Fi and
    settings (the installer's own "erase" choice still wipes everything for a fresh start).

@@ -65,9 +65,11 @@ other mode, and the panel asks nothing of Roon then.
 
 The interface is drawn on an 800×480 grid and scaled to the screen, so both look the same.
 
-The two ESP32-P4 boards are flashed over USB for now: the web installer picks the firmware by chip, so
-it cannot yet tell them apart — it gives any ESP32-P4 board the Waveshare one, which would leave a VIEWE
-screen dark.
+The **VIEWE** is the one board the browser installer cannot do: it picks the firmware by chip, and both
+ESP32-P4 screens answer to the same one, so it would hand a VIEWE the Waveshare image and leave it dark.
+Flash a VIEWE from a computer the first time (`pio run -e p4-s070-wba -t upload`, or the
+`tft-panel-p4-s070-wba-<tag>-factory.bin` published with each release). After that it updates over the
+air and from its own page like every other panel, from its own file in the release.
 
 **Other screens are not supported**, even with the same chip and the same LCD controller: the
 Guition JC1060P470C has the JD9165 of the VIEWE board and a different pin map, and the VIEWE bring-up
