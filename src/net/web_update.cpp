@@ -53,8 +53,9 @@ a{color:#6db56d}</style></head><body>
 <form method=post action=/settings>
 %CODEROW%
 <label>Where the music information comes from
-<select name=source><option value=companion%CSEL%>The TextFromTrack companion</option>
-<option value=direct%DSEL%>The music server, directly</option></select></label>
+<select name=source><option value=auto%ASEL%>Whatever the panel finds on the network</option>
+<option value=companion%CSEL%>The TextFromTrack companion</option>
+<option value=direct%DSEL%>The music server, directly</option></select></label>%SNOTE%
 <label>Companion address <small>(empty = found on the network)</small>
 <input name=companion placeholder="http://192.168.1.20:3888" value="%COMPANION%"></label>
 <label>Companion access token <small>(only if it has one; empty leaves it unchanged)</small>
@@ -343,11 +344,13 @@ void sendSettings(const String &message, bool error = false, bool keepTyped = fa
     h.replace("%FORGET%", trusted ? String("<form class=forget method=post action=/forget>"
                                            "<button>Forget this browser</button></form>")
                                   : String());
-    bool direct = (keepTyped ? g_server->arg("source") == "direct"
-                             : st.source == settings::SourceKind::Direct);
+    settings::SourceKind shown = keepTyped ? sourcechoice::parse(g_server->arg("source").c_str()) : st.source;
     h.replace("%COMPANION%", esc(val("companion", st.companionUrl)));
-    h.replace("%CSEL%", direct ? "" : " selected");
-    h.replace("%DSEL%", direct ? " selected" : "");
+    h.replace("%ASEL%", shown == settings::SourceKind::Auto ? " selected" : "");
+    h.replace("%CSEL%", shown == settings::SourceKind::Companion ? " selected" : "");
+    h.replace("%DSEL%", shown == settings::SourceKind::Direct ? " selected" : "");
+    String found = st.source == settings::SourceKind::Auto ? net::snapshot().sourceNote : String();
+    h.replace("%SNOTE%", found.length() ? "<p class=found>" + esc(found) + "</p>" : String());
     h.replace("%LYRICS%", esc(val("lyrics", st.lyricsUrl)));
     h.replace("%WEATHER%", esc(val("weather", st.weatherPlace)));
     net::weather::Now w = net::snapshot().weather;
@@ -401,9 +404,7 @@ void handleSettingsSave() {
     while (companion.endsWith("/")) companion.remove(companion.length() - 1);
     while (lyrics.endsWith("/")) lyrics.remove(lyrics.length() - 1);
 
-    settings::SourceKind wanted = !g_server->hasArg("source") ? was.source
-                                  : arg("source") == "direct" ? settings::SourceKind::Direct
-                                                              : settings::SourceKind::Companion;
+    settings::SourceKind wanted = !g_server->hasArg("source") ? was.source : sourcechoice::parse(arg("source").c_str());
     bool restart = wanted != settings::source() || companion != was.companionUrl;
     // The answer names what moved, so a typo in a field you did not mean to touch shows up.
     String changed;

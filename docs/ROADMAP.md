@@ -164,8 +164,10 @@ with that, and lyrics became a section. What is still missing to be a credible r
 - [ ] Zone grouping / ungrouping (the protocol has it, neither client uses it yet)
 - [ ] Scrub on the progress bar (`tft-core-client` has `seek()`, the UI does not expose it)
 - [ ] Output standby and convenience switch
-- [ ] First run should not ask "companion or direct": the panel can look for both and say what it
+- [x] First run should not ask "companion or direct": the panel can look for both and say what it
       found, so a newcomer never has to understand the project's history to hear music
+      (`source auto`, the default on a new panel; a panel updated from an earlier release keeps the
+      companion it was using)
 
 🪤 None of this fits the CrowPanel: it is at 95.4 % of its OTA slot, 91 KiB left. These are P4
 screens; the S3 stays the panel it already is.

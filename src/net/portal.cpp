@@ -78,6 +78,8 @@ void sendForm(const String &error, const String &typedSsid = String()) {
          String(s.accessToken.length() ? "set — unchanged if left empty" : "") + "\"></label>"
          "<label>Where the music information comes from"
          "<select name=source>"
+         "<option value=auto" + String(s.source == settings::SourceKind::Auto ? " selected" : "") +
+         ">Whatever the panel finds on the network</option>"
          "<option value=companion" + String(s.source == settings::SourceKind::Companion ? " selected" : "") +
          ">The TextFromTrack companion</option>"
          "<option value=direct" + String(s.source == settings::SourceKind::Direct ? " selected" : "") +
@@ -128,8 +130,7 @@ void handleSave() {
     settings::setWifi(ssid, pass);
     settings::setCompanion(companion);
     if (token.length()) settings::setToken(token);
-    if (source.length()) settings::setSource(source == "direct" ? settings::SourceKind::Direct
-                                                                : settings::SourceKind::Companion);
+    if (source.length()) settings::setSource(sourcechoice::parse(source.c_str()));
     settings::setLyricsUrl(lyrics);
     if (lyricsToken.length()) settings::setLyricsToken(lyricsToken == "none" ? "" : lyricsToken);
 

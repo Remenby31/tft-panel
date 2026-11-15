@@ -91,6 +91,7 @@ struct Snapshot {
 
     String staIp;
     String companion;         // base URL in use, empty if none yet
+    String sourceNote;        // what the automatic choice found; empty when chosen by hand
 
     // Last Wi-Fi scan (setup portal, on-screen Wi-Fi setup). `networksSerial` changes with it.
     std::shared_ptr<const std::vector<WifiNet>> networks;
