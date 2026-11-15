@@ -60,8 +60,10 @@
   <ol>
     <li>Use <b>Chrome or Edge on a computer</b> (Windows, macOS, Linux). Phones and Safari/Firefox cannot do this.</li>
     <li>Connect the panel's <b>USB-C</b> port to the computer with a cable that carries data.</li>
-    <li>Pick your screen above, then click <b>Install</b>, choose the serial port and confirm. It takes
-      about 3 minutes on the CrowPanel, about 1 minute on the ESP32-P4 boards.
+    <li>Pick your screen above, then click <b>Connect</b> and choose the serial port. The dialog that
+      opens offers <b>Install</b> and names the screen you picked — a last chance to check it is the
+      one in front of you. It takes about 3 minutes on the CrowPanel, about 1 minute on the ESP32-P4
+      boards.
       <ul>
         <li>CrowPanel: <i>USB Serial</i> / <i>CH340</i> / <i>usbserial</i></li>
         <li>Waveshare: use the USB-C port <i>USB 1.1</i> (not <i>USB to UART</i>); the port is <i>USB JTAG/serial debug unit</i> / <i>usbmodem</i></li>
@@ -92,10 +94,7 @@
       const m = 'manifest-' + e.target.value + '.json';
       b.setAttribute('manifest', m);   // and the property: the element may read either
       b.manifest = m;
-      // Named "Install", because that is what this page and the guide tell people to click;
-      // the library's own default label is "Connect".
-      b.innerHTML = '<button slot="activate">Install</button>'
-                  + '<span slot="unsupported">This browser cannot flash devices: please open this page in Chrome or Edge on a computer.</span>'
+      b.innerHTML = '<span slot="unsupported">This browser cannot flash devices: please open this page in Chrome or Edge on a computer.</span>'
                   + '<span slot="not-allowed">Flashing needs a secure page (https).</span>';
       document.getElementById('install').replaceChildren(b);
     });

@@ -61,7 +61,8 @@ already flashed and the screen stayed black, plug in the USB cable and read the 
 2. **Say which screen you have.** The page asks, because it only sees the chip and two of the three
    boards answer to the same one — picking for you would risk leaving a panel dark.
 3. Connect the panel with the USB-C cable — on the Waveshare, the port marked **USB 1.1** — click
-   **Install**, pick the serial port and confirm. It takes about 3 minutes on the CrowPanel, about a
+   **Connect** and pick the serial port. The dialog then offers **Install**, and names the screen you
+   chose, so you can check it one last time. It takes about 3 minutes on the CrowPanel, about a
    minute on the ESP32-P4 boards.
    - CrowPanel and VIEWE: the port is called *USB Serial*, *CH340* or *usbserial*.
    - Waveshare: *USB JTAG/serial debug unit* or *usbmodem*.
