@@ -11,7 +11,7 @@ sim/shoot.sh /tmp/shots lyrics,volume,zones    # another folder, other screens
 
 A screen name is anything the console's `show` command takes: `lyrics`, `cover`, `clockview`,
 `controls`, `settings`, `colours`, `volume`, `offset`, `zones`, `clock`, `update`, `confirm`,
-`progress`, `setup`, `searching`, `library`, `library-actions`, `wifi`, `wifi-password`, `code`.
+`progress`, `setup`, `searching`, `found-companion`, `pairing`, `library`, `library-actions`, `wifi`, `wifi-password`, `code`.
 Files are named `<screen>-<width>x<height>.png`. An unknown name fails the run (exit code 1),
 so does an empty list.
 
