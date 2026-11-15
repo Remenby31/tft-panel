@@ -18,7 +18,7 @@
 
 namespace net {
 
-enum class CmdType : uint8_t { Control, Volume, Zone, VolumeSet, Mute, Offset, Library, Queue };
+enum class CmdType : uint8_t { Control, Volume, Zone, VolumeSet, Mute, Offset, Library, Queue, Group };
 
 // A user action, queued from the UI so a tap never blocks it.
 struct Command {
@@ -96,6 +96,13 @@ class Source {
     virtual internal::HttpResult playFromHere(const String &zoneId, uint32_t queueItemId) {
         (void)zoneId, (void)queueItemId;
         return {501, "", "no queue with this source"};
+    }
+
+    // --- Zone grouping (HAS_GROUPING boards) ---
+    // Groups the outputs (the first one's queue plays on), or ungroups them.
+    virtual internal::HttpResult groupOutputs(const std::vector<String> &outputIds, bool group) {
+        (void)outputIds, (void)group;
+        return {501, "", "no grouping with this source"};
     }
 
     // Full URL of a cover at `px` pixels, empty when there is nothing to fetch. Built on the net

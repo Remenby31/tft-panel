@@ -336,6 +336,16 @@ void onPickZone(lv_event_t *e) {
     showControls(false);
 }
 
+// Group / Ungroup on a zone row: the user data is the row's index in g_pickerIds.
+void onGroupZone(lv_event_t *e, bool join) {
+    intptr_t i = (intptr_t)lv_event_get_user_data(e);
+    if (live() && i >= 0 && i < (intptr_t)g_pickerIds.size()) net::groupZone(g_pickerIds[i], join);
+    closePicker();   // the zone button shows the group's name once the zone list has it
+    showControls(false);
+}
+void onGroup(lv_event_t *e) { onGroupZone(e, true); }
+void onUngroup(lv_event_t *e) { onGroupZone(e, false); }
+
 void fillPicker() {
     lv_obj_clean(g_pickerList);
     g_pickerIds.clear();
@@ -347,19 +357,39 @@ void fillPicker() {
         lv_obj_set_style_bg_color(b, lv_color_hex(0x18181B), 0);
         lv_obj_set_style_bg_color(b, lv_color_hex(0x2C2C30), LV_STATE_PRESSED);
         lv_obj_set_style_pad_ver(b, Y(16), 0);
+        lv_obj_set_flex_flow(b, LV_FLEX_FLOW_ROW);
+        lv_obj_set_flex_align(b, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
         lv_obj_t *l = label(b, fonts::ui20, current ? COL_ACCENT : COL_TEXT);
-        lv_obj_set_width(l, lv_pct(100));
+        lv_obj_set_flex_grow(l, 1);
         marquee(l);
         setText(l, ((current ? String(LV_SYMBOL_OK "  ") : String("     ")) + text).c_str());
         lv_obj_add_event_cb(b, onPickZone, LV_EVENT_CLICKED, (void *)(intptr_t)g_pickerIds.size());
         g_pickerIds.push_back(id);
+        return b;
     };
+    // A small button at the end of a zone row; a tap on it does not pick the zone.
+    auto groupButton = [](lv_obj_t *row, const char *text, bool join) {
+        lv_obj_t *g = lv_button_create(row);
+        lv_obj_set_style_radius(g, S(18), 0);
+        lv_obj_set_style_shadow_width(g, 0, 0);
+        lv_obj_set_style_bg_color(g, lv_color_hex(0x2C2C30), 0);
+        lv_obj_set_style_bg_color(g, lv_color_hex(COL_ACCENT), LV_STATE_PRESSED);
+        lv_obj_set_style_pad_hor(g, X(16), 0);
+        lv_obj_set_style_pad_ver(g, Y(8), 0);
+        lv_obj_center(label(g, fonts::ui16, COL_TEXT));
+        setText(lv_obj_get_child(g, 0), text);
+        lv_obj_add_event_cb(g, join ? onGroup : onUngroup, LV_EVENT_CLICKED, (void *)(intptr_t)(g_pickerIds.size() - 1));
+    };
+    bool grouping = board::HAS_GROUPING && settings::source() == settings::SourceKind::Companion;
     add("", "Follow the playing zone (auto)", !g_s.zonePinned);
     if (!g_s.zones) return;
     for (const net::ZoneInfo &z : *g_s.zones) {
         String t = z.name + "  -  " + z.state;
         if (z.title.length()) t += "  -  " + z.title + (z.artist.length() ? " (" + z.artist + ")" : "");
-        add(z.id, t, g_s.zonePinned && z.id == g_s.zoneId);
+        lv_obj_t *row = add(z.id, t, g_s.zonePinned && z.id == g_s.zoneId);
+        if (!grouping) continue;
+        if (z.outputIds.size() > 1) groupButton(row, "Ungroup", false);
+        else if (z.id != g_s.zoneId) groupButton(row, LV_SYMBOL_PLUS "  Group", true);
     }
 }
 

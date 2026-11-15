@@ -15,6 +15,7 @@
 #include "coprocessor.h"
 #include "library.h"
 #include "queue.h"
+#include "zone_group.h"
 #include "net_internal.h"
 #include "ota.h"
 #include "portal.h"
@@ -623,6 +624,29 @@ namespace {
 
 // ---- User commands ----
 
+// The outputs come from the zone list as it is now, not as the picker showed it.
+void runGroup(const String &zoneId, bool join) {
+    xSemaphoreTake(g_lock, portMAX_DELAY);
+    auto zones = g_snap.zones;   // keeps the list alive while `host` and `target` point into it
+    String followed = g_snap.zoneId;
+    xSemaphoreGive(g_lock);
+    if (!zones) return;
+    const ZoneInfo *host = nullptr, *target = nullptr;
+    for (const ZoneInfo &z : *zones) {
+        if (z.id == followed) host = &z;
+        if (z.id == zoneId) target = &z;
+    }
+    std::vector<String> ids;
+    if (target) ids = join ? (host ? group::joinOutputs(host->outputIds, target->outputIds) : ids)
+                           : group::splitOutputs(target->outputIds);
+    if (ids.empty()) {
+        Serial.printf("[net] %s %s: nothing to do\n", join ? "group" : "ungroup", zoneId.c_str());
+        return;
+    }
+    HttpResult r = source().groupOutputs(ids, join);
+    if (r.code != 200) internal::commandFailed(join ? "Group" : "Ungroup", r);
+}
+
 // A queued user action: the library, the queue and the zone choice are the panel's own business,
 // everything else is the source's.
 void handleCommand(const Command &c) {
@@ -632,6 +656,10 @@ void handleCommand(const Command &c) {
     }
     if (c.type == CmdType::Queue) {
         if (board::HAS_QUEUE) q::run((QueueOp)c.direction, (uint32_t)strtoul(c.arg, nullptr, 10));
+        return;
+    }
+    if (c.type == CmdType::Group) {
+        if (board::HAS_GROUPING) runGroup(String(c.arg), c.direction > 0);
         return;
     }
     if (c.type == CmdType::Zone) {
@@ -884,6 +912,9 @@ void mute(bool on) { enqueue(CmdType::Mute, nullptr, on ? 1 : 0); }
 void setOffset(int32_t ms) { enqueue(CmdType::Offset, nullptr, 0, (float)ms); }
 void library(LibOp op, int index, const String &text) {
     if (board::HAS_LIBRARY) enqueue(CmdType::Library, text.c_str(), (int8_t)op, (float)index);
+}
+void groupZone(const String &zoneId, bool join) {
+    if (board::HAS_GROUPING) enqueue(CmdType::Group, zoneId.c_str(), join ? 1 : 0);
 }
 void queue(QueueOp op, uint32_t itemId) {   // in the text: a float cannot hold every uint32
     if (board::HAS_QUEUE) enqueue(CmdType::Queue, String(itemId).c_str(), (int8_t)op, 0);

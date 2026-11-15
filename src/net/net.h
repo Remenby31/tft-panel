@@ -35,6 +35,7 @@ enum class LyricsStatus : uint8_t { None, Loading, Found, NotFound, Instrumental
 
 struct ZoneInfo {
     String id, name, state, title, artist;
+    std::vector<String> outputIds;   // more than one = a group (companion source only)
 };
 
 struct OutputInfo {
@@ -193,6 +194,10 @@ void volumeSet(float value);         // absolute, on the zone's first output wit
 void mute(bool on);                  // every output of the zone
 // Saves the current track's lyrics offset in the companion (> 0 = lyrics later).
 void setOffset(int32_t ms);
+// Zone grouping (HAS_GROUPING boards, companion source): `join` adds zone `zoneId` to the followed
+// zone, else splits group `zoneId` back into its zones. The outputs are read from the zone list
+// when the command runs.
+void groupZone(const String &zoneId, bool join);
 
 // Library (HAS_LIBRARY boards): Open/Close (thumbnails only load while open), Search `text`,
 // Browse (Roon's root), Drill/Actions/Action on item `index`, Back, More (next page), CloseActions.

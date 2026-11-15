@@ -108,10 +108,11 @@ net::Snapshot make(int32_t positionMs) {
     o.step = 1;
     s.outputs.push_back(o);
     auto zones = std::make_shared<std::vector<net::ZoneInfo>>();
-    zones->push_back({"zone-living", "Living Room", "playing", "Neon Autumn", "The Demo Lights"});
-    zones->push_back({"zone-kitchen", "Kitchen", "paused", "Morning Coffee", "Sunday Club"});
-    zones->push_back({"zone-office", "Office", "stopped", "", ""});
-    zones->push_back({"zone-garden", "Garden", "stopped", "", ""});
+    zones->push_back({"zone-living", "Living Room", "playing", "Neon Autumn", "The Demo Lights", {"out-living"}});
+    zones->push_back({"zone-kitchen", "Kitchen + Dining Room", "paused", "Morning Coffee", "Sunday Club",
+                      {"out-kitchen", "out-dining"}});
+    zones->push_back({"zone-office", "Office", "stopped", "", "", {"out-office"}});
+    zones->push_back({"zone-garden", "Garden", "stopped", "", "", {"out-garden"}});
     s.zones = zones;
     s.zonesSerial = 1;
     if (!g_cover.big) {
