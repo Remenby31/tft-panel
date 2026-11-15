@@ -122,6 +122,7 @@ ota::Status g_ota;
 lv_obj_t *g_clock = nullptr, *g_clockTime = nullptr, *g_clockDate = nullptr, *g_clockTrack = nullptr;
 lv_obj_t *g_clockWeather = nullptr, *g_clockNews = nullptr;
 uint32_t g_clockWeatherSerial = 0, g_clockNewsSerial = 0;
+bool g_newsDirty = false;      // the ticker must be rebuilt whatever the serial says
 int g_clockMinute = -1;
 bool g_clockForced = false;    // showcase: shown with a fixed time
 bool g_demoManualSlide = false;   // showcase: the slide is stepped by the console, not animated
@@ -1432,12 +1433,13 @@ void fillClock(bool force) {
     struct tm lt;
     localtime_r(&t, &lt);
     if (lt.tm_year + 1900 < 2025) return;   // SNTP has not answered yet
-    if (!force && lt.tm_min == g_clockMinute && g_s.weatherSerial == g_clockWeatherSerial &&
-        g_s.newsSerial == g_clockNewsSerial)
+    if (!force && !g_newsDirty && lt.tm_min == g_clockMinute &&
+        g_s.weatherSerial == g_clockWeatherSerial && g_s.newsSerial == g_clockNewsSerial)
         return;
     g_clockMinute = lt.tm_min;
     g_clockWeatherSerial = g_s.weatherSerial;
-    if (g_s.newsSerial != g_clockNewsSerial) {
+    if (g_newsDirty || g_s.newsSerial != g_clockNewsSerial) {
+        g_newsDirty = false;
         g_clockNewsSerial = g_s.newsSerial;
         startNews(g_s.news.c_str());
     }
@@ -1573,6 +1575,11 @@ bool showcase(const String &what) {
         closePicker();
         showControls(false);
         g_clockForced = false;
+        // The showcase clock froze the ticker on invented headlines; nothing else would start the
+        // real one again until the feed refreshes, a quarter of an hour later. A flag, not a
+        // serial: inside the showcase `g_s` is the invented snapshot, so its counters say nothing
+        // about the real one that comes back.
+        g_newsDirty = true;
         g_ota = ota::Status();
         if (g_demo) loadShowcase();
         return true;
