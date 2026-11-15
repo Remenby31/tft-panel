@@ -16,8 +16,8 @@ from PIL import Image, ImageChops, ImageDraw, ImageFilter, ImageFont
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FONT_BOLD = os.path.join(ROOT, "assets/fonts/NotoSans-600.ttf")
 FONT_REG = os.path.join(ROOT, "assets/fonts/NotoSans-400.ttf")
-TAGLINE = "Synced lyrics and touch controls for your music, on a 7-inch screen."
-SUB = "Open firmware for 7\" ESP32 touch screens. Works with your own TextFromTrack companion for Roon."
+TAGLINE = "A 7-inch touch screen that controls what you play in Roon and shows it."
+SUB = "Open firmware for three 7\" ESP32 screens. It finds your music server by itself: no computer left running, no app to launch."
 
 
 def font(path, size):
@@ -126,7 +126,7 @@ def main():
     ban.save(os.path.join(a.out, "banner.png"))
 
     grid = background(1700, 1080)
-    for i, n in enumerate(["lyrics", "cover-view", "controls", "settings"]):
+    for i, n in enumerate(["lyrics", "controls", "library", "idle-clock"]):
         dev = device(s(n), 0.9)
         paste(grid, dev, 20 + (i % 2) * 830, 10 + (i // 2) * 520)
     grid.save(os.path.join(a.out, "grid.png"))
