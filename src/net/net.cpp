@@ -222,9 +222,10 @@ String mdnsServiceUrl(const char *service, const char *proto, String *hostOut) {
                               r->hostname ? r->hostname : "a service", ip.toString().c_str());
                 continue;
             }
-            int score = (ip[0] == own[0] && ip[1] == own[1] && ip[2] == own[2]) ? 3
-                        : (ip[0] == 10 || ip[0] == 192 || ip[0] == 172)         ? 2
-                                                                                : 1;
+            const bool privateRange = ip[0] == 10 || (ip[0] == 192 && ip[1] == 168) ||
+                                      (ip[0] == 172 && ip[1] >= 16 && ip[1] <= 31);
+            const bool ourSubnet = ip[0] == own[0] && ip[1] == own[1] && ip[2] == own[2];
+            int score = ourSubnet ? 3 : privateRange ? 2 : 1;
             if (score > bestScore) {
                 bestScore = score;
                 bestAddr = (uint32_t)ip;

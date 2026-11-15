@@ -246,7 +246,7 @@ published for a board that has not run.
 Sold as **UEP4S070H1024V600C-WB-C** by VIEWE; its own factory firmware calls the board
 `ESP32_P4_S070_WBA`. ESP32-P4 rev 3.2, 16 MB flash, 32 MB PSRAM, ESP32-C6 for Wi-Fi, 7" 1024x600
 MIPI-DSI behind a **JD9165** driving a UE070WS glass, GT911 touch, serial through a **CH340** (not
-the P4's native USB). MAC `80:f1:b2:d6:18:00`, env `p4-s070-wba`, asset `tft-panel-p4-s070-wba`.
+the P4's native USB). MAC `80:f1:b2:xx:xx:xx`, env `p4-s070-wba`, asset `tft-panel-p4-s070-wba`.
 It is **not** the Guition JC1060P470C below: the two share the panel controller and little else.
 
 It shares `src/board/board_p4_mipi.cpp` with the Waveshare 7B; everything specific to it is a
@@ -297,7 +297,7 @@ What stays true:
   exact product code answered it in minutes.
 
 The board's factory image is backed up whole and verified against the chip:
-`~/Documents/TFT-Panel-backups/viewe-p4-s070-factory-80f1b2d61800.bin` (+ `.sha256`). Restore with
+`~/Documents/TFT-Panel-backups/viewe-p4-s070-factory-<mac>.bin` (+ `.sha256`). Restore with
 `esptool --baud 230400 write-flash 0 <file>`; the first 4 MB are enough, the demo's assets above
 8 MB are never touched by our firmware. The board now runs the panel firmware.
 

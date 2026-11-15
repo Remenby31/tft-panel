@@ -150,6 +150,11 @@ void handleUpload() {
         dropImage();
         g_uploadAllowed = codeValid(g_server->arg("code"));
         if (!g_uploadAllowed) {
+            // Burn it. The settings page draws a new code on every refusal, so guessing there is
+            // one chance in 900,000 each time; without this, an upload could be retried against
+            // the same six digits for the whole five minutes. The message already says to reopen
+            // the page, which is what now gets a fresh code.
+            g_code = 0;
             g_uploadError = "Wrong or expired code: open this page again to get a new one on the panel.";
             return;
         }

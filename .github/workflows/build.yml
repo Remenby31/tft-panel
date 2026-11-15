@@ -1,0 +1,44 @@
+# Proves the repository builds for someone who only cloned it — the one thing a reader
+# cannot check from the README. All three boards, because a change that breaks only the
+# P4 display layer is invisible on the ESP32-S3.
+name: build
+
+on:
+  push:
+    branches: [main]
+    paths-ignore: ['docs/**', '*.md', 'tools/site/**']
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  firmware:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # The toolchains and the IDF framework are the slow part: ~10 minutes cold, seconds warm.
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.platformio/.cache
+            ~/.platformio/packages
+            ~/.platformio/platforms
+          key: pio-${{ runner.os }}-${{ hashFiles('platformio.ini') }}
+          restore-keys: pio-${{ runner.os }}-
+
+      - run: pip install --upgrade platformio
+
+      # 🪤 The first build of an environment after another one's framework was fetched can die on a
+      # missing .sconsign tmp file; the retry is the documented remedy, not a flake we ignore.
+      - name: Build every board
+        run: |
+          for env in crowpanel7 waveshare-p4-7b p4-s070-wba; do
+            echo "::group::$env"
+            pio run -e "$env" || pio run -e "$env"
+            echo "::endgroup::"
+          done
