@@ -12,6 +12,7 @@
 #include "../board/board.h"
 #include "../board/board_pins.h"
 #include "../version.h"
+#include "signature.h"
 #include "version_compare.h"
 
 // Defer Arduino's automatic "image valid" at boot: we decide in markHealthy().
@@ -38,7 +39,7 @@ volatile uint32_t g_version = 0;
 volatile bool g_checkRequested = false, g_installRequested = false;
 uint32_t g_lastCheckAt = 0;
 bool g_checkedOnce = false;
-String g_binUrl, g_shaUrl;
+String g_binUrl, g_shaUrl, g_sigUrl;
 volatile bool g_pendingVerify = false;
 esp_timer_handle_t g_deadline = nullptr;
 uint32_t g_wifiUpSince = 0;   // SELF_PROOF_MS is counted from here, and a drop resets it
@@ -120,16 +121,27 @@ void check() {
     String tag = doc["tag_name"] | "";
     // This board's files: tft-panel-<tag>.bin on the CrowPanel, tft-panel-<board>-<tag>.bin on the others.
     String base = String(board::BOARD_ASSET) + "-" + tag;
-    String binName = base + ".bin", shaName = base + ".sha256";
-    String bin, sha;
+    String binName = base + ".bin", shaName = base + ".sha256", sigName = base + ".sig";
+    String bin, sha, sig;
     for (JsonObject a : doc["assets"].as<JsonArray>()) {
         String name = a["name"] | "";
         if (name == binName) bin = a["browser_download_url"] | "";
         if (name == shaName) sha = a["browser_download_url"] | "";
+        if (name == sigName) sig = a["browser_download_url"] | "";
     }
     bool newer = isNewer(tag.c_str(), FW_VERSION) && bin.length() && sha.length();
+    // A panel that checks signatures says so once a day rather than offering an image it
+    // would refuse after downloading it.
+    bool unsigned_ = newer && signature::enforced() && !sig.length();
+    newer = newer && !unsigned_;
     g_binUrl = newer ? bin : String();   // install() only ever takes a newer release
     g_shaUrl = newer ? sha : String();
+    g_sigUrl = newer ? sig : String();
+    if (unsigned_) {
+        update([&](Status &s) { s.latest = tag; });
+        fail("update " + tag + " is not signed, so it is not installed");
+        return;
+    }
     Serial.printf("[ota] latest release %s, running %s: %s\n", tag.c_str(), FW_VERSION,
                   newer ? "update available" : "up to date");
     update([&](Status &s) {
@@ -166,6 +178,27 @@ bool fetchSha(uint8_t out[32]) {
     return true;
 }
 
+// The release's DER signature (`.sig`), when this build checks signatures.
+bool fetchSig(uint8_t out[signature::MAX_SIG], size_t &len) {
+    NetworkClientSecure client;
+    HTTPClient http;
+    beginHttps(http, client, g_sigUrl);
+    int code = http.GET();
+    int size = code == 200 ? http.getSize() : 0;
+    len = 0;
+    if (size > 0 && size <= (int)signature::MAX_SIG) len = http.getStreamPtr()->readBytes(out, size);
+    http.end();
+    if (code != 200) {
+        attemptFailed("signature download: " + (code < 0 ? HTTPClient::errorToString(code) : "HTTP " + String(code)));
+        return false;
+    }
+    if (!len || (int)len != size) {
+        attemptFailed("signature file malformed");
+        return false;
+    }
+    return true;
+}
+
 bool installOnce(bool &retryable);
 
 // A CDN stall or a Wi-Fi hiccup should not need the user to start over: up to 3 attempts.
@@ -194,6 +227,18 @@ bool installOnce(bool &retryable) {
     });
     retryable = true;
     if (!fetchSha(want)) return false;
+    uint8_t sig[signature::MAX_SIG];
+    size_t sigLen = 0;
+    if (signature::enforced()) {
+        if (!fetchSig(sig, sigLen)) return false;
+        // The signature covers the published digest, which the image must then match: a release
+        // signed by another key is refused here, before 2 MB are downloaded for nothing.
+        if (!signature::verifyRelease(want, sig, sigLen)) {
+            retryable = false;
+            attemptFailed("signature does not match: nothing installed");
+            return false;
+        }
+    }
 
     NetworkClientSecure client;
     HTTPClient http;
