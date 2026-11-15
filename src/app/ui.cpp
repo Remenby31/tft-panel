@@ -237,6 +237,17 @@ bool canSeekNow() { return g_s.phase == net::Phase::Playing && g_s.canSeek && g_
 
 String seekTrackKey() { return g_s.zoneName + "\x1f" + g_s.title + "\x1f" + String(g_s.durationMs); }
 
+lv_obj_t *g_seekKnob = nullptr;   // one round marker, moved to whichever bar is being touched
+
+lv_obj_t *seekElapsed(lv_obj_t *bar) { return bar == g_cvBar ? g_cvElapsed : g_elapsed; }
+
+// While the finger is on the bar the target is a visible dot and a bright time; idle, nothing shows.
+void endSeekDrag() {
+    if (g_seekBar) setTextColour(seekElapsed(g_seekBar), COL_DIM);
+    g_seekBar = nullptr;
+    if (g_seekKnob) setHidden(g_seekKnob, true);
+}
+
 bool seekHolding(uint32_t now) {
     if (g_seekHeld && ((int32_t)(g_s.positionAtMs - g_seekReleasedAt) >= 0 || now - g_seekReleasedAt > SEEK_HOLD_MAX_MS))
         g_seekHeld = false;
@@ -249,6 +260,26 @@ void showSeekTarget(lv_obj_t *bar, int32_t ms) {
     char t[12];
     fmtTime(t, sizeof t, ms);
     setText(cover ? g_cvElapsed : g_elapsed, t);
+    setTextColour(cover ? g_cvElapsed : g_elapsed, COL_TEXT);
+    if (!g_seekKnob) {
+        g_seekKnob = lv_obj_create(lv_obj_get_parent(bar));
+        lv_obj_remove_style_all(g_seekKnob);
+        lv_obj_set_size(g_seekKnob, S(14), S(14));
+        lv_obj_set_style_radius(g_seekKnob, LV_RADIUS_CIRCLE, 0);
+        lv_obj_set_style_bg_color(g_seekKnob, lv_color_hex(COL_ACCENT), 0);
+        lv_obj_set_style_bg_opa(g_seekKnob, LV_OPA_COVER, 0);
+        lv_obj_set_clickable(g_seekKnob, false);
+    }
+    if (lv_obj_get_parent(g_seekKnob) != lv_obj_get_parent(bar)) lv_obj_set_parent(g_seekKnob, lv_obj_get_parent(bar));
+    lv_area_t a;
+    lv_obj_get_coords(bar, &a);
+    lv_obj_t *parent = lv_obj_get_parent(bar);
+    lv_area_t pa;
+    lv_obj_get_coords(parent, &pa);
+    int32_t cx = a.x1 + (int32_t)((int64_t)ms * lv_area_get_width(&a) / g_s.durationMs);
+    int32_t cy = (a.y1 + a.y2) / 2;
+    lv_obj_set_pos(g_seekKnob, cx - pa.x1 - S(7), cy - pa.y1 - S(7));
+    setHidden(g_seekKnob, false);
 }
 
 void onSeekBar(lv_event_t *e) {
@@ -261,7 +292,7 @@ void onSeekBar(lv_event_t *e) {
     }
     if (g_seekBar != bar) return;
     if (code == LV_EVENT_PRESS_LOST || !canSeekNow() || seekTrackKey() != g_seekTrack) {   // track or zone moved under the finger
-        g_seekBar = nullptr;
+        endSeekDrag();
         return;
     }
     lv_indev_t *indev = lv_indev_active();
@@ -273,7 +304,7 @@ void onSeekBar(lv_event_t *e) {
     g_seekTargetMs = seekTargetMs(p.x, a.x1, lv_area_get_width(&a), g_s.durationMs);
     showSeekTarget(bar, g_seekTargetMs);
     if (code == LV_EVENT_RELEASED) {
-        g_seekBar = nullptr;
+        endSeekDrag();
         g_seekHeld = true;
         g_seekReleasedAt = millis();
         net::seek(g_seekTargetMs);
@@ -1727,7 +1758,7 @@ bool showcase(const String &what) {
         closePicker();
         showControls(false);
         g_clockForced = false;
-        g_seekBar = nullptr;
+        endSeekDrag();
         // The showcase clock froze the ticker on invented headlines; nothing else would start the
         // real one again until the feed refreshes, a quarter of an hour later. A flag, not a
         // serial: inside the showcase `g_s` is the invented snapshot, so its counters say nothing
