@@ -1041,13 +1041,13 @@ void applyOta() {
 
 // Five bars on a baseline, each aligned to the bottom so a change of height grows upwards.
 void buildEqualizer() {
-    const int w = S(4), gap = S(3), h = Y(20);
+    const int w = S(5), gap = S(4), h = Y(24);
     g_eq = lv_obj_create(g_scr);
     lv_obj_remove_style_all(g_eq);
     lv_obj_set_size(g_eq, EQ_BARS * w + (EQ_BARS - 1) * gap, h);
     lv_obj_set_scrollable(g_eq, false);
     lv_obj_set_clickable(g_eq, false);
-    lv_obj_align(g_eq, LV_ALIGN_TOP_RIGHT, -X(24), Y(14));
+    lv_obj_align(g_eq, LV_ALIGN_TOP_RIGHT, -X(24), Y(10));
     lv_obj_set_hidden(g_eq, true);
     for (int i = 0; i < EQ_BARS; i++) {
         lv_obj_t *b = lv_obj_create(g_eq);
@@ -1079,7 +1079,9 @@ void eqRun(bool on) {
         lv_anim_init(&a);
         lv_anim_set_var(&a, g_eqBar[i]);
         lv_anim_set_exec_cb(&a, [](void *o, int32_t v) { lv_obj_set_height((lv_obj_t *)o, v); });
-        lv_anim_set_values(&a, S(3), h);
+        // A third of the height, never less: a bar that shrinks to a dot reads as dirt on the
+        // glass, and five dots in a corner say nothing at all.
+        lv_anim_set_values(&a, h / 3, h);
         lv_anim_set_duration(&a, EQ_MS[i]);
         lv_anim_set_playback_duration(&a, EQ_MS[i] * 3 / 4);
         lv_anim_set_delay(&a, i * 80);
