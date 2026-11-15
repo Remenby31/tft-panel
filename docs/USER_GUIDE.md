@@ -1,8 +1,9 @@
 # TFT Panel — user guide
 
-TFT Panel turns a 7" touch screen (Elecrow CrowPanel 7", Waveshare ESP32-P4 7B or VIEWE ESP32-P4 7") into a lyrics screen for the music you play with Roon:
-the words of the song scroll in time with the music, with the cover, and you can pause, skip,
-change the volume or the zone with a touch.
+TFT Panel turns a 7" touch screen (Elecrow CrowPanel 7", Waveshare ESP32-P4 7B or VIEWE ESP32-P4 7")
+into a remote for the music you play with Roon, and a screen that shows it: pause, skip, change the
+volume, pick the zone, search your library and start an album, all with a touch — while the cover
+and the words of the song scroll in time with the music.
 
 ![TFT Panel](media/hero.png)
 
@@ -21,11 +22,12 @@ zones and cover are invented.*
   controller (for example the Guition JC1060P470C): their display needs different settings, and the
   installer would give them the Waveshare firmware. Their screen would stay dark.
 - A **Roon** system. The panel can get what is playing in either of two ways:
-  - from the free **TextFromTrack companion** running on a computer of the same network, which also
-    finds and ranks the lyrics — the simplest setup, and the one these pages assume;
-  - straight from your **music server**, with no companion. You then enable *TFT Panel* once in
-    Roon's Settings → Extensions, and the lyrics come either from a companion the panel finds by
-    itself or from an LRCLIB-compatible server you give it (your own mirror works).
+  - **straight from your music server**, with nothing else running. You enable *TFT Panel* once in
+    Roon's Settings → Extensions and it is done; lyrics then come from an LRCLIB-compatible server
+    you give it (the public lrclib.net, or your own mirror), or from a companion if you run one;
+  - from the free **TextFromTrack companion** on a computer of the same network, which also finds,
+    ranks and lets you correct the lyrics. Several passages below assume it, because it is where
+    the lyrics are managed rather than merely looked up.
 - Your **Wi-Fi** network name and password (2.4 GHz).
 
 ## 1. Install the firmware (once)

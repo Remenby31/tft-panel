@@ -1,23 +1,27 @@
 # TFT Panel
 
-**A 7" touch screen that shows the synced lyrics of what you play in Roon — and lets you control it.**
+**A 7" touch screen that controls what you play in Roon and shows it — always on, with nothing
+else to run.**
 
 ![TFT Panel](docs/media/hero.png)
 
 TFT Panel is open firmware for 7" ESP32 touch screens — the **Elecrow CrowPanel 7.0"**, the
-**Waveshare ESP32-P4 7B** and the **VIEWE ESP32-P4 7"** (see [Hardware](#hardware)). It displays the
-lyrics line by line with the cover, and gives you play/pause, skip, volume and zone selection at a
-touch. It gets what is playing in one of two ways: from the
-[TextFromTrack Roon Companion](https://github.com/r45635/roon.app.textfromtrack.com) on your LAN,
-which also finds and ranks the lyrics, or straight from your music server, with the lyrics coming
-from a companion it finds by itself or from any LRCLIB-compatible server you point it at.
+**Waveshare ESP32-P4 7B** and the **VIEWE ESP32-P4 7"** (see [Hardware](#hardware)). Give it your
+Wi-Fi and it finds your music server by itself. Then it is a remote you never have to unlock: the
+cover and the title of what is playing, the lyrics in time with the song, play/pause, skip, a
+volume slider and the choice of zone under your finger, and your whole library to search and start
+from the screen. When the music stops it becomes a clock, with the weather and the day's headlines
+if you want them.
 
-> 🚧 **Early development** — synced lyrics, cover view, touch controls and over-the-air updates work
-> on the developer's panel; expect rough edges. See [docs/ROADMAP.md](docs/ROADMAP.md).
+No computer left running, no app to launch, no account, no cloud. It talks only to machines on
+your own network.
 
-- Talks only to **your own** machines on your LAN — no cloud, no account, no lyrics stored on the device.
-- Same open HTTP API as the companion's web player, and the panel's own page for what has to be typed.
-- Weather and a news ticker on its clock face, if you want them.
+> 🚧 **Early development** — it runs every day on the developer's panels, but expect rough edges.
+> See [docs/ROADMAP.md](docs/ROADMAP.md).
+
+- Three 7" boards, one firmware, flashed from your browser ([Install](#install)).
+- Everything that has to be typed is on the panel's own page, not in a config file.
+- Updates arrive over the air and roll back by themselves if one fails to start.
 - MIT licence ([details](#licence)).
 
 *Roon is a trademark of Roon Labs. TFT Panel is an independent project, not affiliated with Roon Labs, Elecrow, Waveshare or VIEWE.*
@@ -25,6 +29,20 @@ from a companion it finds by itself or from any LRCLIB-compatible server you poi
 <p align="center"><img src="docs/media/lyrics.gif" width="640" alt="Lyrics scrolling, then the cover view"></p>
 
 *Pictures from the panel's showcase mode: the song, lyrics, zones and cover are invented.*
+
+## Where the lyrics come from
+
+Roon serves no lyrics of its own, so the panel is told where to look, on its own page:
+
+- **An LRCLIB-compatible server.** The public [lrclib.net](https://lrclib.net), or your own mirror
+  of it if you prefer nothing leaving your network. One address to type, and that is all.
+- **The [TextFromTrack companion](https://github.com/r45635/roon.app.textfromtrack.com)**, if you
+  want your lyrics *managed* rather than looked up: the `.lrc` files sitting next to your own
+  music, the lyrics inside your tags, several sources ranked against each other, a cache, a way to
+  say "these are the wrong words" and paste the right ones, and a per-song timing offset the panel
+  remembers. Run it on your LAN and the panel finds it by itself — it can take what is playing from
+  it too, instead of from the music server directly.
+- **Nothing at all**, if you came for the controls and the cover.
 
 ## Hardware
 
@@ -77,9 +95,10 @@ With no Wi-Fi configured, the panel opens its own network `TFT-Panel-XXXX` and s
 scan the first to join it, the second to open the setup page, then pick your Wi-Fi. You can also pick
 the network and type its password on the panel itself.
 
-Once it is on your network the companion is found automatically (Bonjour), and everything that has to
-be typed — where the music comes from, the lyrics server, the weather town, a news feed — is on the
-panel's own page at `http://tft-panel-xxxx.local`, which its settings screen shows as a QR code. The
+Once it is on your network the panel looks for your music server by itself, and for a TextFromTrack
+companion if you run one. Everything that has to be typed — where the music comes from, the lyrics
+server, the weather town, a news feed — is on the panel's own page at `http://tft-panel-xxxx.local`,
+which its settings screen shows as a QR code. The
 page names the panel, its board, its address and its firmware, so several panels are told apart; a
 change asks once for the six digits shown on that panel's screen, then remembers your browser.
 

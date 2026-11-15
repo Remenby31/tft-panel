@@ -6,9 +6,9 @@
 <link rel="icon" href="brand/icon-32.png">
 <link rel="apple-touch-icon" href="brand/icon-180.png">
 <title>TFT Panel</title>
-<meta name="description" content="Synced lyrics and touch controls for your music, on a 7-inch screen. Open firmware for the Elecrow CrowPanel 7&quot; and the Waveshare ESP32-P4 7B.">
+<meta name="description" content="A 7-inch touch screen that controls what you play in Roon and shows it: cover, synced lyrics, your library, zones and volume. Always on, with nothing else to run. Open firmware for three ESP32 boards.">
 <meta property="og:title" content="TFT Panel">
-<meta property="og:description" content="Synced lyrics and touch controls for your music, on a 7-inch screen.">
+<meta property="og:description" content="A 7-inch touch screen that controls what you play in Roon and shows it. Always on, with nothing else to run.">
 <meta property="og:image" content="https://r45635.github.io/tft-panel/media/square.png">
 <style>
   :root { --bg: #15161a; --fg: #f6f4ee; --dim: #a9aaa6; --warm: #ecd6be; --accent: #6db56d; --card: #202127; }
@@ -44,12 +44,13 @@
 <body>
 <header><b><img src="brand/icon-32.png" width="32" height="32" alt="" style="vertical-align:-8px;margin-right:8px">TFT Panel</b><a href="guide.html">User guide</a><a href="install.html">Install</a><a href="media-kit.html">Media kit</a><a href="https://github.com/r45635/tft-panel">GitHub</a></header>
 
-<div class="hero"><img src="media/hero.png" width="1600" height="900" alt="TFT Panel showing synced lyrics"></div>
+<div class="hero"><img src="media/hero.png" width="1600" height="900" alt="TFT Panel showing the cover and the synced lyrics of the song playing"></div>
 
 <div class="lead">
-  <h1>Your lyrics, in time with the music</h1>
-  <p>A 7-inch touch screen that shows the words of the song as it plays, with the cover, and puts
-    play, skip, volume and zone at your fingertips.</p>
+  <h1>A remote you never have to unlock</h1>
+  <p>A 7-inch touch screen that controls what you play in Roon and shows it — the cover, the lyrics
+    in time with the song, your library, the zones and the volume. Give it your Wi-Fi and it finds
+    your music server by itself: no computer left running, no app to launch, no account.</p>
 </div>
 <div class="cta">
   <a class="primary" href="install.html">Install in your browser</a>
@@ -61,21 +62,34 @@
 </div>
 
 <div class="features">
+  <div><b>Nothing else to run</b><span>The panel talks to your music server itself. Your Wi-Fi is the only thing it needs to be told.</span></div>
+  <div><b>Touch controls</b><span>Play, pause, skip, a volume slider, mute, and the choice of the zone to follow.</span></div>
+  <div><b>Your whole library</b><span>Search it, walk through artists and albums, start one on the zone you are listening to.</span></div>
   <div><b>Synced lyrics</b><span>The current line large, the next ones gently sliding up, timed to a few hundredths of a second.</span></div>
   <div><b>Cover view</b><span>Swipe for the album art with the title and artist in large type. Songs without lyrics show it by themselves.</span></div>
-  <div><b>Touch controls</b><span>Play, pause, skip, a volume slider, mute, and the choice of the Roon zone to follow.</span></div>
+  <div><b>A clock when the music stops</b><span>The time, the weather of your town and the day's headlines, then the screen dims and sleeps.</span></div>
   <div><b>Set up from your phone</b><span>Two QR codes on the screen: join the panel, pick your Wi-Fi. No app, no account.</span></div>
   <div><b>Updates over the air</b><span>A tap installs a new version; if it ever fails to start, the panel goes back by itself.</span></div>
-  <div><b>Private and open</b><span>Talks only to your own TextFromTrack companion on your network. MIT-licensed firmware.</span></div>
+  <div><b>Private and open</b><span>Talks only to machines on your own network. MIT-licensed firmware, three boards, one image.</span></div>
+</div>
+
+<div class="lead" style="margin-top:48px">
+  <h1 style="font-size:1.6em">Where the lyrics come from</h1>
+  <p>Roon serves none of its own. Point the panel at <a href="https://lrclib.net">lrclib.net</a> or
+    at your own mirror of it and that is done. If you would rather have them <em>managed</em> — the
+    <code>.lrc</code> files next to your own music, the words in your tags, sources ranked against
+    each other, a way to correct the ones that are wrong — run the
+    <a href="https://github.com/r45635/roon.app.textfromtrack.com">TextFromTrack companion</a> on
+    your network and the panel will find it.</p>
 </div>
 
 <div class="shots"><img src="media/grid.png" width="1700" height="1080" alt="Lyrics, cover view, controls and settings"></div>
 
 <footer>
-  Firmware {{VERSION}} for the Elecrow CrowPanel ESP32 Display 7.0" (DIS08070H, board V3.0) and the Waveshare ESP32-P4-WIFI6-Touch-LCD-7B.
-  Needs Roon and the <a href="https://github.com/r45635/roon.app.textfromtrack.com">TextFromTrack companion</a>.
+  Firmware {{VERSION}} for the Elecrow CrowPanel ESP32 Display 7.0" (DIS08070H, board V3.0), the Waveshare ESP32-P4-WIFI6-Touch-LCD-7B and the VIEWE UEP4S070H1024V600C-WB-C.
+  Needs Roon on your network; the TextFromTrack companion is optional.
   Pictures from the panel's showcase mode: the song, lyrics and cover are invented.<br>
-  Roon is a trademark of Roon Labs. TFT Panel is an independent project, not affiliated with Roon Labs, Elecrow or Waveshare.
+  Roon is a trademark of Roon Labs. TFT Panel is an independent project, not affiliated with Roon Labs, Elecrow, Waveshare or VIEWE.
 </footer>
 <footer class="site">TFT Panel {{VERSION}} · <a href="https://github.com/r45635/tft-panel/blob/main/LICENSE">MIT licence</a> · <a href="https://github.com/r45635/tft-panel/blob/main/THIRD_PARTY_NOTICES.md">Third-party notices</a> · <a href="media-kit.html">Media kit</a> · <a href="https://github.com/r45635/tft-panel">GitHub</a></footer>
 </body>
