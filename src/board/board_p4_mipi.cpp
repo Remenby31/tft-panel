@@ -324,6 +324,10 @@ const uint16_t *frameBuffer() {
     return g_upright;
 }
 
+String setFlushMode(const char *name) { return strcmp(name, "ppa") ? "this board flushes through the PPA only" : ""; }
+
+const char *flushMode() { return "ppa"; }
+
 void flushStats(uint32_t &count, uint32_t &us) {
     count = g_flushCount;
     us = g_flushUs;
