@@ -403,10 +403,13 @@ void tick(bool wifiUp) {
 // The browser upload drives the same Status as a download, so the UI needs no new state: the
 // progress screen already reacts to Downloading, and on the CrowPanel it freezes the picture in
 // internal RAM, which is what keeps the image still while the flash is written.
-void uploadStarted(const String &what) {
-    update([&](Status &s) {
+// The screen says what the panel knows, not what the sender called the file: a name chosen
+// elsewhere - empty, enormous, or full of characters nobody meant to read - has no business
+// being painted across a screen in the living room. The version is unknown until it boots.
+void uploadStarted() {
+    update([](Status &s) {
         s.state = State::Downloading;
-        s.latest = what.length() ? what : String("the file you sent");
+        s.latest = "the firmware you sent";
         s.percent = 0;
         s.error = "";
     });

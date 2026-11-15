@@ -36,7 +36,7 @@ void markHealthy();        // the new image works: cancel the rollback
 // A firmware pushed from the panel's own web page (net::webupdate), shown on the same screen
 // as a download so the panel never looks dead while 3 MB cross the air. The web task calls
 // these; `total` is what the browser announced, 0 when it announced nothing.
-void uploadStarted(const String &what);
+void uploadStarted();
 void uploadProgress(size_t got, size_t total);
 void uploadInstalling();
 void uploadWriting(int pct);   // the flash write that follows, on download-first boards

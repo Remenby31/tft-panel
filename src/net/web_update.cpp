@@ -203,7 +203,7 @@ void handleUpload() {
         // The whole multipart body, a few hundred bytes more than the firmware; close enough
         // for a bar, and 0 when the client announced nothing (then the words speak alone).
         g_upTotal = g_server->clientContentLength() > 0 ? (size_t)g_server->clientContentLength() : 0;
-        ota::uploadStarted(up.filename);
+        ota::uploadStarted();
         shaStart();
         g_upWant = g_server->arg("sha");
         g_upWant.trim();
