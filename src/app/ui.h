@@ -21,6 +21,9 @@ void demoSlide(int percent);         // 0..100 % of the current slide, for anima
 // clock, update, confirm, progress, setup, code; "none" closes them. false if unknown / not in demo.
 bool showcase(const String &what);
 
+// Logs the next three lyric slides again (`[ui] scroll:`), e.g. after changing the flush mode.
+void profileScrolls();
+
 // "on", "dimmed" or "off" (backlight, for the console status).
 const char *screenState();
 
