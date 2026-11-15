@@ -52,7 +52,7 @@ void printStatus() {
     if (s.weather.valid || s.weather.problem.length() || s.news.length() || s.newsProblem.length()) {
         Serial.printf("[status] weather %s\n",
                       s.weather.valid ? (s.weather.place + " " + String((int)s.weather.tempC) + " C, " +
-                                         net::weather::describe(s.weather.code) + ", today " +
+                                         net::weather::describe(s.weather.code, i18n::Lang::En) + ", today " +
                                          String((int)s.weather.minC) + " to " + String((int)s.weather.maxC))
                                             .c_str()
                       : s.weather.problem.length() ? s.weather.problem.c_str()

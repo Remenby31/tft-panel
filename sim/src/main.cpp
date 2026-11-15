@@ -2,8 +2,8 @@
 // (invented song, lyrics, zones and cover). Headless, it writes one PNG per screen named on the
 // command line; with --window it opens an SDL window driven by the mouse.
 //
-//   tft-sim --out DIR [--shots lyrics,cover,clock,library,settings]
-//   tft-sim --window
+//   tft-sim --out DIR [--shots lyrics,cover,clock,library,settings] [--lang en|fr]
+//   tft-sim --window [--lang en|fr]
 #include <Arduino.h>
 #include <lvgl.h>
 #include <sys/wait.h>
@@ -16,6 +16,7 @@
 #include <vector>
 
 #include "../../src/app/fonts.h"
+#include "../../src/app/i18n.h"
 #include "../../src/app/ui.h"
 #include "../../src/board/board.h"
 #include "../../src/layout.h"
@@ -144,6 +145,7 @@ int usage() {
     fprintf(stderr,
             "usage: tft-sim --out DIR [--shots NAME,...]   headless, one PNG per screen\n"
             "       tft-sim --window                       SDL window, mouse as touch\n"
+            "       --lang en|fr                           the panel's language (default en)\n"
             "NAME: any showcase screen of the console's `show` command (lyrics, cover, clockview,\n"
             "controls, settings, colours, volume, offset, zones, clock, update, confirm, progress,\n"
             "setup, searching, library, library-actions, wifi, wifi-password, code)\n");
@@ -180,7 +182,11 @@ int main(int argc, char **argv) {
         if (a == "--window") window = true;
         else if (a == "--out" && i + 1 < argc) out = argv[++i];
         else if (a == "--shots" && i + 1 < argc) shots = argv[++i];
-        else return usage();
+        else if (a == "--lang" && i + 1 < argc) {
+            i18n::Lang l;
+            if (!i18n::parse(argv[++i], l)) return usage();
+            i18n::setLang(l);
+        } else return usage();
     }
     if (!window && !out.length()) return usage();
     std::error_code dirError;
