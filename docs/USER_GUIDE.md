@@ -69,7 +69,30 @@ already flashed and the screen stayed black, plug in the USB cable and read the 
 
 After this, updates come over Wi-Fi (see [Updates](#updates)).
 
-## 2. Connect it to your Wi-Fi
+## 2. The first start, screen by screen
+
+Half a minute, from the screen you meet when you plug it in to the clock it settles on. Nothing
+here is typed except your Wi-Fi password.
+
+![The first start, from the setup screen to the clock](media/first-start.gif)
+
+*Better quality: [first-start.mp4](media/first-start.mp4). The song, the networks and the password
+in the picture are invented.*
+
+| | What you see | What to do |
+|---|---|---|
+| 1 | **Set up TFT Panel**, two QR codes | Tap **Set up on this screen**, or scan the codes with a phone |
+| 2 | **Choose your Wi-Fi** | Tap your network |
+| 3 | A keyboard | Type the password, **Connect** |
+| 4 | **Looking for your music server…** | Nothing. It is searching; this is the normal wait |
+| 5 | The song, its words in time with it | Swipe for the cover, swipe again for the clock |
+
+If step 4 never ends, the panel is on your network but nothing answered: see
+[Troubleshooting](#troubleshooting). If the screen stays dark from the start, it is not the Wi-Fi —
+it is the wrong firmware for your board, and the USB serial console says **WRONG BOARD** with the
+image you need.
+
+## 3. Connect it to your Wi-Fi, in detail
 
 On its first start the panel shows two QR codes and a button. Two ways to go on:
 
@@ -89,16 +112,21 @@ hears, strongest first; tap yours, type its password on the keyboard (**Show** r
 2. Scan the **second** one: the setup page opens and lists the networks the panel hears. Tap
    yours, type its password, **Save**. A network that is not listed can be typed by hand.
 
-The panel restarts, joins your network and finds the companion by itself. Only 2.4 GHz networks
+The panel restarts, joins your network and looks for a music server — this is what it shows while
+it does, and it is nothing to worry about for the first few seconds:
+
+![Looking for your music server](images/searching.png)
+
+It finds the companion by itself. Only 2.4 GHz networks
 work (most routers offer both). To move the panel to another network later: **Settings > Wi-Fi >
 Change...**. If the companion is
 on another network segment, its address (and its access token, if you set one) can be typed on
 the same setup page.
 
-## 3. Lyrics and cover
+## 4. Lyrics and cover
 
 Roon serves no lyrics of its own, so the panel is told where to find them, on
-[its own page](#7-the-panels-own-page). Either run the **TextFromTrack companion** anywhere on your
+[its own page](#8-the-panels-own-page). Either run the **TextFromTrack companion** anywhere on your
 network — one container, `ROON_ENABLED=false`, nothing to enable in Roon, and the panel finds it by
 itself — or type the address of any **LRCLIB-compatible server** (the public lrclib.net, or your own
 mirror). Set it to *none* if you came for the controls and the cover. The companion is also what
@@ -118,7 +146,7 @@ there are some.
 
 ![Scrolling lyrics](media/lyrics.gif)
 
-## 4. Controls
+## 5. Controls
 
 **Tap** the screen to show the controls (they hide after a few seconds): zone, previous,
 play/pause, next, volume − / +, settings.
@@ -167,7 +195,7 @@ that artist's albums, the album opens its track list, ready to play. When the na
 one thing in your library — several artists on a track, an album title shared by other records —
 the panel shows what it found and lets you choose rather than opening a guess.
 
-## 5. Settings
+## 6. Settings
 
 The gear button opens the settings: brightness, colour warmth, when the screen turns off, how
 far ahead the lyrics show, the blurred cover background, smooth scrolling, the idle clock and its
@@ -180,7 +208,7 @@ with a live slider: move it until the white looks neutral to you.
 
 ![Colour test](images/colour-test.png)
 
-## 6. The clock, the weather and the news
+## 7. The clock, the weather and the news
 
 The clock is both an idle screen and a view of its own: swipe to it like the lyrics and the cover.
 After a minute without music the panel shows it by itself, dims, and turns the screen off after the
@@ -197,7 +225,7 @@ Give it the address of an **RSS or Atom feed** and the headlines slide under the
 pace. Both are typed on the panel's page, below. If nothing slides, the page says why, under the
 field: the feed did not answer, or the address holds a web page rather than a feed.
 
-## 7. The panel's own page
+## 8. The panel's own page
 
 Everything that has to be typed lives on one page, in any browser on your network:
 `http://tft-panel-xxxx.local` — the settings screen shows it as a QR code, and its name, board,

@@ -110,6 +110,9 @@ pio device monitor                        # serial log and console, 115200
 
 ## First start
 
+Half a minute, screen by screen, with a film of it:
+[the user guide's walkthrough](docs/USER_GUIDE.md#2-the-first-start-screen-by-screen).
+
 With no Wi-Fi configured, the panel opens its own network `TFT-Panel-XXXX` and shows two QR codes:
 scan the first to join it, the second to open the setup page, then pick your Wi-Fi. You can also pick
 the network and type its password on the panel itself.

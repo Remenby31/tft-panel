@@ -1263,7 +1263,11 @@ void applySnapshot() {
     setHidden(g_total, !track);
 
     if (!track) {
+        // The same sentence twice, large in the middle and small in the corner, is how the very
+        // first start looks to someone waiting for something to happen. The middle is the one
+        // that reads, so the corner steps back while it is showing.
         showMessage(g_s.status, bad ? COL_ERROR : COL_MID);
+        setText(g_status, "");
         return;
     }
     switch (g_s.lyricsStatus) {
@@ -1634,6 +1638,9 @@ bool showcase(const String &what) {
         lv_bar_set_value(g_otaBar, 42, LV_ANIM_OFF);
     } else if (what == "setup") {
         showcase::fakePortal(g_s);
+        applySnapshot();
+    } else if (what == "searching") {
+        showcase::fakeSearching(g_s);
         applySnapshot();
     } else if ((what == "library" || what == "library-actions") && board::HAS_LIBRARY) {
         libui::showcase(g_s.thumb, what == "library-actions");

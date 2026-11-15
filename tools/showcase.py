@@ -38,6 +38,8 @@ SCREENS = [  # file name, console commands before the capture
     ("wifi-setup", ["show none", "show setup"]),
     ("wifi-list", ["show none", "show wifi"]),
     ("wifi-keyboard", ["show none", "show wifi-password"]),
+    # The first-start story needs the moment between "Wi-Fi given" and "something plays".
+    ("searching", ["show none", "show searching"]),
     # Waveshare P4 only (HAS_LIBRARY): unknown screens on the CrowPanel.
     ("library", ["show none", "show library"]),
     ("library-actions", ["show none", "show library-actions"]),

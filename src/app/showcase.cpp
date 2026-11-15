@@ -148,4 +148,22 @@ void fakePortal(net::Snapshot &s) {
     s.apIp = "192.168.4.1";
 }
 
+void fakeSearching(net::Snapshot &s) {
+    s.portalActive = false;
+    s.phase = net::Phase::Discovering;
+    s.status = "Looking for your music server on the network...";
+    s.state = "";
+    s.title = s.artist = s.album = s.zoneName = "";
+    s.lyricsStatus = net::LyricsStatus::None;
+    s.lyrics.reset();
+    s.lyricsSerial++;
+    s.durationMs = 0;
+    s.positionMs = 0;
+    s.outputs.clear();
+    s.bigCover.reset();
+    s.thumb.reset();
+    s.backdrop.reset();
+    s.coverSerial++;
+}
+
 }  // namespace showcase
