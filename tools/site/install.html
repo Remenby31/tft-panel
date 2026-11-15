@@ -89,7 +89,9 @@
     // firmware behind it, and it is rebuilt on every change so the manifest is always re-read.
     document.getElementById('boards').addEventListener('change', e => {
       const b = document.createElement('esp-web-install-button');
-      b.setAttribute('manifest', 'manifest-' + e.target.value + '.json');
+      const m = 'manifest-' + e.target.value + '.json';
+      b.setAttribute('manifest', m);   // and the property: the element may read either
+      b.manifest = m;
       b.innerHTML = '<span slot="unsupported">This browser cannot flash devices: please open this page in Chrome or Edge on a computer.</span>'
                   + '<span slot="not-allowed">Flashing needs a secure page (https).</span>';
       document.getElementById('install').replaceChildren(b);
