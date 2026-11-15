@@ -43,7 +43,7 @@ PY = sys.executable
 # megabytes of read ("Serial data stream stopped"), and a backup that stops early is not a backup.
 # The VIEWE's CH340 even loses them at 230400 over its 16 MB in one go (died after 284 KB), so it
 # is read in retryable 512 KB pieces, which worked with one retry in 32. Measured on the boards.
-# flash_baud is the board's upload_speed in platformio.ini (a test holds them equal).
+# flash_baud is the board's upload_speed in platformio.ini; keep them equal (the test pins all three).
 Board = namedtuple("Board", "name env asset read_baud flash_baud piece")
 BOARDS = {
     ("ESP32-S3", 4): Board("Elecrow CrowPanel 7\" V3.0", "crowpanel7", "tft-panel",
