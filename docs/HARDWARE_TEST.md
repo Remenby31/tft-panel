@@ -95,6 +95,24 @@ Each change that needs the board adds its steps under its heading when it lands 
 
 ### Scrub on the progress bar
 
+Play a track longer than a minute in a zone that can seek (Roon: any local file or stream with a
+position). Do this once with `source companion`, once with `source direct`; the CrowPanel and one P4
+are enough.
+
+1. Tap the bar at about the middle, on the lyrics view then on the cover view. Playback jumps there
+   and the elapsed time shows the new position at once, not a second later. Lyrics follow.
+2. Tap about 3 mm above and below the bar line (the touch area is 22 px each side at 800x480,
+   bigger than the 4 px drawing). It still seeks. Tap 10 mm above it: no seek.
+3. Drag along the bar without lifting: the bar and the elapsed time follow the finger, nothing
+   changes in Roon yet. Lift: Roon seeks to that point. Drag past either end: start or end of track.
+4. A slow drag held for over a second on the lyrics view does not open the lyrics-offset popup.
+   A horizontal drag that starts on the bar does not switch views. A swipe elsewhere still does.
+5. Pause, then tap the bar: it seeks and stays paused. Stop playback: the bar is hidden, nothing to tap.
+6. A zone that cannot seek (some streams): touching the bar does nothing, no error.
+7. Watch for a one-second jump back right after a seek in `companion` mode: its poll can answer
+   with the old position before Roon applied the seek. Note it if seen and how often.
+8. Note `[net] ... Seek` lines in the console if a seek fails (toast on screen too).
+
 ### First run finds the companion or the server
 
 Only a network can prove this: the choice logic is host-tested (`pio test -e native`), the
