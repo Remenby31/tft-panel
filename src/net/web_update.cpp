@@ -179,6 +179,15 @@ void dropImage() {
     g_imageLen = g_imageCap = 0;
 }
 
+// Every refusal goes through here: the screen is showing "Updating..." by then, and a path that
+// returns without saying so leaves the panel on that picture for ever. Which is what the checksum
+// branch did, the first time it ran.
+void refuse(const String &why) {
+    g_uploadAllowed = false;
+    g_uploadError = why;
+    ota::uploadFailed(why);
+}
+
 void handleUpload() {
     HTTPUpload &up = g_server->upload();
     if (up.status == UPLOAD_FILE_START) {
@@ -211,13 +220,9 @@ void handleUpload() {
             const esp_partition_t *slot = esp_ota_get_next_update_partition(nullptr);
             g_imageCap = slot ? slot->size : 0;
             g_image = g_imageCap ? (uint8_t *)heap_caps_malloc(g_imageCap, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT) : nullptr;
-            if (!g_image) {
-                g_uploadAllowed = false;
-                g_uploadError = "Not enough memory to receive the firmware.";
-            }
+            if (!g_image) refuse("Not enough memory to receive the firmware.");
         } else if (!Update.begin(UPDATE_SIZE_UNKNOWN, U_FLASH)) {
-            g_uploadAllowed = false;
-            g_uploadError = String("Cannot start the update: ") + Update.errorString();
+            refuse(String("Cannot start the update: ") + Update.errorString());
         }
     } else if (up.status == UPLOAD_FILE_WRITE && g_uploadAllowed) {
         if (g_upShaOn) {
@@ -227,16 +232,14 @@ void handleUpload() {
         }
         if (g_image) {
             if (g_imageLen + up.currentSize > g_imageCap) {
-                g_uploadAllowed = false;
-                g_uploadError = "File too large for a firmware slot.";
+                refuse("File too large for a firmware slot.");
                 dropImage();
             } else {
                 memcpy(g_image + g_imageLen, up.buf, up.currentSize);
                 g_imageLen += up.currentSize;
             }
         } else if (Update.write(up.buf, up.currentSize) != up.currentSize) {
-            g_uploadAllowed = false;
-            g_uploadError = String("Write failed: ") + Update.errorString();
+            refuse(String("Write failed: ") + Update.errorString());
             Update.abort();
         }
     } else if (up.status == UPLOAD_FILE_END && g_uploadAllowed) {
@@ -245,9 +248,8 @@ void handleUpload() {
         if (g_upWant.length() && g_upWant != g_upGot) {
             // Refused before a single byte is committed: a digest that does not match is either
             // the wrong file or a damaged transfer, and neither should reach the flash.
-            g_uploadAllowed = false;
-            g_uploadError = "Checksum does not match: nothing installed. The panel received "
-                            "sha256 " + g_upGot + ", you asked for " + g_upWant + ".";
+            refuse("Checksum does not match: nothing installed. The panel received sha256 " +
+                   g_upGot + ", you asked for " + g_upWant + ".");
             if (g_image) dropImage();
             else Update.abort();
             return;
@@ -256,23 +258,18 @@ void handleUpload() {
         if (g_image) {
             String err;
             if (ota::writeImage(g_image, g_imageLen, err, ota::uploadWriting)) g_uploadOk = true;
-            else g_uploadError = "Not a valid firmware image: " + err;
+            else refuse("Not a valid firmware image: " + err);
             dropImage();
         } else if (Update.end(true)) {
             g_uploadOk = true;
         } else {
-            g_uploadError = String("Not a valid firmware image: ") + Update.errorString();
+            refuse(String("Not a valid firmware image: ") + Update.errorString());
         }
     } else if (up.status == UPLOAD_FILE_ABORTED && g_uploadAllowed) {
         shaFinish();
         if (g_image) dropImage();
         else Update.abort();
-        g_uploadError = "Upload interrupted, nothing installed.";
-    }
-    // Whatever went wrong, the screen says it: the person is standing in front of the panel,
-    // not in front of the browser that got the same sentence.
-    if (!g_uploadAllowed && g_uploadError.length() && !g_uploadError.startsWith("Wrong")) {
-        ota::uploadFailed(g_uploadError);
+        refuse("Upload interrupted, nothing installed.");
     }
 }
 
