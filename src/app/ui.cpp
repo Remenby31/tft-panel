@@ -1727,6 +1727,7 @@ bool showcase(const String &what) {
         closePicker();
         showControls(false);
         g_clockForced = false;
+        g_seekBar = nullptr;
         // The showcase clock froze the ticker on invented headlines; nothing else would start the
         // real one again until the feed refreshes, a quarter of an hour later. A flag, not a
         // serial: inside the showcase `g_s` is the invented snapshot, so its counters say nothing
@@ -1738,7 +1739,11 @@ bool showcase(const String &what) {
     }
     if (!g_demo) return false;
     if (what == "lyrics" || what == "cover") showView(what == "cover" ? View::Cover : View::Lyrics);
-    else if (what == "clockview") showView(View::Clock);
+    else if (what == "seek") {   // the bar mid-drag, at 40 % of the track
+        showView(View::Lyrics);
+        g_seekBar = g_bar;
+        showSeekTarget(g_bar, (int32_t)(g_s.durationMs * 2 / 5));
+    } else if (what == "clockview") showView(View::Clock);
     else if (what == "controls") showControls(true);
     else if (what == "settings") {
         settingsui::open();
