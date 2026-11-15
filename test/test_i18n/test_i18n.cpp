@@ -47,7 +47,7 @@ void test_every_string_has_french_with_the_same_arguments_and_items() {
         for (const char *s : SAME) same |= !strcmp(en, s);
         TEST_ASSERT_TRUE_MESSAGE(same == !strcmp(en, fr), what);
         TEST_ASSERT_NULL_MESSAGE(strchr(fr, '\''), what);
-        for (const char *bad : {" ?", " !", " :", " ;"}) TEST_ASSERT_NULL_MESSAGE(strstr(fr, bad), what);
+        for (const char *bad : {" ?", " !", " :", " ;", " »", "« "}) TEST_ASSERT_NULL_MESSAGE(strstr(fr, bad), what);
     }
 }
 

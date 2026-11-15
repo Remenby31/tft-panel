@@ -58,7 +58,7 @@ X(TzNames,
   "US Eastern\nUS Central\nUS Mountain\nUS Arizona\nUS Pacific\nUK, Ireland, Portugal\nCentral Europe (Paris)\n"
   "Eastern Europe\nJapan\nAustralia East\nUTC",
   "États-Unis Est\nÉtats-Unis Centre\nÉtats-Unis Rocheuses\nÉtats-Unis Arizona\nÉtats-Unis Pacifique\n"
-  "Royaume-Uni, Irlande, Portugal\nEurope centrale (Paris)\nEurope de l’Est\nJapon\nAustralie Est\nUTC")
+  "Londres, Dublin, Lisbonne\nEurope centrale (Paris)\nEurope de l’Est\nJapon\nAustralie Est\nUTC")
 X(TzCustom, "Custom", "Personnalisé")
 X(ColourTest, "Colour test", "Mire de couleurs")
 X(ColourTestSub, "White, greys and colours, to set the warmth by eye.",
@@ -73,9 +73,9 @@ X(MusicFromSub,
   "Le compagnon lit vos propres fichiers et classe ce qu’il trouve. En direct, le panneau parle au "
   "serveur de musique lui-même, sans intermédiaire.")
 X(SourceChoices, "TextFromTrack companion\nThe music server, directly",
-  "Compagnon TextFromTrack\nLe serveur de musique, en direct")
+  "Le compagnon\nLe serveur, en direct")
 X(Lyrics, "Lyrics", "Paroles")
-X(LyricsChoices, "A companion on the network\nNo lyrics", "Un compagnon sur le réseau\nPas de paroles")
+X(LyricsChoices, "A companion on the network\nNo lyrics", "Compagnon sur le réseau\nPas de paroles")
 X(Zone, "Zone", "Zone")
 X(ZoneSub, "Which Roon zone the panel follows.", "La zone Roon que suit le panneau.")
 X(Choose, "Choose", "Choisir")
