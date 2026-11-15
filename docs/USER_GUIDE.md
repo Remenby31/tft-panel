@@ -222,6 +222,11 @@ share their names, so add what tells yours apart: `Montreal, Canada`, `Paris, Te
 `Lyon, France`. The page says which town it settled on, with its coordinates, and says so plainly
 when it cannot find the one you meant.
 
+The title under the date is the track the panel is following, which may well have finished hours
+ago. So that you can tell one from the other at a glance, **five small bars dance in the top right
+corner while music is playing** and disappear when it stops — the lyrics and cover views have their
+progress bar for that, the clock had nothing.
+
 Give it the address of an **RSS or Atom feed** and the headlines slide under the clock at reading
 pace. Both are typed on the panel's page, below. If nothing slides, the page says why, under the
 field: the feed did not answer, or the address holds a web page rather than a feed.
@@ -250,10 +255,9 @@ The panel looks for a new version every day. When there is one, **Update** appea
 
 Tap it and confirm. The panel downloads the update, **checks its sha256 against the one published
 with the release** and refuses it if a single byte differs, then restarts (about a minute).
-Don't unplug it meanwhile. There is nothing to back up first: the version you are running stays in
-the other half of the flash, which is where the panel returns to by itself if the new one never
-starts properly. If the new version does not start properly, the panel goes back to
-the previous one by itself.
+Don't unplug it meanwhile — the screen says so, and shows how far it has got. There is nothing to
+back up first: the version you are running stays in the other half of the flash, and the panel
+returns to it by itself if the new one never starts properly.
 
 ![Update confirmation](images/update-confirm.png) ![Updating](images/update-progress.png)
 
@@ -268,6 +272,10 @@ Beside the file there is a box for the **sha256** published with each release, i
 `…-vX.Y.Z.sha256` file next to the firmware. Paste it and the panel refuses the upload unless
 every byte matches, naming both digests so you can see which file you actually have. Leave it
 empty and the panel still tells you the digest of what it received, so you can compare afterwards.
+
+The panel shows the same *Updating… do not unplug* picture as it does for an update of its own,
+from the first byte to the last, so you can see it working from across the room. If it refuses the
+file, it says so on its screen too, and goes back to what it was doing.
 
 A wrong code is used up the moment it is refused: read the new one on the screen, or reload the
 page. And whatever happens here, the version you are replacing stays in the other half of the

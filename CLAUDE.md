@@ -25,6 +25,9 @@ leaves EN and IO0 alone and nothing restarts; commands typed on it answer normal
 **boot** log do you reset it: `rts=True` → `False` (`dtr=False`), then read for a few seconds. Waveshare P4
 (USB-Serial/JTAG): open with **`dtr=True, rts=False`** — other states reset it on open, and a logger
 that reopens after each reset loops forever.
+🪤 `pio run -e <other env>` can wipe the whole `.pio/build/` (`project.checksum` is rewritten), so an
+image built a minute earlier is simply gone — and `curl -F firmware=@…` then uploads 0 bytes and says
+nothing useful. Copy the `.bin` somewhere else before building another environment.
 🪤 Building `crowpanel7` after `waveshare-p4-7b` redoes the CrowPanel's framework rebuild (~2 min) and
 that first run can fail on a missing `.sconsign312.tmp`: run it again (release.sh retries).
 Changing `PLATFORMIO_BUILD_FLAGS` rebuilds the whole framework (~3 min).
@@ -36,7 +39,10 @@ second stage runs PlatformIO 6.2.0.post1 from `~/.platformio/penv`, which the pl
 the rebuilt libraries are kept and the build goes through.
 Serial console (115200, type `help`): `status`, `portal`, `companion <url>|auto`, `zone <id>|auto`,
 `token`, `lead <ms>`, `lib search <text>|browse|find artist|album [name]|open <n>|back|more|actions <n>|show|ui [close]` (`lib action <n>` plays — not while someone listens), `backdrop on|off`, `scroll on|off`, `sleep <min>|off`, `view lyrics|cover`, `ota check|install`, `settings [close|qr]`, `tz <POSIX>|default`, `warmth <0-100>`, `colours`, `backlight <0-100>`, `forget-wifi`, `erase-all`, `bringup` (colour bars + touch tracker), `restart`,
-`screenshot` → `tools/screenshot.py <log> out.png` (shows lyrics: keep it out of the repo);
+`shots on` then `GET http://<panel>/screenshot` returns the framebuffer over Wi-Fi in ~4 s: 8-byte
+`TFTS` header (magic, uint16 w, uint16 h) then raw RGB565, and it reads `g_fb` itself — the one way to
+tell "drawn wrong" from "displayed wrong". Over serial instead: `screenshot` →
+`tools/screenshot.py <log> out.png` (minutes at 115200). Both show real lyrics: keep them out of the repo;
 `demo` freezes the screen on invented lyrics — use it for layout checks and doc screenshots
 (the real cover thumbnail and backdrop stay on screen: cover art is copyrighted too).
 `touchdiag` replays the touch reset variants live and attaches the touch if the GT911 answers.

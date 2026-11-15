@@ -25,9 +25,10 @@
       font (U+2010 in "Jean‐Luc" showed as a box), FPS overlay off; checked with `demo` + `screenshot`
 - [x] Timing: PositionClock (window ~36 ms on the board) + 250 ms display lead
 - [x] Vincent's eye check on the real LCD (white balance picked on the colour test card)
-- [x] Flash budget, measured 2026-11-14: the CrowPanel image is 1,889,435 B of its 2,031,616 B OTA
-      slot (93.0 %, 139 KiB left); with direct mode compiled in it is 95.3 % (92 KiB left). The P4
-      boards have 6 MB slots and sit near 33 %.
+- [x] Flash budget: the CrowPanel image was 1,889,435 B of its 2,031,616 B OTA slot on 2026-11-14
+      (93.0 %); with direct mode it became 95.3 %, and at **v0.1.19 it is 1,982,880 B — 97.6 %,
+      47 KiB left**, which is now the binding constraint of this repo. The P4 boards have 6 MB
+      slots and sit near 35 % (VIEWE) and 56 % (Waveshare, which also carries the C6 firmware).
 
 ## Phase 2 — lyrics and controls UI (in progress)
 
@@ -48,7 +49,8 @@
 - [x] Final partition table (2 × 1984 KB OTA slots + coredump), firmware version from git tags
 - [x] OTA from GitHub releases: daily check, header badge, on-screen confirmation, SHA-256, rollback
 - [x] Local upload page with an on-screen code; install + rollback verified on the board
-- [x] Release script + browser installer (ESP Web Tools on GitHub Pages) — first release not published yet
+- [x] Release script + browser installer (ESP Web Tools on GitHub Pages); releases published since
+      v0.1.0, **v0.1.19** on 2026-11-15 carries all three boards
 - [x] Settings screen, idle clock (SNTP + time zone), volume slider + mute, per-track lyrics offset
 
 ## Second screen: Waveshare ESP32-P4 7B (2026-11-11)
@@ -99,8 +101,11 @@
 - [x] Root cause of a day of dark screen written down: two GPIO-switched panel supply rails nobody
       drove, reset on GPIO 22 (`docs/HARDWARE.md`); three earlier "pitfalls" were its symptoms
 - [ ] Vincent's eye check (colours, warmth, orientation, touch comfort)
-- [ ] Web installer: a board choice, since it picks by chip and two P4 boards now share one — until
-      then this board is flashed over USB, and `tools/release.sh` does not publish its asset
+- [x] Published since v0.1.19: `tools/release.sh` builds and ships its three files, so a VIEWE
+      updates over the air and from its own page like the others
+- [ ] Web installer: a board choice, since it picks by chip and two P4 boards share one. Until then
+      the VIEWE is kept **out of the manifest on purpose** (a second ESP32-P4 entry would hand one
+      of the two screens the other's image) and is flashed from a computer the first time
 
 ## Direct to the music server (2026-11-14)
 
@@ -167,8 +172,34 @@ with that, and lyrics became a section. What is still missing to be a credible r
 - [ ] First run should not ask "companion or direct": the panel can look for both and say what it
       found, so a newcomer never has to understand the project's history to hear music
 
-🪤 None of this fits the CrowPanel: it is at 95.4 % of its OTA slot, 91 KiB left. These are P4
-screens; the S3 stays the panel it already is.
+🪤 None of this fits the CrowPanel: it is at **97.6 % of its OTA slot, 47 KiB left**. These are P4
+screens; the S3 stays the panel it already is — and the next thing added to it has to pay for
+itself in bytes.
+
+## Updates you can watch and trust, and a panel that looks alive (2026-11-15)
+
+Found by using the thing: the Waveshare was stuck on a release older than direct mode, and nothing
+would install.
+
+- [x] **An image on trial proves itself** (90 s of Wi-Fi) instead of waiting for a server to answer.
+      Until then a panel whose companion had gone away installed every update and rolled it back
+      three minutes later, for ever — reporting success each time. Two silent rollbacks before
+      anyone noticed
+- [x] **A firmware sent from the panel's page shows on the panel**: the same full-screen picture as
+      a download, counting up, the code leaving the screen as the first byte arrives. It drew
+      nothing at all before — a frozen-looking panel at the one moment nobody must unplug it
+- [x] **Every refusal takes that picture away again** and says why, in a sentence, while the browser
+      keeps the hex. A bad checksum used to leave the panel on "Updating…" until it was unplugged
+- [x] **Five bars of the mark dance while music plays**: two panels side by side, both playing, both
+      looked idle — the only sign was the word "Playing" in 16 px grey in a corner
+- [x] One task owns mDNS: the duplicate registration that failed at every boot is gone
+- [x] The panel says where it comes from — its About row and both its pages link the project, and
+      the upload page names the file this board takes and where the digests live
+- [x] **v0.1.19 published**, three boards, and installed over the air from the public release on a
+      panel to prove the whole path
+- [ ] The update screen comes out turquoise on the Waveshare during an upload. The framebuffer
+      reads black, so it is below the app; four explanations were disproved by experiment
+      (`docs/HARDWARE.md`). **Kept**: it shows plainly that something is happening
 
 ## Other boards (not started)
 
@@ -189,4 +220,4 @@ screens; the S3 stays the panel it already is.
 - Companion push channel (SSE/WebSocket) instead of polling
 - Wider scripts (CJK…) from the microSD card (tiny_ttf)
 - Double framebuffer + vsync if tearing shows; PCLK tuning
-- Enclosure / stand, release binaries (web flasher)
+- Enclosure / stand
