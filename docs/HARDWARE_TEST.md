@@ -28,9 +28,10 @@ Waveshare's with `--dtr 1 --rts 0`, or it restarts. Opening the VIEWE's restarts
 
 1. **Backup**, first time on a board only: `tools/backup-firmware.py --port <port>`. It names the
    board from its chip and flash size and verifies the copy. A board it does not name is not one
-   of the three: stop there. 🪤 It reads the VIEWE's 16 MB in one go at 230400, which once died
-   after 284 KB on that board (docs/HARDWARE.md, VIEWE section): if it stops early, read in 512 KB
-   pieces with `esptool read-flash`, and restore at 230400, not the 460800 its `--restore` prints.
+   of the three: stop there. The VIEWE is read in 32 pieces of 512 KB, up to 3 attempts each (its
+   adapter drops bytes on a long read). The backup restarts the board, so never run it in the
+   3 minutes after an update (the update would roll back). `--restore <file>` prints the command
+   at the board's own flash speed, read from the file's name.
 2. **Flash**: `pio run -e <env> -t upload --upload-port <port>`. The boot log shows
    `[tft-panel] boot, firmware <version>, board <board name>`, then
    `[tft-panel] psram=… touch=1 … res=<screen>`. `status` never prints `WRONG BOARD`. P4 boards
@@ -122,6 +123,33 @@ discovery is not. Start each case with `erase-all`, then `wifi <ssid> <password>
 ### Queue and zone grouping
 
 ### Render speed: P4 draw unit, S3 DMA flush
+
+P4 boards: nothing to test. The LVGL PPA draw unit needs IDF 6 (docs/ARCHITECTURE.md).
+
+CrowPanel only: three flush modes, switchable live with `flush cpu|dma|dma2`.
+Expected, not measured: `dma2` lets LVGL render one 24-line strip while the GDMA copies the other.
+The copy takes about 20 ms of the ~88 ms full-stage frame, so it can hide up to that much. 24-line
+strips render slower than 48-line ones, though, so `dma2` may also lose. `dma` keeps the 48-line
+strip and only swaps the CPU copy for the GDMA one. `cpu` stays the default until these numbers exist.
+
+1. Flash the build, play a song with synced lyrics and open the serial console (115200).
+2. Let three lyric lines change. Note the three `[ui] scroll: N steps in T ms, R refreshes X ms, F flushes Y ms` lines (cpu baseline).
+3. Type `flush dma`. Expect `[cmd] flush dma`. Note the next three `[ui] scroll:` lines.
+4. Type `flush dma2`. Expect `[cmd] flush dma2`. Note the next three `[ui] scroll:` lines.
+5. Type `flush cpu` and note three more lines, to check the baseline has not drifted.
+6. Compare steps per slide (more is smoother) and `refreshes X ms / R` (ms per frame). In the dma
+   modes `flushes Y ms` counts from the call to the end of the GDMA copy, overlap included, so it
+   is not CPU time.
+7. In each mode, watch the panel for 30 s while lyrics scroll. Look for the image shifting by 20
+   lines right after typing `flush …`, flickering dots or stale strips around
+   redrawn labels, and tearing. Also check that the progress bar and clock still update.
+8. In `dma2`, type `screenshot` and start an update (`ota check`, then `ota install` if one is
+   offered). The update screen must show the current text, not the previous screen's.
+9. If a mode answers `[cmd] flush: not enough internal RAM ...`, note the KB figure. The mode is
+   then unusable as is.
+
+Report the three modes' `[ui] scroll:` lines and what you saw. If `dma` or `dma2` wins without
+artefacts, its name becomes the default in `g_mode` (`src/board/board_crowpanel7.cpp`).
 
 ## Results block
 

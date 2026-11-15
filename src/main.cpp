@@ -124,7 +124,7 @@ void help() {
     Serial.println("[cmd] status | portal | wifi <ssid> [password] | forget-wifi | companion <http://host:port>|auto");
     Serial.println("[cmd] source auto|companion|direct | server <host:port>|auto | lyrics auto|<url>|none | lyrics-token <t>|none | forget-pairing");
     Serial.println("[cmd] weather <town>|none | news <rss url>|none");
-    Serial.println("[cmd] token <token>|none | zone <zone_id>|auto | lead <ms> | backdrop on|off | scroll on|off | sleep <min>|off | view lyrics|cover|clock | ota check|install | settings [close|qr] | tz <POSIX TZ>|default | warmth <0-100> | colours | backlight <0-100> | demo [off|pos <ms>|manual on|off|slide <%>] | show <screen>|none | shots on|off | screenshot | lib ... | touchdiag | erase-all | bringup | restart");
+    Serial.println("[cmd] token <token>|none | zone <zone_id>|auto | lead <ms> | backdrop on|off | scroll on|off | sleep <min>|off | view lyrics|cover|clock | ota check|install | settings [close|qr] | tz <POSIX TZ>|default | warmth <0-100> | colours | flush cpu|dma|dma2 | backlight <0-100> | demo [off|pos <ms>|manual on|off|slide <%>] | show <screen>|none | shots on|off | screenshot | lib ... | touchdiag | erase-all | bringup | restart");
 }
 
 // Development console on the USB serial port (115200).
@@ -232,6 +232,14 @@ void handleCommand(String line) {
         settings::setWarmth((uint8_t)constrain(arg.toInt(), 0, 100));
         board::setWarmth(settings::warmth());
         Serial.printf("[cmd] colour warmth %d %%\n", (int)settings::warmth());
+    } else if (cmd == "flush") {
+        // A/B of the render path on the hardware: the next three lyric slides log `[ui] scroll:`.
+        String why = arg.length() ? board::setFlushMode(arg.c_str()) : String();
+        if (why.length()) Serial.printf("[cmd] flush: %s\n", why.c_str());
+        else {
+            ui::profileScrolls();
+            Serial.printf("[cmd] flush %s\n", board::flushMode());
+        }
     } else if (cmd == "backlight" && arg.length()) {
         // Raw PWM level for hardware checks; the sleep logic takes over again on its next change.
         board::setBacklight((uint8_t)constrain(arg.toInt(), 0, 100));
