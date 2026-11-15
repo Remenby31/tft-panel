@@ -1743,6 +1743,9 @@ bool showcase(const String &what) {
         showView(View::Lyrics);
         g_seekBar = g_bar;
         showSeekTarget(g_bar, (int32_t)(g_s.durationMs * 2 / 5));
+        char total[12];
+        fmtTime(total, sizeof total, g_s.durationMs);
+        setText(g_total, total);
     } else if (what == "clockview") showView(View::Clock);
     else if (what == "controls") showControls(true);
     else if (what == "settings") {
