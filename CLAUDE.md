@@ -10,6 +10,8 @@ bring-up log), `docs/ROADMAP.md` (current phase).
 ## Commands
 
 ```bash
+tools/backup-firmware.py --port /dev/cu.usbserial-*  # identify the board, dump its flash, verify the copy
+                                                     # (read baud is below the flash baud: 230400 on both CH340s)
 pio run                                              # CrowPanel build (first build ~6 min + framework rebuild ~2 min, then ~30 s)
 pio run -t upload --upload-port /dev/cu.usbserial-*  # CrowPanel flash; 921600 fails on this board, 460800 works
 pio run -e waveshare-p4-7b -t upload --upload-port /dev/cu.usbmodem*   # Waveshare P4 (native USB, 921600 fine)

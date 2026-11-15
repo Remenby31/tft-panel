@@ -11,6 +11,11 @@ namespace board {
 constexpr const char *BOARD_NAME = "Elecrow CrowPanel 7\" V3.0";
 // Firmware asset of this board in a GitHub release: tft-panel-<tag>.bin (the first board kept the plain name).
 constexpr const char *BOARD_ASSET = "tft-panel";
+// What this image expects to find under it. The web installer picks firmware by chip family, and
+// a person flashing by hand can pick the wrong file, so the firmware says so itself at boot
+// (`board::hardwareVerdict()`): nothing else would, and a mismatched panel just stays dark.
+constexpr const char *EXPECTED_CHIP = "ESP32-S3";
+constexpr uint32_t EXPECTED_FLASH_MB = 4;
 constexpr bool HAS_STATIC_SCREEN = true;   // OTA: freeze the image in internal RAM (see board.h)
 // Colour warmth out of the box: this panel's white is bluish (Vincent settled on 76 %).
 constexpr uint8_t DEFAULT_WARMTH = 75;

@@ -1,12 +1,24 @@
 # Hardware
 
-TFT Panel runs on two 7" boards. Each has its own board layer in `src/board/` (one PlatformIO
+> **Before flashing any board for the first time**, run `tools/backup-firmware.py --port <port>`:
+> it names the board from its chip and flash size — the only way to tell the two ESP32-P4 screens
+> apart before flashing — copies the whole flash, and reads it back to check the copy. A running
+> image also says so itself: a mismatch between the board it was built for and the hardware under
+> it prints **WRONG BOARD** at boot and in the console's `status`, which is what turns a dark
+> screen from a mystery into a sentence.
+
+TFT Panel runs on three 7" boards. Each has its own board layer in `src/board/` (one PlatformIO
 environment each); everything above it is shared, and the interface is drawn on an 800×480 grid
 scaled to the screen (`src/layout.h`).
 
-- [Elecrow CrowPanel ESP32 Display 7.0" (DIS08070H, board V3.0)](#elecrow-crowpanel-esp32-display-70-dis08070h-board-v30) — env `crowpanel7`
-- [Waveshare ESP32-P4-WIFI6-Touch-LCD-7B](#waveshare-esp32-p4-wifi6-touch-lcd-7b) — env `waveshare-p4-7b`
+- [Elecrow CrowPanel ESP32 Display 7.0" (DIS08070H, board V3.0)](#elecrow-crowpanel-esp32-display-70-dis08070h-board-v30) — env `crowpanel7`, ESP32-S3, 4 MB flash
+- [Waveshare ESP32-P4-WIFI6-Touch-LCD-7B](#waveshare-esp32-p4-wifi6-touch-lcd-7b) — env `waveshare-p4-7b`, ESP32-P4, 32 MB flash
+- [VIEWE ESP32-P4 7" S070](#viewe-esp32-p4-7-s070-jd9165-working-2026-11-14) — env `p4-s070-wba`, ESP32-P4, 16 MB flash
 - [Other boards](#other-boards) — not supported; what adding one takes
+
+🪤 The two ESP32-P4 boards differ only by flash size (32 MB Waveshare, 16 MB VIEWE), which is what
+`tools/backup-firmware.py` and `board::hardwareVerdict()` use to tell them apart. The browser
+installer picks by chip family and cannot.
 
 ## Elecrow CrowPanel ESP32 Display 7.0" (DIS08070H, board V3.0)
 

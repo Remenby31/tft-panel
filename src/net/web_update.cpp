@@ -1,6 +1,8 @@
 #include "web_update.h"
 
 #include "lyrics_source.h"
+#include <mbedtls/sha256.h>
+
 #include "news.h"
 #include "weather.h"
 
@@ -81,13 +83,19 @@ button{background:#6db56d;color:#15161a;border:0;padding:10px 24px}#msg{margin-t
 <h1>Update TFT Panel</h1><p>Running <b>%VERSION%</b>. Choose a firmware file (<code>tft-panel-vX.Y.Z.bin</code>)
 and type the code shown on the panel's screen.</p>
 <p><input id="code" inputmode="numeric" maxlength="6" placeholder="6-digit code" autocomplete="off"></p>
-<p><input id="file" type="file" accept=".bin"></p><p><button id="go">Upload and install</button></p><div id="msg"></div>
+<p><input id="file" type="file" accept=".bin"></p>
+<p><input id="sha" maxlength="64" autocomplete="off" placeholder="sha256 from the release (optional)" style="width:100%;max-width:34em">
+<br><small>Paste the line from <code>%ASSET%-vX.Y.Z.sha256</code> and the panel refuses the file if it does not match.
+The panel checks the image itself either way, and goes back to this version if the new one does not start.</small></p>
+<p><button id="go">Upload and install</button></p><div id="msg"></div>
 <script>
 go.onclick=()=>{const f=file.files[0];if(!f||code.value.length!=6){msg.textContent='Pick a file and type the code.';return}
 const fd=new FormData();fd.append('firmware',f);const x=new XMLHttpRequest();
 x.upload.onprogress=e=>{msg.textContent='Uploading '+Math.round(100*e.loaded/e.total)+' %'};
 x.onload=()=>{msg.textContent=x.responseText};x.onerror=()=>{msg.textContent='Upload failed (connection lost).'};
-x.open('POST','/update?code='+encodeURIComponent(code.value));x.send(fd);go.disabled=true}
+const s=(sha.value.trim().split(/\s+/)[0]||'').toLowerCase();
+if(s&&!/^[0-9a-f]{64}$/.test(s)){msg.textContent='That does not look like a sha256: 64 hex characters.';return}
+x.open('POST','/update?code='+encodeURIComponent(code.value)+(s?'&sha='+s:''));x.send(fd);go.disabled=true}
 </script></body></html>)HTML";
 
 // The code lives on the panel's screen; it is also printed here, because a USB cable already
@@ -107,6 +115,35 @@ bool codeValid(const String &typed) {
 // A browser that typed the code once gets a cookie, so changing a setting later asks nothing.
 // The cookie is per panel (the token lives in that panel's NVS) and dies with `forget-wifi`,
 // `erase-all` or the Forget button on the page. Firmware upload always asks for a fresh code.
+// The SHA-256 of what the browser sent, so the person can compare it with the `.sha256` beside
+// the firmware on the release page — and have the panel refuse it if they paste that digest in.
+// The image's own integrity (truncation, corruption) is caught by the OTA layer regardless;
+// this answers the other question, which is whether it is the file they meant to install.
+mbedtls_sha256_context g_upSha;
+bool g_upShaOn = false;
+size_t g_upBytes = 0;          // what actually arrived, on either write path
+String g_upWant, g_upGot;
+
+void shaStart() {
+    if (g_upShaOn) mbedtls_sha256_free(&g_upSha);
+    mbedtls_sha256_init(&g_upSha);
+    mbedtls_sha256_starts(&g_upSha, 0);
+    g_upShaOn = true;
+    g_upBytes = 0;
+    g_upGot = "";
+}
+
+String shaFinish() {
+    if (!g_upShaOn) return String();
+    uint8_t out[32];
+    mbedtls_sha256_finish(&g_upSha, out);
+    mbedtls_sha256_free(&g_upSha);
+    g_upShaOn = false;
+    char hex[65];
+    for (int i = 0; i < 32; i++) snprintf(hex + i * 2, 3, "%02x", out[i]);
+    return String(hex);
+}
+
 bool g_trustedNow = false;      // set during the request that typed a correct code
 
 bool trustedBrowser() {
@@ -159,6 +196,10 @@ void handleUpload() {
             return;
         }
         Serial.printf("[web] firmware upload started: %s\n", up.filename.c_str());
+        shaStart();
+        g_upWant = g_server->arg("sha");
+        g_upWant.trim();
+        g_upWant.toLowerCase();
         if (board::OTA_DOWNLOAD_FIRST) {
             const esp_partition_t *slot = esp_ota_get_next_update_partition(nullptr);
             g_imageCap = slot ? slot->size : 0;
@@ -172,6 +213,10 @@ void handleUpload() {
             g_uploadError = String("Cannot start the update: ") + Update.errorString();
         }
     } else if (up.status == UPLOAD_FILE_WRITE && g_uploadAllowed) {
+        if (g_upShaOn) {
+            mbedtls_sha256_update(&g_upSha, up.buf, up.currentSize);
+            g_upBytes += up.currentSize;
+        }
         if (g_image) {
             if (g_imageLen + up.currentSize > g_imageCap) {
                 g_uploadAllowed = false;
@@ -187,6 +232,18 @@ void handleUpload() {
             Update.abort();
         }
     } else if (up.status == UPLOAD_FILE_END && g_uploadAllowed) {
+        g_upGot = shaFinish();
+        Serial.printf("[web] uploaded %u bytes, sha256 %s\n", (unsigned)g_upBytes, g_upGot.c_str());
+        if (g_upWant.length() && g_upWant != g_upGot) {
+            // Refused before a single byte is committed: a digest that does not match is either
+            // the wrong file or a damaged transfer, and neither should reach the flash.
+            g_uploadAllowed = false;
+            g_uploadError = "Checksum does not match: nothing installed. The panel received "
+                            "sha256 " + g_upGot + ", you asked for " + g_upWant + ".";
+            if (g_image) dropImage();
+            else Update.abort();
+            return;
+        }
         if (g_image) {
             String err;
             if (ota::writeImage(g_image, g_imageLen, err)) g_uploadOk = true;
@@ -198,6 +255,7 @@ void handleUpload() {
             g_uploadError = String("Not a valid firmware image: ") + Update.errorString();
         }
     } else if (up.status == UPLOAD_FILE_ABORTED && g_uploadAllowed) {
+        shaFinish();
         if (g_image) dropImage();
         else Update.abort();
         g_uploadError = "Upload interrupted, nothing installed.";
@@ -207,8 +265,9 @@ void handleUpload() {
 void handleUploadDone() {
     if (g_uploadOk) {
         g_code = 0;
-        g_server->send(200, "text/plain", "Installed. The panel restarts now; it goes back to the previous version "
-                                          "by itself if this one does not start properly.");
+        g_server->send(200, "text/plain",
+                       "Installed (sha256 " + g_upGot + "). The panel restarts now; it goes back "
+                       "to the previous version by itself if this one does not start properly.");
         Serial.println("[web] firmware uploaded and verified, restarting");
         delay(1000);
         board::restart();
@@ -389,6 +448,7 @@ void start() {
         newCode();                                 // shown on the panel, typed in the browser
         String page = FPSTR(PAGE);
         page.replace("%VERSION%", FW_VERSION);
+        page.replace("%ASSET%", board::BOARD_ASSET);
         g_server->send(200, "text/html", page);
     });
     g_server->on("/update", HTTP_POST, handleUploadDone, handleUpload);

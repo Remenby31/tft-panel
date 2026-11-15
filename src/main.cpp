@@ -72,6 +72,8 @@ void printStatus() {
     strftime(when, sizeof when, "%Y-%m-%d %H:%M:%S", &lt);
     Serial.printf("[status] local time %s (%s), clock %s\n", lt.tm_year + 1900 >= 2025 ? when : "not set yet",
                   settings::tz().c_str(), settings::clock() ? "on" : "off");
+    if (String v = board::hardwareVerdict(); v.length())
+        Serial.printf("[status] WRONG BOARD: %s\n", v.c_str());
     Serial.printf("[status] touch=%d heap int %u KB (min %u) psram %u KB\n", info.touch,
                   (unsigned)(heap_caps_get_free_size(MALLOC_CAP_INTERNAL) / 1024),
                   (unsigned)(heap_caps_get_minimum_free_size(MALLOC_CAP_INTERNAL) / 1024),
@@ -330,6 +332,9 @@ void setup() {
                   info.pca9557, info.touch, info.touchAddr, info.touchId, info.touchFw,
                   info.touchXRes, info.touchYRes);
     if (info.error.length()) Serial.printf("[tft-panel] ERROR: %s\n", info.error.c_str());
+    // Before anything is blamed on the panel: is this image even on the right board?
+    String verdict = board::hardwareVerdict();
+    if (verdict.length()) Serial.printf("[tft-panel] WRONG BOARD: %s\n", verdict.c_str());
     if (!g_ok) {
         Serial.println("[tft-panel] FATAL: display not initialised, halting");
         return;

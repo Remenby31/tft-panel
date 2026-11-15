@@ -58,6 +58,18 @@
       then the second one to choose your Wi-Fi network.</li>
   </ol>
 
+  <div class="card">
+    <b>This overwrites whatever is on the board, for good.</b><br>
+    A demo firmware your screen came with cannot be downloaded again from anywhere. If you may want it
+    back, save it first — one command, a few minutes, nothing written to the board:
+    <code>tools/backup-firmware.py --port &lt;your port&gt;</code> from the
+    <a href="https://github.com/r45635/tft-panel">repository</a>. It copies the whole flash, writes the
+    copy's sha256, then reads the board back to check the copy against it, and says so if the copy is
+    not good. It also names your board — which this page cannot do for the two ESP32-P4 screens, because
+    they are the same chip. If a flashed panel stays dark, the firmware says <b>WRONG BOARD</b> on the
+    USB serial console and names the image you need.
+  </div>
+
   <div class="install">
     <esp-web-install-button manifest="manifest.json">
       <span slot="unsupported">This browser cannot flash devices: please open this page in Chrome or Edge on a computer.</span>

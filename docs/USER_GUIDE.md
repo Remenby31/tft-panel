@@ -32,6 +32,29 @@ zones and cover are invented.*
 
 ## 1. Install the firmware (once)
 
+### Before you flash: save what is on the board
+
+Whatever your screen came with — a vendor demo, another firmware — is **overwritten and cannot be
+downloaded again from anywhere**. Saving it first takes one command and a few minutes:
+
+```bash
+tools/backup-firmware.py --port /dev/cu.usbserial-XXXX     # Windows: COM5
+```
+
+It says what the board is and which image it takes, copies the whole flash to
+`~/tft-panel-backups/`, writes the copy's `sha256` beside it, **and then reads the flash back to
+check the copy against the board**. If anything is short or different it tells you there is no
+backup rather than leaving you a file that looks like one. Nothing is written to the board.
+
+One day, to put it back: `tools/backup-firmware.py --port … --restore <the .bin>`.
+
+It is also the only thing that tells the two ESP32-P4 boards apart before you flash them — the
+browser installer sees one chip for both, and the wrong image leaves the screen dark. If you
+already flashed and the screen stayed black, plug in the USB cable and read the serial console
+(`pio device monitor`): the firmware says **WRONG BOARD** and names the image you need.
+
+### Flash it
+
 1. On a computer, open the [web installer](https://r45635.github.io/tft-panel/install.html) in **Chrome or Edge**.
 2. Connect the panel with the USB-C cable — on the Waveshare, the port marked **USB 1.1** — click
    **Install**, pick the serial port and confirm. The installer recognises the screen and picks its
@@ -193,8 +216,11 @@ The panel looks for a new version every day. When there is one, **Update** appea
 
 ![Update available](images/update-available.png)
 
-Tap it and confirm. The panel downloads the update, checks it, and restarts (about a minute).
-Don't unplug it meanwhile. If the new version does not start properly, the panel goes back to
+Tap it and confirm. The panel downloads the update, **checks its sha256 against the one published
+with the release** and refuses it if a single byte differs, then restarts (about a minute).
+Don't unplug it meanwhile. There is nothing to back up first: the version you are running stays in
+the other half of the flash, which is where the panel returns to by itself if the new one never
+starts properly. If the new version does not start properly, the panel goes back to
 the previous one by itself.
 
 ![Update confirmation](images/update-confirm.png) ![Updating](images/update-progress.png)
@@ -205,6 +231,15 @@ Open `http://tft-panel-xxxx.local/update` (the name is shown in the settings, un
 choose a firmware file, and type the 6-digit code the panel shows:
 
 ![Upload code](images/upload-code.png)
+
+Beside the file there is a box for the **sha256** published with each release, in the
+`…-vX.Y.Z.sha256` file next to the firmware. Paste it and the panel refuses the upload unless
+every byte matches, naming both digests so you can see which file you actually have. Leave it
+empty and the panel still tells you the digest of what it received, so you can compare afterwards.
+
+A wrong code is used up the moment it is refused: read the new one on the screen, or reload the
+page. And whatever happens here, the version you are replacing stays in the other half of the
+flash until the new one has proved it starts.
 
 ## Troubleshooting
 

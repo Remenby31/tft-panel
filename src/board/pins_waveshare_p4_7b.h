@@ -12,6 +12,10 @@ namespace board {
 constexpr const char *BOARD_NAME = "Waveshare ESP32-P4 7B";
 // Firmware asset of this board in a GitHub release: tft-panel-waveshare-p4-7b-<tag>.bin
 constexpr const char *BOARD_ASSET = "tft-panel-waveshare-p4-7b";
+// 🪤 Both P4 boards share a chip, so the installer cannot tell them apart; the flash size can.
+// 32 MB here, 16 MB on the VIEWE. See `board::hardwareVerdict()`.
+constexpr const char *EXPECTED_CHIP = "ESP32-P4";
+constexpr uint32_t EXPECTED_FLASH_MB = 32;
 // PSRAM has its own bus on the P4: flash writes do not disturb the display.
 constexpr bool HAS_STATIC_SCREEN = false;
 // Colour warmth out of the box: none until someone has looked at this panel's white.

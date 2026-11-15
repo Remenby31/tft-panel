@@ -19,6 +19,13 @@ struct Info {
     String error;          // empty when everything came up
 };
 
+// Does the hardware under this image match the board it was built for? Returns "" when it does,
+// and otherwise a sentence naming what was found, what was expected and which firmware to flash.
+// 🪤 The web installer picks by chip family, and the two ESP32-P4 boards share one: given the
+// wrong image a board simply stays dark, with nothing anywhere to say why. This is the only
+// place that says it, so it is printed at boot and repeated by the console's `status`.
+String hardwareVerdict();
+
 // Call first in setup(). After a CPU-only reset (esp_restart after an OTA, rollback, panic,
 // watchdog) the LCD_CAM/GDMA and I2C peripherals keep running from before: the image comes up
 // shifted and touch is dead until a real reset. This does one full system reset in that case.

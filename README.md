@@ -77,6 +77,12 @@ Details, pin maps and pitfalls: [docs/HARDWARE.md](docs/HARDWARE.md).
 
 ## Install
 
+**Before the first flash, save what is on the board.** Whatever it came with is overwritten and
+cannot be downloaded again: `tools/backup-firmware.py --port /dev/cu.usbserial-XXXX` copies the
+whole flash, writes its `sha256`, and reads the flash back to check the copy against the board —
+and tells you plainly if the copy is not good. It also names the board, which is the one thing the
+browser installer cannot do for the two ESP32-P4 screens.
+
 **First time — from your browser, no tools to install.** Open the
 [web installer](https://r45635.github.io/tft-panel/install.html) in Chrome or Edge on a computer, connect the
 panel's USB-C port (on the Waveshare, the one marked *USB 1.1*), click *Install* and pick the serial
@@ -84,8 +90,11 @@ port; the installer picks the firmware for the screen it finds. On Windows the C
 [CH340 driver](https://www.wch-ic.com/downloads/CH341SER_EXE.html).
 
 **After that — over the air.** The panel checks for new releases by itself; when one is out, *Update*
-appears at the top of the screen. Tap it and confirm: the panel downloads it, checks its checksum and
-restarts. If the new version does not start properly, it goes back to the previous one by itself.
+appears at the top of the screen. Tap it and confirm: the panel downloads it, checks its sha256
+against the one published with the release, and restarts. Nothing needs backing up first — the
+version you are running stays in the other half of the flash, and the panel returns to it by itself
+if the new one never starts properly. A firmware uploaded by hand from the panel's own page can
+carry that same sha256, and is refused if it does not match.
 
 ## Build and flash
 
