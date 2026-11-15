@@ -27,8 +27,9 @@ PlatformIO Core (`pip install platformio==6.2.0`, or `uv tool install platformio
 a C++17 compiler, SDL2 and zlib. `PIO=/path/to/pio` if `pio` is not on the `PATH`.
 
 - Debian / Ubuntu: `apt install build-essential libsdl2-dev zlib1g-dev`
-- macOS: `brew install sdl2`. The build finds it through `HOMEBREW_PREFIX`, which
-  `brew shellenv` sets.
+- macOS: `brew install sdl2`. Not checked yet: the build has only run on Linux so far.
+
+The build asks `sdl2-config` where SDL2 is (`sim/sdl_flags.py`).
 
 First build ~20 s (LVGL), then a few seconds. After `tools/fonts/build_fonts.sh`, delete
 `.pio/build/sim*`: the build does not see that the font files changed. A run takes well under a second.
@@ -41,12 +42,15 @@ First build ~20 s (LVGL), then a few seconds. After `tools/fonts/build_fonts.sh`
 | `sim/lv_conf_sim.h` | The firmware's `include/lv_conf.h`, plus the C heap and the SDL driver. |
 | `sim/src/main.cpp` | Display (headless buffer or SDL window), the board functions the UI calls, the clock, PNG output. |
 | `sim/src/fake_services.cpp` | Settings in memory, and network, update and web page calls that do nothing. |
+| `sim/src/wall_clock.c` | `time()` fixed at the showcase's date and time. |
 | `sim/src/fonts_embed.c` | The Noto Sans files under the names `board_build.embed_files` gives them. |
 | `sim/shim/` | The few ESP-IDF headers the UI includes. `host/shim/Arduino.h` (shared with the host tests) stands in for Arduino. |
 
-Headless, the clock is the simulator's own: each screen gets 1.5 s of 16 ms frames before it is
-saved, so animations have settled and the same build always writes the same picture. In the
-window, the clock is real time.
+Headless, each screen is drawn by a fresh process, so a picture never depends on the screens
+drawn before it. Time is the simulator's own: each screen gets 1.5 s of 16 ms frames before it is
+saved, so animations have settled, and the wall clock stands still at the showcase's Saturday
+7 November, 21:47 (`sim/src/wall_clock.c`). The same build writes the same pictures whenever and
+wherever it runs. In the window, frames follow real time; the wall clock stays still there too.
 
 What it does not show: colour warmth and backlight (applied in the board code, after LVGL draws), touch
 behaviour on glass, frame rate. Those need a board (`docs/HARDWARE.md`).

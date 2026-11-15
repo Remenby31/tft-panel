@@ -6,9 +6,12 @@
 //   tft-sim --window
 #include <Arduino.h>
 #include <lvgl.h>
+#include <sys/wait.h>
+#include <unistd.h>
 #include <zlib.h>
 
 #include <chrono>
+#include <filesystem>
 #include <thread>
 #include <vector>
 
@@ -24,7 +27,9 @@ using layout::SCREEN_W;
 namespace {
 
 bool g_realTime = false;
-uint32_t g_virtualMs = 0;
+// A panel that has been up a minute: the UI reads "less than 1.5 s since 0" as a finger still on
+// the volume slider, and a real panel is never that young when someone opens it.
+uint32_t g_virtualMs = 60000;
 lv_display_t *g_display = nullptr;
 std::vector<uint16_t> g_frame;   // RGB565, what the panel would show
 
@@ -101,6 +106,40 @@ bool writePng(const char *path) {
     return fclose(f) == 0 && ok;
 }
 
+void start(bool window) {
+    g_realTime = window;
+    lv_init();
+    lv_tick_set_cb(millis);
+    lv_log_register_print_cb([](lv_log_level_t, const char *line) { fputs(line, stderr); });
+    if (window) {
+        g_display = lv_sdl_window_create(SCREEN_W, SCREEN_H);
+        lv_sdl_window_set_title(g_display, "TFT Panel simulator");
+        lv_sdl_mouse_create();
+    } else {
+        g_display = headlessDisplay();
+    }
+    if (!fonts::begin()) fprintf(stderr, "[sim] TTF fonts unavailable\n");
+    ui::show();
+    ui::setDemo(true);
+}
+
+// Same sequence as tools/showcase.py on a panel: "show none", then the screen.
+int shoot(const String &name, const String &out) {
+    ui::showcase("none");
+    if (!ui::showcase(name)) {
+        fprintf(stderr, "[sim] unknown screen: %s\n", name.c_str());
+        return 1;
+    }
+    run(1500);
+    String path = out + "/" + name + "-" + String(SCREEN_W) + "x" + String(SCREEN_H) + ".png";
+    if (!writePng(path.c_str())) {
+        fprintf(stderr, "[sim] cannot write %s\n", path.c_str());
+        return 1;
+    }
+    printf("%s\n", path.c_str());
+    return 0;
+}
+
 int usage() {
     fprintf(stderr,
             "usage: tft-sim --out DIR [--shots NAME,...]   headless, one PNG per screen\n"
@@ -144,28 +183,18 @@ int main(int argc, char **argv) {
         else return usage();
     }
     if (!window && !out.length()) return usage();
-
-    g_realTime = window;
-    lv_init();
-    lv_tick_set_cb(millis);
-    if (window) {
-        g_display = lv_sdl_window_create(SCREEN_W, SCREEN_H);
-        lv_sdl_window_set_title(g_display, "TFT Panel simulator");
-        lv_sdl_mouse_create();
-    } else {
-        g_display = headlessDisplay();
-    }
-    if (!fonts::begin()) fprintf(stderr, "[sim] TTF fonts unavailable\n");
-    ui::show();
-    ui::setDemo(true);
+    std::error_code dirError;
+    if (!window) std::filesystem::create_directories(out.c_str(), dirError);
 
     if (window) {
+        start(true);
         for (;;) {
             ui::tick();
             std::this_thread::sleep_for(std::chrono::milliseconds(lv_timer_handler()));
         }
     }
 
+    // One process per screen, so a picture never depends on the screens drawn before it.
     int failed = 0, saved = 0;
     for (int from = 0; from <= (int)shots.length();) {
         int comma = shots.indexOf(',', from);
@@ -173,22 +202,15 @@ int main(int argc, char **argv) {
         String name = shots.substring(from, comma);
         from = comma + 1;
         if (!name.length()) continue;
-        ui::showcase("none");
-        ui::showcase("lyrics");
-        if (!ui::showcase(name)) {
-            fprintf(stderr, "[sim] unknown screen: %s\n", name.c_str());
-            failed++;
-            continue;
+        fflush(stdout);
+        pid_t pid = fork();
+        if (pid == 0) {
+            start(false);
+            exit(shoot(name, out));
         }
-        run(1500);
-        String path = out + "/" + name + "-" + String(SCREEN_W) + "x" + String(SCREEN_H) + ".png";
-        if (writePng(path.c_str())) {
-            printf("%s\n", path.c_str());
-            saved++;
-        } else {
-            fprintf(stderr, "[sim] cannot write %s\n", path.c_str());
-            failed++;
-        }
+        int status = 0;
+        if (pid > 0 && waitpid(pid, &status, 0) == pid && WIFEXITED(status) && WEXITSTATUS(status) == 0) saved++;
+        else failed++;
     }
     return failed || !saved ? 1 : 0;
 }

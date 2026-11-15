@@ -40,8 +40,9 @@ public:
     friend String operator+(String a, const char *b) { return a += b; }
     friend String operator+(const char *a, const String &b) { return String(a) += b; }
 
-    bool startsWith(const char *p) const { return s_.compare(0, strlen(p), p) == 0; }
+    bool startsWith(const char *p) const { return p && s_.compare(0, strlen(p), p) == 0; }
     bool endsWith(const char *p) const {
+        if (!p) return false;
         size_t n = strlen(p);
         return n <= s_.size() && s_.compare(s_.size() - n, n, p) == 0;
     }
