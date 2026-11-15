@@ -400,6 +400,49 @@ void tick(bool wifiUp) {
     }
 }
 
+// The browser upload drives the same Status as a download, so the UI needs no new state: the
+// progress screen already reacts to Downloading, and on the CrowPanel it freezes the picture in
+// internal RAM, which is what keeps the image still while the flash is written.
+void uploadStarted(const String &what) {
+    update([&](Status &s) {
+        s.state = State::Downloading;
+        s.latest = what.length() ? what : String("the file you sent");
+        s.percent = 0;
+        s.error = "";
+    });
+}
+
+void uploadProgress(size_t got, size_t total) {
+    // Never 100 % while bytes are still arriving: the last step is the flash write, and a bar
+    // sitting full for ten seconds is exactly the "it has crashed" feeling this screen exists
+    // to remove. Without a total, the bar waits at 0 and the words carry the news.
+    int pct = total ? (int)(got * 95 / total) : 0;
+    update([&](Status &s) {
+        if (s.state == State::Downloading && pct != s.percent) s.percent = pct;
+    });
+}
+
+void uploadInstalling() {
+    update([](Status &s) {
+        if (s.state == State::Downloading) s.percent = 97;
+    });
+}
+
+// The flash write after the transfer: on a board that collects the image in PSRAM first it
+// takes several seconds on its own, so it gets the last stretch of the bar rather than nothing.
+void uploadWriting(int pct) {
+    update([&](Status &s) {
+        if (s.state == State::Downloading) s.percent = 95 + pct * 5 / 100;
+    });
+}
+
+void uploadFailed(const String &error) {
+    update([&](Status &s) {
+        s.state = State::Failed;
+        s.error = error;
+    });
+}
+
 void markHealthy() {
 #ifdef OTA_TEST_NEVER_HEALTHY   // test build for the rollback path (PLATFORMIO_SRC_BUILD_FLAGS)
     return;

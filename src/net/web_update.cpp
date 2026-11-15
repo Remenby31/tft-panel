@@ -122,6 +122,7 @@ bool codeValid(const String &typed) {
 mbedtls_sha256_context g_upSha;
 bool g_upShaOn = false;
 size_t g_upBytes = 0;          // what actually arrived, on either write path
+size_t g_upTotal = 0;          // what the browser announced, for the progress screen
 String g_upWant, g_upGot;
 
 void shaStart() {
@@ -196,6 +197,13 @@ void handleUpload() {
             return;
         }
         Serial.printf("[web] firmware upload started: %s\n", up.filename.c_str());
+        // The code has done its work: clearing it takes the six digits off the panel's screen
+        // (ui::tickCode) and makes them unusable a second time, and the update screen takes over.
+        g_code = 0;
+        // The whole multipart body, a few hundred bytes more than the firmware; close enough
+        // for a bar, and 0 when the client announced nothing (then the words speak alone).
+        g_upTotal = g_server->clientContentLength() > 0 ? (size_t)g_server->clientContentLength() : 0;
+        ota::uploadStarted(up.filename);
         shaStart();
         g_upWant = g_server->arg("sha");
         g_upWant.trim();
@@ -216,6 +224,7 @@ void handleUpload() {
         if (g_upShaOn) {
             mbedtls_sha256_update(&g_upSha, up.buf, up.currentSize);
             g_upBytes += up.currentSize;
+            ota::uploadProgress(g_upBytes, g_upTotal);
         }
         if (g_image) {
             if (g_imageLen + up.currentSize > g_imageCap) {
@@ -244,9 +253,10 @@ void handleUpload() {
             else Update.abort();
             return;
         }
+        ota::uploadInstalling();
         if (g_image) {
             String err;
-            if (ota::writeImage(g_image, g_imageLen, err)) g_uploadOk = true;
+            if (ota::writeImage(g_image, g_imageLen, err, ota::uploadWriting)) g_uploadOk = true;
             else g_uploadError = "Not a valid firmware image: " + err;
             dropImage();
         } else if (Update.end(true)) {
@@ -259,6 +269,11 @@ void handleUpload() {
         if (g_image) dropImage();
         else Update.abort();
         g_uploadError = "Upload interrupted, nothing installed.";
+    }
+    // Whatever went wrong, the screen says it: the person is standing in front of the panel,
+    // not in front of the browser that got the same sentence.
+    if (!g_uploadAllowed && g_uploadError.length() && !g_uploadError.startsWith("Wrong")) {
+        ota::uploadFailed(g_uploadError);
     }
 }
 

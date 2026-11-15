@@ -4,9 +4,10 @@
 // a newer tag vX.Y.Z than FW_VERSION becomes `Available`. Install (asked by the UI after the
 // user confirmed on screen): stream tft-panel-<tag>.bin into the other app slot while hashing
 // it, compare with tft-panel-<tag>.sha256, then reboot into it.
-// Rollback: a freshly installed image stays "pending verify" until markHealthy() (Wi-Fi up
-// and the companion answered); if that does not happen within 3 minutes it restarts and
-// the bootloader goes back to the previous version.
+// Rollback: a freshly installed image stays "pending verify" until markHealthy(), which happens
+// as soon as a server answers or, failing that, once the panel has simply held its Wi-Fi link
+// for 90 s - the image has to prove itself, not that someone else's server is up. If neither
+// happens within 3 minutes it restarts and the bootloader goes back to the previous version.
 #pragma once
 
 #include <Arduino.h>
@@ -31,6 +32,15 @@ Status status();           // copy under the lock
 // Net task only.
 void tick(bool wifiUp);    // periodic check, pending install
 void markHealthy();        // the new image works: cancel the rollback
+
+// A firmware pushed from the panel's own web page (net::webupdate), shown on the same screen
+// as a download so the panel never looks dead while 3 MB cross the air. The web task calls
+// these; `total` is what the browser announced, 0 when it announced nothing.
+void uploadStarted(const String &what);
+void uploadProgress(size_t got, size_t total);
+void uploadInstalling();
+void uploadWriting(int pct);   // the flash write that follows, on download-first boards
+void uploadFailed(const String &error);
 
 // Any task: requests, executed by the net task.
 void requestCheck();
