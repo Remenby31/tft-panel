@@ -119,8 +119,10 @@
       update check, with 51 KB of internal RAM free (43 KB low water) and no movement while 200
       albums and their thumbnails load — the list lives in PSRAM. Both thresholds met, so
       `-DSOURCE_ROON` is in the `crowpanel7` env as well and one image carries both sources
-- [ ] Vincent's run in direct mode over a few days; then make the library public (until it is,
-      a clone of this repo alone cannot build the two envs that use it: `symlink://../tft-core-client`)
+- [x] The library is public (MIT, v0.1.0) and **all three envs** carry the direct source
+      (2026-11-15): every board can reach the music server by itself, and the companion is the
+      option it is — the lyrics one. Direct is where this is going
+- [ ] Vincent's run in direct mode over a few days
 - [x] Lyrics in direct mode answered without a second Roon extension (2026-11-15): the companion
       gained `ROON_ENABLED=false` — a lyrics server that never pairs with Roon — and LRCLIB's own
       `GET /api/get`, so a panel given an address reaches it too (Docker Desktop has no host
