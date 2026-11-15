@@ -567,8 +567,12 @@ void refresh(const net::Snapshot &s, const ota::Status &o) {
     setText(g_fwButtonLabel, g_updateAvailable ? "Install " + o.latest : String("Check now"));
     char ram[24];
     snprintf(ram, sizeof ram, "%u KB", (unsigned)(heap_caps_get_free_size(MALLOC_CAP_INTERNAL) / 1024));
-    setText(g_about, "Panel " + net::hostName() + ".local  (" + (s.staIp.length() ? s.staIp : String("-")) + ")\nCompanion " +
-                         (s.companion.length() ? s.companion : String("searching...")) + "\nFree internal RAM " + ram);
+    // "Companion" was true of the only source there used to be; in direct mode that address is
+    // the music server itself. And the panel is the only place someone holds this product: it
+    // should be able to say where it comes from, without a search engine.
+    setText(g_about, "Panel " + net::hostName() + ".local  (" + (s.staIp.length() ? s.staIp : String("-")) + ")\nMusic server " +
+                         (s.companion.length() ? s.companion : String("searching...")) + "\nFree internal RAM " + ram +
+                         "\nSource, guide and releases: github.com/r45635/tft-panel");
 }
 
 void applyTz() {

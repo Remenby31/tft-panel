@@ -71,14 +71,16 @@ a{color:#6db56d}</style></head><body>
 <input name=news placeholder="https://example.com/rss" value="%NEWS%"></label>%NNOTE%
 %BMSG%<button>Save</button></form>
 %FORGET%
-<p><small>Firmware update: <a href=/update>/update</a></small></p>
+<p><small>Firmware update: <a href=/update>/update</a> &middot; open source (MIT):
+<a href="https://github.com/r45635/tft-panel">github.com/r45635/tft-panel</a></small></p>
 </body></html>)HTML";
 
 const char PAGE[] PROGMEM = R"HTML(<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1"><title>TFT Panel update</title>
 <style>body{font:17px/1.5 system-ui,sans-serif;max-width:560px;margin:32px auto;padding:0 16px;background:#15161a;color:#f6f4ee}
 input,button{font:inherit;padding:10px;border-radius:8px;border:1px solid #2f3037;background:#202127;color:#f6f4ee}
-button{background:#6db56d;color:#15161a;border:0;padding:10px 24px}#msg{margin-top:16px;color:#a9aaa6}</style></head><body>
+button{background:#6db56d;color:#15161a;border:0;padding:10px 24px}#msg{margin-top:16px;color:#a9aaa6}
+a{color:#6db56d}</style></head><body>
 <h1>Update TFT Panel</h1><p>Running <b>%VERSION%</b>. Choose a firmware file (<code>tft-panel-vX.Y.Z.bin</code>)
 and type the code shown on the panel's screen.</p>
 <p><input id="code" inputmode="numeric" maxlength="6" placeholder="6-digit code" autocomplete="off"></p>
@@ -87,6 +89,10 @@ and type the code shown on the panel's screen.</p>
 <br><small>Paste the line from <code>%ASSET%-vX.Y.Z.sha256</code> and the panel refuses the file if it does not match.
 The panel checks the image itself either way, and goes back to this version if the new one does not start.</small></p>
 <p><button id="go">Upload and install</button></p><div id="msg"></div>
+<p><small>The firmware files and their sha256 are on the releases page,
+<a href="https://github.com/r45635/tft-panel/releases">github.com/r45635/tft-panel/releases</a>.
+This panel takes <code>%ASSET%-vX.Y.Z.bin</code> &mdash; the name matters: two different screens
+can share the same chip.</small></p>
 <script>
 go.onclick=()=>{const f=file.files[0];if(!f||code.value.length!=6){msg.textContent='Pick a file and type the code.';return}
 const fd=new FormData();fd.append('firmware',f);const x=new XMLHttpRequest();
