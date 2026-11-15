@@ -1,5 +1,8 @@
 # TFT Panel
 
+[![build](https://github.com/r45635/tft-panel/actions/workflows/build.yml/badge.svg)](https://github.com/r45635/tft-panel/actions/workflows/build.yml)
+[![licence: MIT](https://img.shields.io/badge/licence-MIT-6db56d)](LICENSE)
+
 **A 7" touch screen that controls what you play in Roon and shows it — always on, with nothing
 else to run.**
 
