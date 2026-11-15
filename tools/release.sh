@@ -8,6 +8,9 @@
 # tft-panel-waveshare-p4-7b, tft-panel-p4-s070-wba.
 #   <base>-<tag>.bin          app image, installed over the air
 #   <base>-<tag>.sha256       its SHA-256 ("<hex>  <file>"), checked before the image is committed
+#   <base>-<tag>.sig          ECDSA P-256 signature of that SHA-256 (DER), once src/net/signing_key.h
+#                             holds a key (tools/signing-key.sh); signed with $TFT_SIGNING_KEY
+#                             (default ~/.config/tft-panel/signing-key.pem)
 #   <base>-<tag>-factory.bin  bootloader + partitions + app, for a manual flash at the bootloader offset
 # The website (docs + browser installer, tools/site.sh) goes to the gh-pages branch, latest version only.
 # See docs/RELEASING.md.
@@ -28,6 +31,19 @@ repo="r45635/tft-panel"
 git fetch -q origin main
 [[ "$(git rev-parse HEAD)" == "$(git rev-parse origin/main)" ]] || { echo "main is not pushed / up to date" >&2; exit 1; }
 if git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then echo "tag $tag already exists" >&2; exit 1; fi
+
+# Signing: the public key compiled into the firmware decides. A release signed by any other key
+# would be refused by every panel running it, so the private key must match before anything is built.
+pubkey=""
+if grep -q "BEGIN PUBLIC KEY" src/net/signing_key.h; then
+    key="${TFT_SIGNING_KEY:-$HOME/.config/tft-panel/signing-key.pem}"
+    [[ -r "$key" ]] || { echo "src/net/signing_key.h holds a key: its private half $key is needed to sign" >&2; exit 1; }
+    pubkey="$(mktemp)"
+    trap 'rm -f "$pubkey"' EXIT
+    sed -n 's/^ *"\(.*\)\\n"$/\1/p' src/net/signing_key.h > "$pubkey"
+    cmp -s "$pubkey" <(openssl pkey -in "$key" -pubout) \
+        || { echo "$key is not the key compiled into src/net/signing_key.h" >&2; exit 1; }
+fi
 
 git tag -a "$tag" -m "TFT Panel $tag"
 trap 'echo "failed: removing local tag $tag" >&2; git tag -d "$tag" >/dev/null' ERR
@@ -61,6 +77,11 @@ for b in "${boards[@]}"; do
     cp ".pio/build/$env/firmware.factory.bin" "$out/$base-$tag-factory.bin"
     (cd "$out" && shasum -a 256 "$base-$tag.bin" > "$base-$tag.sha256")
     assets+=("$out/$base-$tag.bin" "$out/$base-$tag.sha256" "$out/$base-$tag-factory.bin")
+    if [[ -n "$pubkey" ]]; then
+        openssl dgst -sha256 -sign "$key" -out "$out/$base-$tag.sig" "$out/$base-$tag.bin"
+        openssl dgst -sha256 -verify "$pubkey" -signature "$out/$base-$tag.sig" "$out/$base-$tag.bin" >/dev/null
+        assets+=("$out/$base-$tag.sig")
+    fi
     # Web installer: four parts, not the merged factory image, which fills the gap over NVS
     # (0x9000) with 0xFF and would wipe the Wi-Fi and settings of a panel being reinstalled.
     if [[ "$web" == 1 ]]; then
