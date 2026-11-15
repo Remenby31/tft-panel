@@ -1,20 +1,26 @@
 # TFT Panel — notes for agents
 
-ESP32 firmware showing synced lyrics + Roon controls on two 7" screens — Elecrow CrowPanel 7"
-DIS08070H V3.0 (ESP32-S3, env `crowpanel7`, the default) and Waveshare ESP32-P4-WIFI6-Touch-LCD-7B
-(env `waveshare-p4-7b`) — as a client of the TextFromTrack Roon Companion HTTP API. Public repo, MIT.
+ESP32 firmware showing synced lyrics + Roon controls on three 7" screens — Elecrow CrowPanel 7"
+DIS08070H V3.0 (ESP32-S3, 4 MB flash, env `crowpanel7`, the default), Waveshare
+ESP32-P4-WIFI6-Touch-LCD-7B (ESP32-P4, 32 MB, env `waveshare-p4-7b`) and VIEWE ESP32-P4 7"
+UEP4S070H1024V600C-WB-C (ESP32-P4, 16 MB, env `p4-s070-wba`) — as a client of the TextFromTrack Roon
+Companion HTTP API, or of the music server directly (`source direct`). Public repo, MIT.
+The two P4 boards share `src/board/board_p4_mipi.cpp`; they differ by their `pins_*.h`, flash size and
+console (VIEWE: CH340 on UART0; Waveshare: the P4's native USB).
 
 Read first: `docs/ARCHITECTURE.md` (API contract, choices), `docs/HARDWARE.md` (pins, pitfalls,
-bring-up log), `docs/ROADMAP.md` (current phase).
+bring-up log), `docs/ROADMAP.md` (current phase), `docs/HARDWARE_TEST.md` (what the maintainer runs
+on each board; append the steps only real hardware can prove).
 
 ## Commands
 
 ```bash
 tools/backup-firmware.py --port /dev/cu.usbserial-*  # identify the board, dump its flash, verify the copy
-                                                     # (read baud is below the flash baud: 230400 on both CH340s)
+                                                     # (reads at 230400 on both CH340s, CrowPanel and VIEWE)
 pio run                                              # CrowPanel build (first build ~6 min + framework rebuild ~2 min, then ~30 s)
 pio run -t upload --upload-port /dev/cu.usbserial-*  # CrowPanel flash; 921600 fails on this board, 460800 works
 pio run -e waveshare-p4-7b -t upload --upload-port /dev/cu.usbmodem*   # Waveshare P4 (native USB, 921600 fine)
+pio run -e p4-s070-wba -t upload --upload-port /dev/cu.usbserial-*     # VIEWE P4 (its CH340 drops bytes on long transfers: 230400, not 460800)
 pio device monitor                                   # 115200, exception decoder on
 PLATFORMIO_BUILD_FLAGS="-DTOUCH_DIAG" pio run -t upload   # touch reset diagnostic at boot
 ```
@@ -24,9 +30,11 @@ CrowPanel: to **watch a running panel**, open with `dtr=False, rts=False` — bo
 leaves EN and IO0 alone and nothing restarts; commands typed on it answer normally. Only to capture the
 **boot** log do you reset it: `rts=True` → `False` (`dtr=False`), then read for a few seconds. Waveshare P4
 (USB-Serial/JTAG): open with **`dtr=True, rts=False`** — other states reset it on open, and a logger
-that reopens after each reset loops forever.
-🪤 Building `crowpanel7` after `waveshare-p4-7b` redoes the CrowPanel's framework rebuild (~2 min) and
-that first run can fail on a missing `.sconsign312.tmp`: run it again (release.sh retries).
+that reopens after each reset loops forever. VIEWE (CH340 on UART0): opening the port resets it
+(docs/HARDWARE.md); whether `dtr=False, rts=False` spares it as on the CrowPanel is not checked yet,
+so leave its port alone during an update's 3-minute pending-verify window.
+🪤 Building `crowpanel7` after a P4 environment (seen with `waveshare-p4-7b`) redoes the CrowPanel's
+framework rebuild (~2 min) and that first run can fail on a missing `.sconsign312.tmp`: run it again (release.sh retries).
 Changing `PLATFORMIO_BUILD_FLAGS` rebuilds the whole framework (~3 min).
 `custom_sdkconfig` (64-byte cache lines) makes pioarduino rebuild the IDF libraries into the
 **global** `~/.platformio/packages/framework-arduinoespressif32-libs`. 🪤 With pioarduino 55.03.312-1 its
@@ -34,11 +42,15 @@ second stage runs PlatformIO 6.2.0.post1 from `~/.platformio/penv`, which the pl
 ("needs >=6.2.0") and **uninstalls the platform**. Fix: reinstall it
 (`pio pkg install -e crowpanel7 -p <platform URL from platformio.ini>`), then `pio run` again —
 the rebuilt libraries are kept and the build goes through.
-Serial console (115200, type `help`): `status`, `portal`, `companion <url>|auto`, `zone <id>|auto`,
-`token`, `lead <ms>`, `lib search <text>|browse|find artist|album [name]|open <n>|back|more|actions <n>|show|ui [close]` (`lib action <n>` plays — not while someone listens), `backdrop on|off`, `scroll on|off`, `sleep <min>|off`, `view lyrics|cover`, `ota check|install`, `settings [close|qr]`, `tz <POSIX>|default`, `warmth <0-100>`, `colours`, `backlight <0-100>`, `forget-wifi`, `erase-all`, `bringup` (colour bars + touch tracker), `restart`,
+Serial console (115200, type `help`): `status`, `portal`, `wifi <ssid> [password]`, `companion <url>|auto`,
+`source companion|direct` (restarts), `server <host:port>|auto` (restarts), `lyrics auto|<url>|none`, `lyrics-token <t>|none`,
+`forget-pairing` (restarts), `weather <town>|none`, `news <rss url>|none`, `zone <id>|auto`, `token`, `lead <ms>`,
+`lib search <text>|browse|find artist|album [name]|open <n>|back|more|actions <n>|show|ui [close]` (`lib action <n>` plays — not while someone listens), `backdrop on|off`, `scroll on|off`, `sleep <min>|off`, `view lyrics|cover|clock`, `ota check|install`, `settings [close|qr]`, `tz <POSIX>|default`, `warmth <0-100>`, `colours`, `backlight <0-100>`, `forget-wifi`, `erase-all`, `bringup` (colour bars + touch tracker), `restart`,
 `screenshot` → `tools/screenshot.py <log> out.png` (shows lyrics: keep it out of the repo);
 `demo` freezes the screen on invented lyrics — use it for layout checks and doc screenshots
-(the real cover thumbnail and backdrop stay on screen: cover art is copyrighted too).
+(the real cover thumbnail and backdrop stay on screen: cover art is copyrighted too);
+`demo pos <ms>|manual on|off|slide <%>|off`, `show <screen>|none` and `shots on|off` (`GET /screenshot`
+over Wi-Fi) drive it.
 `touchdiag` replays the touch reset variants live and attaches the touch if the GT911 answers.
 `backdrop off` before `screenshot` makes it fast (a dithered backdrop does not compress: ~3 min at 115200).
 Docs/promo media: `tools/showcase.py --port … --host <panel IP>` (console `demo` showcase: invented
