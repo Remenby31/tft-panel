@@ -20,7 +20,9 @@ PLATFORMIO_BUILD_FLAGS="-DTOUCH_DIAG" pio run -t upload   # touch reset diagnost
 ```
 
 From an agent shell (no TTY), read the serial log with pyserial from PlatformIO's Python:
-CrowPanel: reset with `rts=True` → `False` (`dtr=False`), then read for a few seconds. Waveshare P4
+CrowPanel: to **watch a running panel**, open with `dtr=False, rts=False` — both deasserted, the CH340
+leaves EN and IO0 alone and nothing restarts; commands typed on it answer normally. Only to capture the
+**boot** log do you reset it: `rts=True` → `False` (`dtr=False`), then read for a few seconds. Waveshare P4
 (USB-Serial/JTAG): open with **`dtr=True, rts=False`** — other states reset it on open, and a logger
 that reopens after each reset loops forever.
 🪤 Building `crowpanel7` after `waveshare-p4-7b` redoes the CrowPanel's framework rebuild (~2 min) and
