@@ -28,9 +28,10 @@ Waveshare's with `--dtr 1 --rts 0`, or it restarts. Opening the VIEWE's restarts
 
 1. **Backup**, first time on a board only: `tools/backup-firmware.py --port <port>`. It names the
    board from its chip and flash size and verifies the copy. A board it does not name is not one
-   of the three: stop there. 🪤 It reads the VIEWE's 16 MB in one go at 230400, which once died
-   after 284 KB on that board (docs/HARDWARE.md, VIEWE section): if it stops early, read in 512 KB
-   pieces with `esptool read-flash`, and restore at 230400, not the 460800 its `--restore` prints.
+   of the three: stop there. The VIEWE is read in 32 pieces of 512 KB, each retried up to 3 times
+   (its adapter drops bytes on a long read). `--restore <file>` prints the command at the board's
+   own flash speed; it asks the board what it is first, which restarts it, so never run it on a
+   panel in the 3 minutes after an update (it would roll back).
 2. **Flash**: `pio run -e <env> -t upload --upload-port <port>`. The boot log shows
    `[tft-panel] boot, firmware <version>, board <board name>`, then
    `[tft-panel] psram=… touch=1 … res=<screen>`. `status` never prints `WRONG BOARD`. P4 boards
