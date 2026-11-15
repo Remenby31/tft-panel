@@ -484,9 +484,10 @@ void start() {
     });
     g_server->begin();
     // The service record belongs to the net task, which owns mDNS and attaches the panel's name,
-    // board, MAC and version to it (internal::startMdns). Announcing it from here raced that task
-    // and lost: "addService(): Failed adding service http.tcp" at every boot, printed and ignored,
-    // and the panel's page went unannounced on the network.
+    // board, MAC and version to it (internal::startMdns). Announcing it from here was a second,
+    // bare registration that ran before mDNS was up and so failed every boot: "addService():
+    // Failed adding service http.tcp", printed and ignored. The panel was announced anyway, by
+    // the net task a moment later - which is exactly why an error nobody reads survives for ever.
     Serial.println("[web] update page on port 80 (/update)");
 }
 
