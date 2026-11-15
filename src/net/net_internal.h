@@ -45,6 +45,13 @@ void markHealthy();                        // a freshly installed image answered
 // false = there is no zone at all, and nothing was published.
 bool publishZones(std::shared_ptr<std::vector<ZoneInfo>> zones);
 String followedZoneId();                   // empty if none
+
+// "http://<ip>:<port>" of a service announced on the network, empty when there is none.
+// 🪤 It walks every address of every answer itself: ESPmDNS hands back only the first IPv4 of
+// each, and a Mac announces every interface it has - a laptop with a dock or a second adapter
+// often lists a self-assigned 169.254 address first, which is not routable from here. Those are
+// refused; an address on our own /24 wins over anything else. `hostOut` takes the host name.
+String mdnsServiceUrl(const char *service, const char *proto, String *hostOut = nullptr);
 std::vector<OutputInfo> followedOutputs();
 void currentTrack(String &title, String &artist, String &album, uint32_t *durationMs = nullptr);
 // The followed zone's track. Runs the position clock, spots a track change, asks for the cover

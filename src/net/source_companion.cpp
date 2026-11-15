@@ -103,19 +103,13 @@ bool CompanionSource::connect(uint32_t now) {
     } else {
         ensureMdns();
         setPhase(Phase::Discovering, "Looking for the TextFromTrack companion on the network...");
-        int n = MDNS.queryService("textfromtrack", "tcp");
-        for (int i = 0; i < n; i++) {
-            IPAddress ip = MDNS.address(i);
-            if (ip == IPAddress((uint32_t)0)) continue;
-            baseUrl_ = "http://" + ip.toString() + ":" + String(MDNS.port(i));
+        String host;
+        baseUrl_ = mdnsServiceUrl("textfromtrack", "tcp", &host);
+        if (baseUrl_.length()) {
             fromMdns_ = true;
-            Serial.printf("[net] companion \"%s\" at %s\n", MDNS.hostname(i).c_str(), baseUrl_.c_str());
-            break;
-        }
-        if (!baseUrl_.length()) {
-            setPhase(Phase::Discovering,
-                     n < 0 ? "mDNS query failed - set the companion address in the setup portal"
-                           : "No companion found on the network yet (is it running?)");
+            Serial.printf("[net] companion \"%s\" at %s\n", host.c_str(), baseUrl_.c_str());
+        } else {
+            setPhase(Phase::Discovering, "No companion found on the network yet (is it running?)");
             return false;
         }
     }

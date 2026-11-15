@@ -2,6 +2,7 @@
 
 #include <ArduinoJson.h>
 #include <ESPmDNS.h>
+#include <mdns.h>
 #include <HTTPClient.h>
 #include <WiFi.h>
 
@@ -195,6 +196,47 @@ HttpResult getBytes(const String &url, uint8_t *&buf, size_t &len, size_t maxLen
         buf = nullptr;
     }
     return r;
+}
+
+// See net_internal.h: ESPmDNS only ever hands back the first IPv4 of an answer, and the first
+// is not always one we can reach. Ask the IDF for the whole list and choose.
+String mdnsServiceUrl(const char *service, const char *proto, String *hostOut) {
+    // 🪤 The IDF wants the leading underscores that ESPmDNS adds for you.
+    String srv = service[0] == '_' ? String(service) : "_" + String(service);
+    String prt = proto[0] == '_' ? String(proto) : "_" + String(proto);
+    mdns_result_t *results = nullptr;
+    if (mdns_query_ptr(srv.c_str(), prt.c_str(), 3000, 8, &results) != ESP_OK || !results) return String();
+
+    const IPAddress own = WiFi.localIP();
+    uint32_t bestAddr = 0;
+    uint16_t bestPort = 0;
+    int bestScore = 0;
+    String bestHost;
+    for (mdns_result_t *r = results; r; r = r->next) {
+        for (mdns_ip_addr_t *a = r->addr; a; a = a->next) {
+            if (a->addr.type != MDNS_IP_PROTOCOL_V4) continue;
+            IPAddress ip(a->addr.u_addr.ip4.addr);
+            if ((uint32_t)ip == 0) continue;
+            if (ip[0] == 169 && ip[1] == 254) {   // self-assigned: no route from this network
+                Serial.printf("[net] mDNS: %s announces %s, which is not reachable here\n",
+                              r->hostname ? r->hostname : "a service", ip.toString().c_str());
+                continue;
+            }
+            int score = (ip[0] == own[0] && ip[1] == own[1] && ip[2] == own[2]) ? 3
+                        : (ip[0] == 10 || ip[0] == 192 || ip[0] == 172)         ? 2
+                                                                                : 1;
+            if (score > bestScore) {
+                bestScore = score;
+                bestAddr = (uint32_t)ip;
+                bestPort = r->port;
+                bestHost = r->hostname ? r->hostname : "";
+            }
+        }
+    }
+    mdns_query_results_free(results);
+    if (!bestScore) return String();
+    if (hostOut) *hostOut = bestHost;
+    return "http://" + IPAddress(bestAddr).toString() + ":" + String(bestPort);
 }
 
 String followedZoneId() {

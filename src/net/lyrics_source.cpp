@@ -40,16 +40,12 @@ String urlEncode(const String &in) {
 String findCompanion() {
     uint32_t now = millis();
     if (g_discovered.length() && now - g_discoveryAt < REDISCOVER_MS) return g_discovered;
-    int n = MDNS.queryService("textfromtrack", "tcp");
     g_discoveryAt = now ? now : 1;
-    for (int i = 0; i < n; i++) {
-        IPAddress ip = MDNS.address(i);
-        if (ip == IPAddress((uint32_t)0)) continue;
-        g_discovered = "http://" + ip.toString() + ":" + String(MDNS.port(i));
-        Serial.printf("[net] lyrics from the companion at %s\n", g_discovered.c_str());
-        return g_discovered;
-    }
-    g_discovered = "";
+    g_discovered = mdnsServiceUrl("textfromtrack", "tcp");
+    // Said out loud either way: a track with no lyrics and no reason given is the one thing
+    // this screen must not do. The memo above keeps it to once a minute at worst.
+    if (g_discovered.length()) Serial.printf("[net] lyrics from the companion at %s\n", g_discovered.c_str());
+    else Serial.println("[net] no lyrics server: none announced on the network, and none set on the page");
     return g_discovered;
 }
 
