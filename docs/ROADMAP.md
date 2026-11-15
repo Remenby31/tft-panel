@@ -121,6 +121,14 @@
       `-DSOURCE_ROON` is in the `crowpanel7` env as well and one image carries both sources
 - [ ] Vincent's run in direct mode over a few days; then make the library public (until it is,
       a clone of this repo alone cannot build the two envs that use it: `symlink://../tft-core-client`)
+- [x] Lyrics in direct mode answered without a second Roon extension (2026-11-15): the companion
+      gained `ROON_ENABLED=false` — a lyrics server that never pairs with Roon — and LRCLIB's own
+      `GET /api/get`, so a panel given an address reaches it too (Docker Desktop has no host
+      networking, so its announcement never leaves the container). Verified: a CrowPanel in direct
+      mode took 41 synced lines from a companion paired with nothing
+- [x] Fixed the intermittent "no lyrics": a Mac announces every interface, and the panel took
+      whichever IPv4 came first — a self-assigned `169.254.x.x` half the time. Both discovery paths
+      now walk the whole list and refuse link-local (`docs/ARCHITECTURE.md`)
 
 ## The clock face, and what has to be typed (2026-11-14)
 
@@ -141,6 +149,24 @@
       readable. 🪤 cbc.ca never answered until the panel stopped calling itself `ESP32HTTPClient`
       (`docs/ARCHITECTURE.md`)
 - [ ] Vincent's finger test of the clock view
+
+## A remote, not a lyrics screen (positioning, 2026-11-15)
+
+The direct mode made the panel usable with nothing else running, which changes what it is: a remote
+nobody has to unlock, that happens to show lyrics — a bigger audience than lyrics alone. One repo,
+one firmware, two modes; the README, the site landing and the guide's opening were rewritten to lead
+with that, and lyrics became a section. What is still missing to be a credible remote:
+
+- [ ] The queue: what is next, reorder, clear (`subscribe_queue`; the companion already exposes it,
+      `tft-core-client` does not)
+- [ ] Zone grouping / ungrouping (the protocol has it, neither client uses it yet)
+- [ ] Scrub on the progress bar (`tft-core-client` has `seek()`, the UI does not expose it)
+- [ ] Output standby and convenience switch
+- [ ] First run should not ask "companion or direct": the panel can look for both and say what it
+      found, so a newcomer never has to understand the project's history to hear music
+
+🪤 None of this fits the CrowPanel: it is at 95.4 % of its OTA slot, 91 KiB left. These are P4
+screens; the S3 stays the panel it already is.
 
 ## Other boards (not started)
 

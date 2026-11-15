@@ -2,8 +2,9 @@
 
 ## What TFT Panel is
 
-A dedicated 7" touch screen for the living room: it shows the **synced lyrics** of what is
-playing in Roon, the cover and track, and drives play/pause/skip/volume/zone.
+A dedicated 7" touch screen for the living room: a **remote nobody has to unlock**. It drives
+play/pause/skip/volume/zone and the library, shows the cover and the **synced lyrics** of what is
+playing in Roon, and becomes a clock with the weather when the music stops.
 
 It reads what is playing in one of two ways, chosen at setup and switchable later. By default it is
 a **client of the TextFromTrack Roon Companion** ([r45635/roon.app.textfromtrack.com](https://github.com/r45635/roon.app.textfromtrack.com))
@@ -15,7 +16,7 @@ own extension of the music server, through `tft-core-client`, and needs no compa
                                                      └─ lyrics: local .lrc / tags / LRCLIB mirror / TextFromTrack
 
  direct mode      Roon Core ──(discovery + extension API over a WebSocket)──────────────── TFT Panel
-                                                                                             └─ lyrics: a companion it finds, or an LRCLIB-compatible server
+                                                                                             └─ lyrics: a companion it finds (which may be paired with nothing: ROON_ENABLED=false), or any LRCLIB-compatible server
 ```
 
 - The panel never talks to a server of ours and stores no lyrics.
@@ -24,8 +25,17 @@ own extension of the music server, through `tft-core-client`, and needs no compa
   news feed) in NVS.
 - Lyrics are their own question in direct mode: the music server exposes none (checked 2026-11-14),
   so the panel either finds a companion on the network by itself, asks an LRCLIB-compatible server
-  whose address it is given, or shows none.
+  whose address it is given, or shows none. A companion run with `ROON_ENABLED=false` is a lyrics
+  server and nothing else — no pairing, nothing to enable in Roon — and answers both its own
+  `/api/lrclib/lookup` (what the panel asks a companion it discovered) and LRCLIB's `/api/get`
+  (what it asks an address it was given), so either path reaches it.
 - Name never contains "Roon" (Roon Labs trademark).
+- 🪤 **mDNS gives several addresses and the first is not always usable.** A Mac announces every
+  interface it has: a laptop with a dock or a second adapter often lists a self-assigned
+  `169.254.x.x` before its real one, and ESPmDNS hands back only the first IPv4 of an answer. Both
+  discovery paths go through `internal::mdnsServiceUrl` (`src/net/net.cpp`), which walks the whole
+  list from the IDF, refuses link-local, and prefers an address on the panel's own /24. Symptom
+  before the fix: lyrics that worked one evening and not the next, with nothing to see.
 - Every HTTP request the panel makes says `TFT-Panel/<version>` as its user agent
   (`src/net/http_get.cpp`). 🪤 The Arduino default, `ESP32HTTPClient`, is accepted and then never
   answered by some CDNs in front of news feeds (cbc.ca behind Akamai: the connection opens, no

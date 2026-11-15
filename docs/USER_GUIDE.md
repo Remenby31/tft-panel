@@ -71,6 +71,14 @@ the same setup page.
 
 ## 3. Lyrics and cover
 
+Roon serves no lyrics of its own, so the panel is told where to find them, on
+[its own page](#7-the-panels-own-page). Either run the **TextFromTrack companion** anywhere on your
+network — one container, `ROON_ENABLED=false`, nothing to enable in Roon, and the panel finds it by
+itself — or type the address of any **LRCLIB-compatible server** (the public lrclib.net, or your own
+mirror). Set it to *none* if you came for the controls and the cover. The companion is also what
+gives you *your* lyrics: the `.lrc` files beside your music, the words in your tags, the wrong ones
+replaced, a per-song offset that is remembered.
+
 The panel follows the zone that is playing. The current line is large, the lines around it
 dimmed; they slide up as the song goes.
 
@@ -203,11 +211,12 @@ choose a firmware file, and type the 6-digit code the panel shows:
 | You see | Do this |
 |---|---|
 | The setup QR codes come back | The panel cannot join your Wi-Fi for a minute: check the password, or that the network is 2.4 GHz. |
-| "Looking for the TextFromTrack companion" | Start the companion on its computer; same network as the panel. |
+| "Looking for the TextFromTrack companion" | Start the companion on its computer; same network as the panel. If it runs on a laptop with a dock or a second network adapter, give the panel its address on the panel's page instead: a machine can announce an address that is not reachable from the panel. |
 | "Enable TFT Panel in Roon" | Direct mode: open Roon → Settings → Extensions and enable it once. |
 | The weather shows the wrong town | On the panel's page, add a region or country after the name (`Paris, Texas`). |
 | The page says the code is wrong | The code on the screen changes every five minutes; read the new one. |
-| "No lyrics found for this track" | The companion found none; the cover view shows instead. |
+| "No lyrics found for this track" | The lyrics server found none; the cover view shows instead. |
+| No lyrics at all, on every song | Nothing is set to look them up: on the panel's page, give a lyrics server, or run the companion on your network. The serial console says `no lyrics server`. |
 | Lyrics early or late for one song | Press and hold the lyrics, adjust *Earlier* / *Later*. |
 | Lyrics early or late for every song | Settings → *Lyrics ahead by*. |
 | The screen looks bluish or yellowish | Settings → *Colour test*, move the warmth slider. |

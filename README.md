@@ -32,17 +32,24 @@ your own network.
 
 ## Where the lyrics come from
 
-Roon serves no lyrics of its own, so the panel is told where to look, on its own page:
+Roon serves none of its own, so the words are the one thing the panel is told where to find. Three
+steps, one action each — stop at the one you want:
 
-- **An LRCLIB-compatible server.** The public [lrclib.net](https://lrclib.net), or your own mirror
-  of it if you prefer nothing leaving your network. One address to type, and that is all.
-- **The [TextFromTrack companion](https://github.com/r45635/roon.app.textfromtrack.com)**, if you
-  want your lyrics *managed* rather than looked up: the `.lrc` files sitting next to your own
-  music, the lyrics inside your tags, several sources ranked against each other, a cache, a way to
-  say "these are the wrong words" and paste the right ones, and a per-song timing offset the panel
-  remembers. Run it on your LAN and the panel finds it by itself — it can take what is playing from
-  it too, instead of from the music server directly.
-- **Nothing at all**, if you came for the controls and the cover.
+| | You do | You get |
+|---|---|---|
+| **1** | Flash the panel and give it your Wi-Fi | The remote, the cover, the clock. No lyrics yet |
+| **2** | Run one container anywhere on your network: the [TextFromTrack companion](https://github.com/r45635/roon.app.textfromtrack.com) with `ROON_ENABLED=false` | The lyrics. The panel finds it by itself, and there is nothing to enable in Roon |
+| **3** | Mount your music folder in that same container | *Your* lyrics: the `.lrc` files beside your files, the words in your tags, sources ranked against each other, a way to replace the wrong ones, a per-song offset |
+
+Step 2 is a lyrics server and nothing else: it never pairs with Roon. It looks up
+[LRCLIB](https://lrclib.net) for you, keeps what it finds, and can ask your own mirror first.
+
+Two shortcuts, on the panel's page: point it straight at any **LRCLIB-compatible server** if you
+would rather run nothing (one address to type — the public lrclib.net, or your mirror), or set the
+lyrics to **none** if you came for the controls and the cover.
+
+The companion can also give the panel what is playing, instead of the music server — that is the
+other mode, and the panel asks nothing of Roon then.
 
 ## Hardware
 
