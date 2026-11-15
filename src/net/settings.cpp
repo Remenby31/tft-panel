@@ -67,6 +67,7 @@ void begin() {
     g_s.warmth = g_prefs.isKey("warmth") ? g_prefs.getUChar("warmth", board::DEFAULT_WARMTH) : board::DEFAULT_WARMTH;
     g_warmth = g_s.warmth;
     g_s.tz = read("tz");
+    g_s.lang = g_prefs.isKey("lang") ? g_prefs.getUChar("lang", 0) : 0;
     if (g_s.apPass.length() < 8) {
         // Setup AP password: random once per device, then stable so a reboot during
         // setup does not invalidate the network the phone has already joined.
@@ -304,6 +305,17 @@ void setWarmth(uint8_t percent) {
 }
 
 uint8_t warmth() { return g_warmth; }
+
+void setLang(uint8_t lang) {
+    xSemaphoreTake(g_lock, portMAX_DELAY);
+    g_s.lang = lang;
+    xSemaphoreGive(g_lock);
+    g_prefs.begin(NS, false);
+    g_prefs.putUChar("lang", lang);
+    g_prefs.end();
+}
+
+uint8_t lang() { return get().lang; }
 
 void setTz(const String &tz) {
     xSemaphoreTake(g_lock, portMAX_DELAY);

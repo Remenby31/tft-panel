@@ -14,6 +14,7 @@
 #include "../board/board_pins.h"
 #include "../layout.h"
 #include "fonts.h"
+#include "i18n.h"
 #include "settings_screen.h"
 #include "library_screen.h"
 #include "wifi_screen.h"
@@ -243,7 +244,7 @@ void buildSetup() {
     lv_obj_set_scrollable(g_setup, false);
 
     lv_obj_t *h = label(g_setup, fonts::lyricsOther, COL_TEXT);
-    setText(h, "Set up TFT Panel");
+    setText(h, tr(Str::SetupTitle));
     lv_obj_set_pos(h, X(40), Y(24));
 
     auto qrBlock = [](int x, const char *step) {
@@ -261,8 +262,8 @@ void buildSetup() {
         lv_obj_set_style_text_align(t, LV_TEXT_ALIGN_CENTER, 0);
         return qr;
     };
-    g_qrWifi = qrBlock(80, "1. Scan to join the panel's Wi-Fi");
-    g_qrUrl = qrBlock(330, "2. Scan to open the setup page");
+    g_qrWifi = qrBlock(80, tr(Str::SetupScanWifi));
+    g_qrUrl = qrBlock(330, tr(Str::SetupScanPage));
 
     g_setupText = label(g_setup, fonts::ui20, COL_TEXT);
     lv_obj_set_pos(g_setupText, X(580), Y(100));
@@ -270,7 +271,7 @@ void buildSetup() {
     lv_label_set_long_mode(g_setupText, LV_LABEL_LONG_MODE_WRAP);
 
     // Or without a phone: the networks on screen and a touch keyboard.
-    lv_obj_t *here = textButton(g_setup, "Set up on this screen", COL_PRIMARY, [](lv_event_t *) { wifiui::open(); });
+    lv_obj_t *here = textButton(g_setup, tr(Str::SetupHere), COL_PRIMARY, [](lv_event_t *) { wifiui::open(); });
     lv_obj_align(here, LV_ALIGN_BOTTOM_MID, 0, -Y(28));
     setHidden(g_setup, true);
 }
@@ -353,10 +354,15 @@ void fillPicker() {
         lv_obj_add_event_cb(b, onPickZone, LV_EVENT_CLICKED, (void *)(intptr_t)g_pickerIds.size());
         g_pickerIds.push_back(id);
     };
-    add("", "Follow the playing zone (auto)", !g_s.zonePinned);
+    add("", tr(Str::ZoneFollow), !g_s.zonePinned);
     if (!g_s.zones) return;
     for (const net::ZoneInfo &z : *g_s.zones) {
-        String t = z.name + "  -  " + z.state;
+        // The API's state words, shown in the panel's language when they are known ones.
+        static const char *const STATES[] = {"playing", "paused", "stopped", "loading"};
+        String state = z.state;
+        for (int i = 0; i < 4; i++)
+            if (z.state == STATES[i]) state = i18n::nth(Str::ZoneStates, i);
+        String t = z.name + "  -  " + state;
         if (z.title.length()) t += "  -  " + z.title + (z.artist.length() ? " (" + z.artist + ")" : "");
         add(z.id, t, g_s.zonePinned && z.id == g_s.zoneId);
     }
@@ -426,7 +432,7 @@ void buildControls() {
     lv_obj_set_style_bg_color(g_picker, lv_color_hex(COL_BG), 0);
     lv_obj_set_style_bg_opa(g_picker, LV_OPA_COVER, 0);
     lv_obj_t *h = label(g_picker, fonts::lyricsOther, COL_TEXT);
-    setText(h, "Zone");
+    setText(h, tr(Str::Zone));
     lv_obj_set_pos(h, X(32), Y(20));
     lv_obj_t *close = roundButton(g_picker, LV_SYMBOL_CLOSE, nullptr, [](lv_event_t *) { closePicker(); });
     lv_obj_align(close, LV_ALIGN_TOP_RIGHT, -X(20), Y(12));
@@ -448,7 +454,7 @@ void onScreenTap(lv_event_t *) {
 void updateControls() {
     setText(g_zoneBtnLabel, g_s.zoneName.length()
                                           ? (String(LV_SYMBOL_LIST " ") + g_s.zoneName).c_str()
-                                          : LV_SYMBOL_LIST " Zone");
+                                          : (String(LV_SYMBOL_LIST " ") + tr(Str::Zone)).c_str());
     bool track = g_s.phase == net::Phase::Playing;
     setText(g_playIcon, g_s.playing() ? LV_SYMBOL_PAUSE : LV_SYMBOL_PLAY);
     lv_obj_set_state(g_btnPlay, LV_STATE_DISABLED, !track || !(g_s.canPlay || g_s.canPause));
@@ -740,9 +746,9 @@ void syncVolumePopup() {
     bool muted = false;
     for (const net::OutputInfo &x : g_s.outputs)
         if (x.volumeType.length() && x.muted) muted = true;
-    setText(g_muteLabel, muted ? LV_SYMBOL_VOLUME_MAX "  Unmute" : LV_SYMBOL_MUTE "  Mute");
+    setText(g_muteLabel, (String(muted ? LV_SYMBOL_VOLUME_MAX "  " : LV_SYMBOL_MUTE "  ") + tr(muted ? Str::Unmute : Str::Mute)).c_str());
     setHidden(g_volSlider, !o);
-    setText(g_volTitle, o ? ("Volume  -  " + o->name).c_str() : "Volume (this zone only has - / +)");
+    setText(g_volTitle, o ? (String(tr(Str::Volume)) + "  -  " + o->name).c_str() : tr(Str::VolumeButtonsOnly));
     if (!o) {
         setText(g_volValue, "");
         return;
@@ -754,7 +760,7 @@ void syncVolumePopup() {
     bool touching = lv_obj_has_state(g_volSlider, LV_STATE_PRESSED) || millis() - g_volTouchedAt < 1500;
     if (!touching) {
         lv_slider_set_value(g_volSlider, (int32_t)lroundf((o->value - o->min) / step), LV_ANIM_OFF);
-        setText(g_volValue, (muted ? String("muted") : volumeText(o->value, *o)).c_str());
+        setText(g_volValue, (muted ? String(tr(Str::Muted)) : volumeText(o->value, *o)).c_str());
     }
 }
 
@@ -810,7 +816,7 @@ void buildVolumePopup() {
     lv_obj_set_style_pad_all(g_volSlider, S(10), LV_PART_KNOB);
     lv_obj_add_event_cb(g_volSlider, onVolSlider, LV_EVENT_VALUE_CHANGED, nullptr);
     lv_obj_add_event_cb(g_volSlider, onVolSlider, LV_EVENT_RELEASED, nullptr);
-    lv_obj_t *mute = textButton(box, "Mute", 0x232326, [](lv_event_t *) {
+    lv_obj_t *mute = textButton(box, tr(Str::Mute), 0x232326, [](lv_event_t *) {
         bool muted = false;
         for (const net::OutputInfo &x : g_s.outputs)
             if (x.volumeType.length() && x.muted) muted = true;
@@ -818,7 +824,7 @@ void buildVolumePopup() {
     });
     g_muteLabel = lv_obj_get_child(mute, 0);
     lv_obj_align(mute, LV_ALIGN_BOTTOM_LEFT, X(28), -Y(20));
-    lv_obj_t *done = textButton(box, "Done", COL_PRIMARY, [](lv_event_t *) { setHidden(g_volPopup, true); });
+    lv_obj_t *done = textButton(box, tr(Str::Done), COL_PRIMARY, [](lv_event_t *) { setHidden(g_volPopup, true); });
     lv_obj_align(done, LV_ALIGN_BOTTOM_RIGHT, -X(28), -Y(20));
 }
 
@@ -831,8 +837,11 @@ int32_t effectiveOffset() {
 void showOffset() {
     int32_t v = effectiveOffset();
     char buf[40];
-    if (v == 0) snprintf(buf, sizeof buf, "In sync");
-    else snprintf(buf, sizeof buf, "%.2f s %s", fabsf(v / 1000.0f), v > 0 ? "later" : "earlier");
+    if (v == 0) snprintf(buf, sizeof buf, "%s", tr(Str::InSync));
+    else snprintf(buf, sizeof buf, tr(v > 0 ? Str::OffsetLater : Str::OffsetEarlier), fabsf(v / 1000.0f));
+    if (i18n::lang() == i18n::Lang::Fr)   // 0,25 s: a decimal comma
+        for (char *c = buf; *c; c++)
+            if (*c == '.') *c = ',';
     setText(g_offValue, buf);
 }
 
@@ -852,7 +861,7 @@ void buildOffsetPopup() {
     lv_obj_t *box = popupBox(200);
     g_offPopup = lv_obj_get_parent(box);
     lv_obj_t *t = label(box, fonts::ui20, COL_MID);
-    setText(t, "Lyrics timing for this track");
+    setText(t, tr(Str::OffsetTitle));
     lv_obj_set_pos(t, X(28), Y(22));
     g_offValue = label(box, fonts::lyricsOther, COL_TEXT);
     lv_obj_align(g_offValue, LV_ALIGN_TOP_RIGHT, -X(28), Y(14));
@@ -863,10 +872,10 @@ void buildOffsetPopup() {
     lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(row, LV_FLEX_ALIGN_SPACE_BETWEEN, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     lv_obj_set_scrollable(row, false);
-    textButton(row, "Earlier", 0x232326, [](lv_event_t *) { stepOffset(-250); });
-    textButton(row, "Later", 0x232326, [](lv_event_t *) { stepOffset(+250); });
-    textButton(row, "Reset", 0x232326, [](lv_event_t *) { stepOffset(0); });
-    textButton(row, "Done", COL_PRIMARY, [](lv_event_t *) { setHidden(g_offPopup, true); });
+    textButton(row, tr(Str::Earlier), 0x232326, [](lv_event_t *) { stepOffset(-250); });
+    textButton(row, tr(Str::Later), 0x232326, [](lv_event_t *) { stepOffset(+250); });
+    textButton(row, tr(Str::Reset), 0x232326, [](lv_event_t *) { stepOffset(0); });
+    textButton(row, tr(Str::Done), COL_PRIMARY, [](lv_event_t *) { setHidden(g_offPopup, true); });
 }
 
 void onLongPress(lv_event_t *) {
@@ -902,11 +911,11 @@ void buildCodePopup() {
     lv_obj_set_style_text_align(t, LV_TEXT_ALIGN_CENTER, 0);
     // The same code guards the settings page and a firmware upload, and tells apart two panels
     // on one network: it is shown here and nowhere else.
-    setText(t, "This panel's web page\n\nType this code there to allow the change (valid 5 minutes):");
+    setText(t, tr(Str::CodeText));
     lv_obj_align(t, LV_ALIGN_CENTER, 0, -Y(110));
     g_codeValue = label(g_codePopup, fonts::clock, COL_TEXT);
     lv_obj_align(g_codeValue, LV_ALIGN_CENTER, 0, Y(10));
-    lv_obj_t *cancel = textButton(g_codePopup, "Cancel", 0x232326, [](lv_event_t *) { webupdate::cancelCode(); });
+    lv_obj_t *cancel = textButton(g_codePopup, tr(Str::Cancel), 0x232326, [](lv_event_t *) { webupdate::cancelCode(); });
     lv_obj_align(cancel, LV_ALIGN_CENTER, 0, Y(150));
 }
 
@@ -979,12 +988,12 @@ void buildOta() {
     lv_label_set_long_mode(g_otaConfirmText, LV_LABEL_LONG_MODE_WRAP);
     lv_obj_set_style_text_align(g_otaConfirmText, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_align(g_otaConfirmText, LV_ALIGN_CENTER, 0, -Y(60));
-    lv_obj_t *install = textButton(g_otaConfirm, "Install now", COL_PRIMARY, [](lv_event_t *) {
+    lv_obj_t *install = textButton(g_otaConfirm, tr(Str::InstallNow), COL_PRIMARY, [](lv_event_t *) {
         setHidden(g_otaConfirm, true);
         if (live()) ota::requestInstall();
     });
     lv_obj_align(install, LV_ALIGN_CENTER, -X(110), Y(90));
-    lv_obj_t *later = textButton(g_otaConfirm, "Later", 0x232326, [](lv_event_t *) { setHidden(g_otaConfirm, true); });
+    lv_obj_t *later = textButton(g_otaConfirm, tr(Str::Later), 0x232326, [](lv_event_t *) { setHidden(g_otaConfirm, true); });
     lv_obj_align(later, LV_ALIGN_CENTER, X(110), Y(90));
 
     g_otaProgress = fullScreen(LV_OPA_COVER);
@@ -997,7 +1006,7 @@ void buildOta() {
     lv_bar_set_range(g_otaBar, 0, 100);
     lv_obj_set_size(g_otaBar, X(520), S(8));
     lv_obj_align(g_otaBar, LV_ALIGN_CENTER, 0, Y(40));
-    g_otaClose = textButton(g_otaProgress, "Close", 0x232326, [](lv_event_t *) { setHidden(g_otaProgress, true); });
+    g_otaClose = textButton(g_otaProgress, tr(Str::Close), 0x232326, [](lv_event_t *) { setHidden(g_otaProgress, true); });
     lv_obj_align(g_otaClose, LV_ALIGN_CENTER, 0, Y(120));
 }
 
@@ -1005,10 +1014,8 @@ void applyOta() {
     bool available = g_ota.state == ota::State::Available;
     setHidden(g_otaBadge, !available || g_s.portalActive);
     if (available) {
-        setText(g_otaBadgeLabel, (String(LV_SYMBOL_DOWNLOAD " Update ") + g_ota.latest).c_str());
-        setText(g_otaConfirmText, ("Install TFT Panel " + g_ota.latest + "?\n\nIt downloads in about a minute, then the panel "
-                                   "restarts. If the new version does not start properly, the panel goes back to " +
-                                   String(FW_VERSION) + " by itself.").c_str());
+        setText(g_otaBadgeLabel, (String(LV_SYMBOL_DOWNLOAD " ") + i18n::fmt(Str::OtaBadge, g_ota.latest.c_str())).c_str());
+        setText(g_otaConfirmText, i18n::fmt(Str::OtaConfirm, g_ota.latest.c_str(), FW_VERSION).c_str());
     }
     bool busy = g_ota.state == ota::State::Downloading || g_ota.state == ota::State::Installed;
     bool failedNow = g_ota.state == ota::State::Failed && !isHidden(g_otaProgress);
@@ -1019,7 +1026,7 @@ void applyOta() {
             setHidden(g_otaProgress, false);
             setHidden(g_otaClose, true);
             setHidden(g_otaBar, false);
-            setText(g_otaProgressText, ("Updating to " + g_ota.latest + "\nDo not unplug the panel").c_str());
+            setText(g_otaProgressText, i18n::fmt(Str::OtaUpdating, g_ota.latest.c_str()).c_str());
             lv_bar_set_value(g_otaBar, 0, LV_ANIM_OFF);
             lv_refr_now(nullptr);
             lv_area_t t, b;
@@ -1035,7 +1042,7 @@ void applyOta() {
         board::staticScreenEnd();
         setHidden(g_otaBar, true);
         setHidden(g_otaClose, false);
-        setText(g_otaProgressText, ("Update failed: " + g_ota.error + "\n\nStill running " + String(FW_VERSION) + ".").c_str());
+        setText(g_otaProgressText, i18n::fmt(Str::OtaFailed, g_ota.error.c_str(), FW_VERSION).c_str());
     }
 }
 
@@ -1298,7 +1305,7 @@ void applySnapshot() {
             g_qrUrlData = url;
             lv_qrcode_update(g_qrUrl, url.c_str(), url.length());
         }
-        String t = "Or join by hand:\n\nNetwork\n" + g_s.apSsid + "\n\nPassword\n" + g_s.apPass + "\n\nthen open\n" + url;
+        String t = i18n::fmt(Str::SetupByHand, g_s.apSsid.c_str(), g_s.apPass.c_str(), url.c_str());
         if (g_s.phase == net::Phase::WifiFailed) t += "\n\n" + g_s.status;
         setText(g_setupText, t.c_str());
         return;
@@ -1348,10 +1355,10 @@ void applySnapshot() {
                 g_shownIndex = INT32_MIN;   // force a redraw of the rows
             }
             break;
-        case net::LyricsStatus::Loading: showMessage("Looking for lyrics...", COL_DIM); break;
-        case net::LyricsStatus::Instrumental: showMessage("Instrumental", COL_MID); break;
-        case net::LyricsStatus::NotFound: showMessage("No lyrics found for this track", COL_DIM); break;
-        case net::LyricsStatus::Error: showMessage("Lyrics unavailable: " + g_s.lyricsError, COL_ERROR); break;
+        case net::LyricsStatus::Loading: showMessage(tr(Str::LyricsLoading), COL_DIM); break;
+        case net::LyricsStatus::Instrumental: showMessage(tr(Str::Instrumental), COL_MID); break;
+        case net::LyricsStatus::NotFound: showMessage(tr(Str::LyricsNotFound), COL_DIM); break;
+        case net::LyricsStatus::Error: showMessage(i18n::fmt(Str::LyricsUnavailable, g_s.lyricsError.c_str()), COL_ERROR); break;
         case net::LyricsStatus::None: showMessage("", COL_DIM); break;
     }
 }
@@ -1508,6 +1515,12 @@ void hookTouch() {
 
 // The clock face's text: the time, the date, the weather and the headlines. Called once a
 // minute while it is on screen, and whenever something it shows has changed.
+String dateText(int wday, int mday, int month) {
+    char buf[48];
+    snprintf(buf, sizeof buf, "%s %d %s", i18n::nth(Str::Days, wday).c_str(), mday, i18n::nth(Str::Months, month).c_str());
+    return buf;
+}
+
 void fillClock(bool force) {
     time_t t = time(nullptr);
     struct tm lt;
@@ -1528,7 +1541,7 @@ void fillClock(bool force) {
         String w = g_s.weather.place + "   " + String((int)g_s.weather.tempC) + " \u00B0C";
         const char *what = net::weather::describe(g_s.weather.code);
         if (*what) w += String("   ") + what;
-        w += "   " + String((int)g_s.weather.minC) + " to " + String((int)g_s.weather.maxC) + " \u00B0C today";
+        w += "   " + i18n::fmt(Str::WeatherToday, (int)g_s.weather.minC, (int)g_s.weather.maxC);
         setText(g_clockWeather, w.c_str());
     } else {
         setText(g_clockWeather, "");
@@ -1536,12 +1549,8 @@ void fillClock(bool force) {
     char buf[48];
     strftime(buf, sizeof buf, "%H:%M", &lt);
     setText(g_clockTime, buf);
-    static const char *days[] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
-    static const char *months[] = {"January", "February", "March", "April", "May", "June", "July",
-                                   "August", "September", "October", "November", "December"};
-    snprintf(buf, sizeof buf, "%s %d %s", days[lt.tm_wday], lt.tm_mday, months[lt.tm_mon]);
-    setText(g_clockDate, buf);
-    String track = g_s.title.length() ? (g_s.state == "paused" ? "Paused  -  " : "") + g_s.title +
+    setText(g_clockDate, dateText(lt.tm_wday, lt.tm_mday, lt.tm_mon).c_str());
+    String track = g_s.title.length() ? (g_s.state == "paused" ? tr(Str::PausedPrefix) : "") + g_s.title +
                                             (g_s.artist.length() ? "  -  " + g_s.artist : "")
                                       : String();
     setText(g_clockTrack, track.c_str());
@@ -1688,11 +1697,12 @@ bool showcase(const String &what) {
     else if (what == "clock") {
         g_clockForced = true;
         setText(g_clockTime, "21:47");
-        setText(g_clockDate, "Saturday 7 November");
-        setText(g_clockTrack, "Paused  -  Neon Autumn  -  The Demo Lights");
+        setText(g_clockDate, dateText(6, 7, 10).c_str());
+        setText(g_clockTrack, (String(tr(Str::PausedPrefix)) + "Neon Autumn  -  The Demo Lights").c_str());
         // Invented weather and headlines too: the real ones name the town someone lives in and
         // put a news agency's words in a published picture.
-        setText(g_clockWeather, "Harbour City   7 \u00B0C   Clear   4 to 11 \u00B0C today");
+        setText(g_clockWeather, ("Harbour City   7 \u00B0C   " + String(net::weather::describe(0)) + "   " +
+                                 i18n::fmt(Str::WeatherToday, 4, 11)).c_str());
         startNews("Ferry service returns to the old pier after eleven years   \u00B7   "
                   "City votes to plant four thousand trees along the canal   \u00B7   "
                   "Observatory reopens for the autumn meteor showers");
@@ -1710,7 +1720,7 @@ bool showcase(const String &what) {
         setHidden(g_otaProgress, false);
         setHidden(g_otaClose, true);
         setHidden(g_otaBar, false);
-        setText(g_otaProgressText, "Updating to v0.2.0\nDo not unplug the panel");
+        setText(g_otaProgressText, i18n::fmt(Str::OtaUpdating, "v0.2.0").c_str());
         lv_bar_set_value(g_otaBar, 42, LV_ANIM_OFF);
     } else if (what == "setup") {
         showcase::fakePortal(g_s);

@@ -7,6 +7,7 @@
 #include "net.h"
 #include "web_update.h"
 #include "settings.h"
+#include "../app/i18n.h"
 
 namespace portal {
 namespace {
@@ -41,54 +42,60 @@ const char *bars(int8_t rssi) {
 // The networks the panel hears, as buttons that fill the name field (net task scans).
 String networkList() {
     std::shared_ptr<const std::vector<net::WifiNet>> nets = net::snapshot().networks;
-    if (!nets || nets->empty()) return "<p><small>Looking for networks&hellip; <a href=/>refresh</a></small></p>";
-    String h = "<p>Tap your network <small>(2.4 GHz only)</small></p><div>";
+    if (!nets || nets->empty()) return "<p><small>" + String(tr(Str::PortalLooking)) + "</small></p>";
+    String h = "<p>" + String(tr(Str::PortalTap)) + "</p><div>";
     // The ten strongest: a far neighbour's network can still be typed by hand.
     for (size_t i = 0; i < nets->size() && i < 10; i++) {
         const net::WifiNet &w = (*nets)[i];
         h += "<button type=button class=net data-s=\"" + esc(w.ssid) + "\" onclick=pick(this)>" + esc(w.ssid) +
              "<span>" + String(w.open ? "" : "\U0001F512 ") + bars(w.rssi) + "</span></button>";
     }
-    return h + "</div><p><small>Not in the list? Type its name below, or <a href=/>refresh</a>.</small></p>";
+    return h + "</div><p><small>" + String(tr(Str::PortalNotListed)) + "</small></p>";
 }
 
-const char PAGE_HEAD[] PROGMEM = R"(<!doctype html><html><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1"><title>TFT Panel setup</title>
+const char PAGE_HEAD[] PROGMEM = R"(<!doctype html><html lang="%LANG%"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>%PgPortalTitle%</title>
 <style>body{font:16px system-ui,sans-serif;max-width:28rem;margin:0 auto;padding:1rem;background:#15161a;color:#f6f4ee}
 h1{font-size:1.4rem}label{display:block;margin-top:1rem}input,select{width:100%;box-sizing:border-box;padding:.6rem;
 font-size:1rem;border-radius:.4rem;border:1px solid #2f3037;background:#202127;color:#f6f4ee}
 button{margin-top:1.4rem;width:100%;padding:.8rem;font-size:1.05rem;border:0;border-radius:.4rem;background:#6db56d;color:#15161a}
 small{color:#a9aaa6}a{color:#6db56d}.net{display:flex;justify-content:space-between;box-sizing:border-box;margin:.4rem 0 0;padding:.75rem .9rem;text-align:left;background:#202127;color:#f6f4ee;border:1px solid #2f3037}.net span{color:#a9aaa6;margin-left:1rem;white-space:nowrap;min-width:5.5em;text-align:right}.err{color:#15161a;background:#ffb0a0;padding:.8rem;border-radius:.4rem}</style></head><body>)";
 
+String head() {
+    String h = FPSTR(PAGE_HEAD);
+    i18n::fillPage(h);
+    h.replace("%LANG%", i18n::code(i18n::lang()));
+    return h;
+}
+
 void sendForm(const String &error, const String &typedSsid = String()) {
     settings::Settings s = settings::get();
     if (typedSsid.length()) s.wifiSsid = typedSsid;
-    String h = FPSTR(PAGE_HEAD);
-    h += "<h1>TFT Panel setup</h1>";
+    String h = head();
+    h += "<h1>" + String(tr(Str::PgPortalTitle)) + "</h1>";
     if (error.length()) h += "<p class=err>" + esc(error) + "</p>";
     h += networkList();
     h += "<form method=post action=/save>"
-         "<label>Wi-Fi network<input id=ssid name=ssid required maxlength=32 value=\"" + esc(s.wifiSsid) + "\"></label>"
-         "<label>Wi-Fi password<input id=pass name=pass type=password maxlength=63 placeholder=\"" +
-         String(s.wifiPass.length() ? "unchanged if left empty" : "") + "\"></label>"
-         "<label>Companion address <small>(optional, found automatically on the LAN)</small>"
+         "<label>" + String(tr(Str::PortalWifiNetwork)) + "<input id=ssid name=ssid required maxlength=32 value=\"" + esc(s.wifiSsid) + "\"></label>"
+         "<label>" + String(tr(Str::PortalWifiPassword)) + "<input id=pass name=pass type=password maxlength=63 placeholder=\"" +
+         String(s.wifiPass.length() ? String(tr(Str::PortalUnchanged)) : "") + "\"></label>"
+         "<label>" + String(tr(Str::PgCompanion)) + " <small>" + String(tr(Str::PortalCompanionHint)) + "</small>"
          "<input name=companion placeholder=\"http://192.168.1.20:3888\" value=\"" + esc(s.companionUrl) + "\"></label>"
-         "<label>Companion access token <small>(only if the companion has ACCESS_TOKEN)</small>"
+         "<label>" + String(tr(Str::PgToken)) + " <small>" + String(tr(Str::PortalTokenHint)) + "</small>"
          "<input name=token type=password placeholder=\"" +
-         String(s.accessToken.length() ? "set — unchanged if left empty" : "") + "\"></label>"
-         "<label>Where the music information comes from"
+         String(s.accessToken.length() ? String(tr(Str::PortalSetUnchanged)) : "") + "\"></label>"
+         "<label>" + String(tr(Str::PgSource)) +
          "<select name=source>"
          "<option value=companion" + String(s.source == settings::SourceKind::Companion ? " selected" : "") +
-         ">The TextFromTrack companion</option>"
+         ">" + String(tr(Str::PgSourceCompanion)) + "</option>"
          "<option value=direct" + String(s.source == settings::SourceKind::Direct ? " selected" : "") +
-         ">The music server, directly</option></select></label>"
-         "<label>Lyrics server <small>(direct only; empty = a companion on the network, "
-         "<code>none</code> = no lyrics)</small>"
+         ">" + String(tr(Str::PgSourceDirect)) + "</option></select></label>"
+         "<label>" + String(tr(Str::PortalLyricsServer)) + " <small>" + String(tr(Str::PortalLyricsHint)) + "</small>"
          "<input name=lyrics placeholder=\"http://192.168.1.30:3300\" value=\"" + esc(s.lyricsUrl) + "\"></label>"
-         "<label>Lyrics server token <small>(only if it asks for one)</small>"
+         "<label>" + String(tr(Str::PgLyricsToken)) + " <small>" + String(tr(Str::PgLyricsTokenHint)) + "</small>"
          "<input name=lyricstoken type=password placeholder=\"" +
-         String(s.lyricsToken.length() ? "set — unchanged if left empty" : "") + "\"></label>"
-         "<button>Save and restart</button></form>"
+         String(s.lyricsToken.length() ? String(tr(Str::PortalSetUnchanged)) : "") + "\"></label>"
+         "<button>" + String(tr(Str::PortalSave)) + "</button></form>"
          "<script>function pick(b){ssid.value=b.dataset.s;pass.focus()}</script></body></html>";
     g_http.send(200, "text/html; charset=utf-8", h);
 }
@@ -110,13 +117,13 @@ void handleSave() {
     if (!pass.length() && ssid == cur.wifiSsid) pass = cur.wifiPass;   // "unchanged if left empty"
 
     String error;
-    if (!ssid.length() || ssid.length() > 32) error = "The network name must be 1 to 32 characters.";
+    if (!ssid.length() || ssid.length() > 32) error = String(tr(Str::PortalBadSsid));
     else if (pass.length() && (pass.length() < 8 || pass.length() > 63))
-        error = "A WPA password is 8 to 63 characters (leave it empty for an open network).";
+        error = String(tr(Str::PortalBadPass));
     else if (companion.length() && !companion.startsWith("http://"))
-        error = "The companion address starts with http:// (for example http://192.168.1.20:3888).";
+        error = String(tr(Str::PortalBadCompanion));
     else if (lyrics.length() && lyrics != "none" && !lyrics.startsWith("http://") && !lyrics.startsWith("https://"))
-        error = "The lyrics server starts with http:// or https://, or is the word none.";
+        error = String(tr(Str::PortalBadLyrics));
     if (error.length()) {
         Serial.printf("[portal] save rejected: %s (args=%d, ssid len %u, pass len %u)\n", error.c_str(),
                       g_http.args(), ssid.length(), pass.length());
@@ -133,9 +140,8 @@ void handleSave() {
     settings::setLyricsUrl(lyrics);
     if (lyricsToken.length()) settings::setLyricsToken(lyricsToken == "none" ? "" : lyricsToken);
 
-    String h = FPSTR(PAGE_HEAD);
-    h += "<h1>Saved</h1><p>The panel restarts and joins <b>" + esc(ssid) +
-         "</b>. Reconnect this phone to your usual Wi-Fi.</p></body></html>";
+    String h = head();
+    h += "<h1>" + String(tr(Str::WebSaved)) + "</h1><p>" + i18n::fmt(Str::PortalSaved, esc(ssid).c_str()) + "</p></body></html>";
     g_http.send(200, "text/html; charset=utf-8", h);
     Serial.printf("[portal] settings saved for ssid \"%s\"\n", ssid.c_str());
     g_restartPending = true;

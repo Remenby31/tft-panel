@@ -11,6 +11,7 @@
 #include "../board/board.h"
 #include "../version.h"
 #include "fonts.h"
+#include "i18n.h"
 
 namespace settingsui {
 namespace {
@@ -24,16 +25,11 @@ using layout::Y;
 constexpr uint32_t COL_BG = 0x0B0B0C, COL_ROW = 0x18181B, COL_BTN = 0x232326;
 constexpr uint32_t COL_TEXT = 0xF2F2F2, COL_MID = 0xAEAEB2, COL_DIM = 0x78787C, COL_ACCENT = 0x6DB56D;
 
-struct TzChoice {
-    const char *name, *posix;
-};
-const TzChoice TZ_CHOICES[] = {
-    {"US Eastern", "EST5EDT,M3.2.0,M11.1.0"},   {"US Central", "CST6CDT,M3.2.0,M11.1.0"},
-    {"US Mountain", "MST7MDT,M3.2.0,M11.1.0"},  {"US Arizona", "MST7"},
-    {"US Pacific", "PST8PDT,M3.2.0,M11.1.0"},   {"UK, Ireland, Portugal", "GMT0BST,M3.5.0/1,M10.5.0"},
-    {"Central Europe (Paris)", "CET-1CEST,M3.5.0,M10.5.0/3"}, {"Eastern Europe", "EET-2EEST,M3.5.0/3,M10.5.0/4"},
-    {"Japan", "JST-9"},                         {"Australia East", "AEST-10AEDT,M10.1.0,M4.1.0/3"},
-    {"UTC", "UTC0"},
+// Named, in this order, by Str::TzNames.
+const char *const TZ_CHOICES[] = {
+    "EST5EDT,M3.2.0,M11.1.0", "CST6CDT,M3.2.0,M11.1.0", "MST7MDT,M3.2.0,M11.1.0", "MST7",
+    "PST8PDT,M3.2.0,M11.1.0", "GMT0BST,M3.5.0/1,M10.5.0", "CET-1CEST,M3.5.0,M10.5.0/3",
+    "EET-2EEST,M3.5.0/3,M10.5.0/4", "JST-9", "AEST-10AEDT,M10.1.0,M4.1.0/3", "UTC0",
 };
 constexpr int TZ_COUNT = sizeof TZ_CHOICES / sizeof TZ_CHOICES[0];
 const int SLEEP_CHOICES[] = {0, 5, 10, 30, 60};   // minutes, 0 = never
@@ -163,9 +159,7 @@ String pageUrl() {
 
 void showPageAddress() {
     if (!g_pageSub) return;
-    lv_label_set_text(g_pageSub, (net::displayName() + " at " + pageUrl() +
-                                  "  -  addresses and feeds are typed there, with the code this screen shows.")
-                                     .c_str());
+    lv_label_set_text(g_pageSub, i18n::fmt(Str::PageAddress, net::displayName().c_str(), pageUrl().c_str()).c_str());
 }
 
 // The address QR sits on the top layer, above the code the page then asks for, so it is
@@ -186,7 +180,7 @@ void showPageQrBox() {
     lv_obj_set_style_border_width(qr, S(6), 0);
     lv_obj_set_style_border_color(qr, lv_color_hex(0xFFFFFF), 0);
     lv_msgbox_add_text(mb, url.c_str());
-    lv_obj_t *ok = lv_msgbox_add_footer_button(mb, "Close");
+    lv_obj_t *ok = lv_msgbox_add_footer_button(mb, tr(Str::Close));
     lv_obj_set_width(mb, X(520));
     lv_obj_set_style_text_font(mb, fonts::ui20, 0);
     lv_obj_add_event_cb(ok, [](lv_event_t *e) { lv_msgbox_close((lv_obj_t *)lv_event_get_user_data(e)); },
@@ -196,30 +190,26 @@ void showPageQrBox() {
 }
 
 lv_obj_t *g_sourceDrop = nullptr;
+lv_obj_t *g_langDrop = nullptr;
 lv_obj_t *g_lyricsDrop = nullptr;
 lv_obj_t *g_lyricsSub = nullptr;
 
 void showLyricsSource() {
     if (!g_lyricsSub) return;
     String url = settings::get().lyricsUrl;
-    if (url == "none") lv_label_set_text(g_lyricsSub, "No lyrics are looked up.");
-    else if (url.length()) lv_label_set_text(g_lyricsSub, ("Looked up on " + url + ".").c_str());
-    else lv_label_set_text(g_lyricsSub, "Looked up on a TextFromTrack companion found on the network.");
+    if (url == "none") lv_label_set_text(g_lyricsSub, tr(Str::LyricsNotLooked));
+    else if (url.length()) lv_label_set_text(g_lyricsSub, i18n::fmt(Str::LyricsLookedOn, url.c_str()).c_str());
+    else lv_label_set_text(g_lyricsSub, tr(Str::LyricsLookedOnCompanion));
 }
 
 // A source owns its connection to its server, so swapping one for the other is a restart.
 void confirmSource(settings::SourceKind kind) {
     bool direct = kind == settings::SourceKind::Direct;
     lv_obj_t *mb = lv_msgbox_create(nullptr);
-    lv_msgbox_add_title(mb, direct ? "Talk to the music server?" : "Use the companion?");
-    lv_msgbox_add_text(mb, direct ? "The panel restarts, finds the server itself and asks you to "
-                                    "enable it there once. Lyrics then come from wherever the "
-                                    "Lyrics setting points."
-                                  : "The panel restarts and looks for the TextFromTrack companion "
-                                    "on the network, which is the only source that reads the "
-                                    "lyrics already in your own files.");
-    lv_obj_t *yes = lv_msgbox_add_footer_button(mb, "Restart");
-    lv_obj_t *no = lv_msgbox_add_footer_button(mb, "Cancel");
+    lv_msgbox_add_title(mb, tr(direct ? Str::SourceDirectTitle : Str::SourceCompanionTitle));
+    lv_msgbox_add_text(mb, tr(direct ? Str::SourceDirectText : Str::SourceCompanionText));
+    lv_obj_t *yes = lv_msgbox_add_footer_button(mb, tr(Str::Restart));
+    lv_obj_t *no = lv_msgbox_add_footer_button(mb, tr(Str::Cancel));
     lv_obj_set_width(mb, X(600));
     lv_obj_set_style_text_font(mb, fonts::ui20, 0);
     static settings::SourceKind s_kind;
@@ -240,10 +230,10 @@ void confirmSource(settings::SourceKind kind) {
 
 void confirmForgetWifi() {
     lv_obj_t *mb = lv_msgbox_create(nullptr);
-    lv_msgbox_add_title(mb, "Forget Wi-Fi?");
-    lv_msgbox_add_text(mb, "The panel leaves this network and shows its setup QR codes again.");
-    lv_obj_t *yes = lv_msgbox_add_footer_button(mb, "Forget");
-    lv_obj_t *no = lv_msgbox_add_footer_button(mb, "Cancel");
+    lv_msgbox_add_title(mb, tr(Str::ForgetWifiTitle));
+    lv_msgbox_add_text(mb, tr(Str::ForgetWifiText));
+    lv_obj_t *yes = lv_msgbox_add_footer_button(mb, tr(Str::Forget));
+    lv_obj_t *no = lv_msgbox_add_footer_button(mb, tr(Str::Cancel));
     lv_obj_set_width(mb, X(560));
     lv_obj_set_style_text_font(mb, fonts::ui20, 0);
     lv_obj_add_event_cb(yes, [](lv_event_t *e) {
@@ -256,9 +246,32 @@ void confirmForgetWifi() {
                         LV_EVENT_CLICKED, mb);
 }
 
+// The language is read once at boot, so changing it is a restart. The question is asked in the
+// language being chosen: that is the one the person can read.
+void confirmLanguage(i18n::Lang to) {
+    lv_obj_t *mb = lv_msgbox_create(nullptr);
+    lv_msgbox_add_title(mb, i18n::tr(Str::LanguageTitle, to));
+    lv_msgbox_add_text(mb, i18n::tr(Str::LanguageText, to));
+    lv_obj_t *yes = lv_msgbox_add_footer_button(mb, i18n::tr(Str::Restart, to));
+    lv_obj_t *no = lv_msgbox_add_footer_button(mb, i18n::tr(Str::Cancel, to));
+    lv_obj_set_width(mb, X(560));
+    lv_obj_set_style_text_font(mb, fonts::ui20, 0);
+    static i18n::Lang s_to;
+    s_to = to;
+    lv_obj_add_event_cb(yes, [](lv_event_t *e) {
+        lv_msgbox_close((lv_obj_t *)lv_event_get_user_data(e));
+        settings::setLang((uint8_t)s_to);
+        board::restart();
+    }, LV_EVENT_CLICKED, mb);
+    lv_obj_add_event_cb(no, [](lv_event_t *e) {
+        lv_msgbox_close((lv_obj_t *)lv_event_get_user_data(e));
+        if (g_langDrop) lv_dropdown_set_selected(g_langDrop, (uint32_t)i18n::lang());
+    }, LV_EVENT_CLICKED, mb);
+}
+
 void buildRows() {
     // Brightness: live preview while dragging, saved on release.
-    lv_obj_t *r = row("Brightness");
+    lv_obj_t *r = row(tr(Str::Brightness));
     g_brightness = lv_slider_create(r);
     lv_obj_set_width(g_brightness, X(300));
     lv_slider_set_range(g_brightness, 10, 100);
@@ -273,8 +286,8 @@ void buildRows() {
 
     // Colour warmth: live while dragging, saved on release.
     lv_obj_t *wsub = nullptr;
-    r = row("Colour warmth", nullptr, &wsub);
-    lv_label_set_text(wsub, "Warmer counters the panel's bluish white.");
+    r = row(tr(Str::Warmth), nullptr, &wsub);
+    lv_label_set_text(wsub, tr(Str::WarmthSub));
     g_warmth = lv_slider_create(r);
     lv_obj_set_width(g_warmth, X(300));
     lv_slider_set_range(g_warmth, 0, 100);
@@ -288,18 +301,18 @@ void buildRows() {
 
     // Screen off after (it always dims after a minute without playback).
     lv_obj_t *sub = nullptr;
-    r = row("Screen off after", nullptr, &sub);
-    lv_label_set_text(sub, "Dims after 1 min without playback, then turns off. A touch wakes it.");
+    r = row(tr(Str::ScreenOff), nullptr, &sub);
+    lv_label_set_text(sub, tr(Str::ScreenOffSub));
     int sel = 2;
     for (int i = 0; i < 5; i++)
         if (SLEEP_CHOICES[i] == settings::sleepMin()) sel = i;
-    g_sleep = dropdown(r, "Never\n5 min\n10 min\n30 min\n60 min", sel, [](lv_event_t *) {
+    g_sleep = dropdown(r, tr(Str::SleepChoices), sel, [](lv_event_t *) {
         settings::setSleepMin(SLEEP_CHOICES[lv_dropdown_get_selected(g_sleep)]);
     });
 
     // Lyrics lead.
-    r = row("Lyrics ahead by", nullptr, &sub);
-    lv_label_set_text(sub, "Shows each line slightly before it is sung.");
+    r = row(tr(Str::LyricsAhead), nullptr, &sub);
+    lv_label_set_text(sub, tr(Str::LyricsAheadSub));
     lv_obj_t *box = lv_obj_create(r);
     lv_obj_remove_style_all(box);
     lv_obj_set_size(box, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
@@ -313,47 +326,52 @@ void buildRows() {
     button(box, LV_SYMBOL_PLUS, [](lv_event_t *) { stepLead(+50); });
     showLead();
 
-    g_swBackdrop = switchRow("Blurred cover behind the lyrics", settings::backdrop(),
+    g_swBackdrop = switchRow(tr(Str::Backdrop), settings::backdrop(),
                              [](lv_event_t *e) { settings::setBackdrop(checked(e)); });
-    g_swScroll = switchRow("Smooth lyrics scroll", settings::scroll(),
+    g_swScroll = switchRow(tr(Str::SmoothScroll), settings::scroll(),
                            [](lv_event_t *e) { settings::setScroll(checked(e)); });
-    g_swClock = switchRow("Clock when nothing plays", settings::clock(),
+    g_swClock = switchRow(tr(Str::ClockIdle), settings::clock(),
                           [](lv_event_t *e) { settings::setClock(checked(e)); });
 
     // Time zone (for the clock).
-    r = row("Time zone");
-    String opts, cur = settings::tz();
+    r = row(tr(Str::TimeZone));
+    String opts = tr(Str::TzNames), cur = settings::tz();
     int tzSel = -1;
-    for (int i = 0; i < TZ_COUNT; i++) {
-        if (i) opts += "\n";
-        opts += TZ_CHOICES[i].name;
-        if (cur == TZ_CHOICES[i].posix) tzSel = i;
-    }
+    for (int i = 0; i < TZ_COUNT; i++)
+        if (cur == TZ_CHOICES[i]) tzSel = i;
     if (tzSel < 0) {   // set on the console to something else: keep it visible
-        opts += "\nCustom";
+        opts += "\n";
+        opts += tr(Str::TzCustom);
         tzSel = TZ_COUNT;
     }
     g_tz = dropdown(r, opts, tzSel, [](lv_event_t *) {
         uint32_t i = lv_dropdown_get_selected(g_tz);
-        if (i < (uint32_t)TZ_COUNT) settings::setTz(TZ_CHOICES[i].posix);
+        if (i < (uint32_t)TZ_COUNT) settings::setTz(TZ_CHOICES[i]);
         applyTz();
     });
 
-    r = row("Colour test", nullptr, &sub);
-    lv_label_set_text(sub, "White, greys and colours, to set the warmth by eye.");
-    button(r, "Show", [](lv_event_t *) {
+    if (i18n::LANG_COUNT > 1) {
+        r = row(tr(Str::Language));
+        g_langDrop = dropdown(r, tr(Str::LanguageChoices), (int)i18n::lang(), [](lv_event_t *) {
+            auto to = (i18n::Lang)lv_dropdown_get_selected(g_langDrop);
+            if (to != i18n::lang()) confirmLanguage(to);
+        });
+    }
+
+    r = row(tr(Str::ColourTest), nullptr, &sub);
+    lv_label_set_text(sub, tr(Str::ColourTestSub));
+    button(r, tr(Str::Show), [](lv_event_t *) {
         if (!g_colourTest) buildColourTest();
         lv_slider_set_value(g_ctSlider, settings::warmth(), LV_ANIM_OFF);
-        lv_label_set_text_fmt(g_ctValue, "Warmth %d %%", (int)settings::warmth());
+        lv_label_set_text(g_ctValue, i18n::fmt(Str::WarmthValue, (int)settings::warmth()).c_str());
         lv_obj_set_hidden(g_colourTest, false);
     });
 
     // Where the music information comes from, and where the lyrics come from. Both are shown
     // whatever the board, because a panel has to be usable with no console attached.
-    r = row("Music from", nullptr, &sub);
-    lv_label_set_text(sub, "The companion reads your own files and ranks what it finds. Direct "
-                           "talks to the music server itself, with nothing in between.");
-    g_sourceDrop = dropdown(r, "TextFromTrack companion\nThe music server, directly",
+    r = row(tr(Str::MusicFrom), nullptr, &sub);
+    lv_label_set_text(sub, tr(Str::MusicFromSub));
+    g_sourceDrop = dropdown(r, tr(Str::SourceChoices),
                             settings::source() == settings::SourceKind::Direct ? 1 : 0, [](lv_event_t *) {
         settings::SourceKind chosen = lv_dropdown_get_selected(g_sourceDrop) == 1 ? settings::SourceKind::Direct
                                                                                   : settings::SourceKind::Companion;
@@ -361,12 +379,12 @@ void buildRows() {
         confirmSource(chosen);
     });
 
-    r = row("Lyrics", nullptr, &g_lyricsSub);
+    r = row(tr(Str::Lyrics), nullptr, &g_lyricsSub);
     showLyricsSource();
     {
         String url = settings::get().lyricsUrl;
         int sel = url == "none" ? 1 : 0;
-        g_lyricsDrop = dropdown(r, "A companion on the network\nNo lyrics", sel, [](lv_event_t *) {
+        g_lyricsDrop = dropdown(r, tr(Str::LyricsChoices), sel, [](lv_event_t *) {
             settings::setLyricsUrl(lv_dropdown_get_selected(g_lyricsDrop) == 1 ? "none" : "");
             net::lyricsrc::forgetDiscovered();
             showLyricsSource();
@@ -375,9 +393,9 @@ void buildRows() {
         if (url.length() && url != "none") lv_obj_set_hidden(g_lyricsDrop, true);
     }
 
-    r = row("Zone", nullptr, &sub);
-    lv_label_set_text(sub, "Which Roon zone the panel follows.");
-    button(r, "Choose", [](lv_event_t *) {
+    r = row(tr(Str::Zone), nullptr, &sub);
+    lv_label_set_text(sub, tr(Str::ZoneSub));
+    button(r, tr(Str::Choose), [](lv_event_t *) {
         close();
         if (g_hooks.openZones) g_hooks.openZones();
     });
@@ -388,18 +406,18 @@ void buildRows() {
     lv_obj_set_size(wifiBox, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
     lv_obj_set_flex_flow(wifiBox, LV_FLEX_FLOW_ROW);
     lv_obj_set_style_pad_column(wifiBox, X(10), 0);
-    button(wifiBox, "Change...", [](lv_event_t *) {
+    button(wifiBox, tr(Str::ChangeDots), [](lv_event_t *) {
         close();
         if (g_hooks.openWifi) g_hooks.openWifi();
     });
-    button(wifiBox, "Forget...", [](lv_event_t *) { confirmForgetWifi(); });
+    button(wifiBox, tr(Str::ForgetDots), [](lv_event_t *) { confirmForgetWifi(); });
 
-    r = row("Settings page", nullptr, &g_pageSub);
+    r = row(tr(Str::SettingsPage), nullptr, &g_pageSub);
     showPageAddress();
-    button(r, "QR code", [](lv_event_t *) { showPageQrBox(); });
+    button(r, tr(Str::QrCode), [](lv_event_t *) { showPageQrBox(); });
 
-    r = row("Firmware", &g_fwTitle, &g_fwStatus);
-    g_fwButton = button(r, "Check now", [](lv_event_t *) {
+    r = row(tr(Str::Firmware), &g_fwTitle, &g_fwStatus);
+    g_fwButton = button(r, tr(Str::CheckNow), [](lv_event_t *) {
         if (g_updateAvailable) {
             close();
             if (g_hooks.confirmUpdate) g_hooks.confirmUpdate();
@@ -408,7 +426,7 @@ void buildRows() {
         }
     }, &g_fwButtonLabel);
 
-    r = row("About", nullptr, &g_about);
+    r = row(tr(Str::About), nullptr, &g_about);
 }
 
 lv_obj_t *patch(lv_obj_t *parent, int x, int y, int w, int h, uint32_t colour, const char *name) {
@@ -437,14 +455,13 @@ void buildColourTest() {
     lv_obj_set_style_bg_opa(g_colourTest, LV_OPA_COVER, 0);
     lv_obj_set_scrollable(g_colourTest, false);
     lv_obj_set_clickable(g_colourTest, true);
-    patch(g_colourTest, 0, 0, 400, 200, 0xFFFFFF, "White");
+    patch(g_colourTest, 0, 0, 400, 200, 0xFFFFFF, i18n::nth(Str::ColourNames, 0).c_str());
     patch(g_colourTest, 400, 0, 134, 200, 0xC0C0C0, "75 %");
     patch(g_colourTest, 534, 0, 133, 200, 0x808080, "50 %");
     patch(g_colourTest, 667, 0, 133, 200, 0x404040, "25 %");
-    static const struct { uint32_t c; const char *n; } row2[] = {
-        {0xFF0000, "Red"}, {0x00FF00, "Green"}, {0x0000FF, "Blue"}, {0xFFFF00, "Yellow"},
-        {0x00FFFF, "Cyan"}, {0xFF00FF, "Magenta"}, {0xE0AC8A, "Skin"}, {0x8A9A5B, "Olive"}};
-    for (int i = 0; i < 8; i++) patch(g_colourTest, i * 100, 200, 100, 120, row2[i].c, row2[i].n);
+    static const uint32_t row2[] = {0xFF0000, 0x00FF00, 0x0000FF, 0xFFFF00, 0x00FFFF, 0xFF00FF, 0xE0AC8A, 0x8A9A5B};
+    for (int i = 0; i < 8; i++)
+        patch(g_colourTest, i * 100, 200, 100, 120, row2[i], i18n::nth(Str::ColourNames, i + 1).c_str());
     lv_obj_t *grad = patch(g_colourTest, 0, 320, 800, 50, 0x000000, nullptr);
     lv_obj_set_style_bg_grad_color(grad, lv_color_hex(0xFFFFFF), 0);
     lv_obj_set_style_bg_grad_dir(grad, LV_GRAD_DIR_HOR, 0);
@@ -461,13 +478,13 @@ void buildColourTest() {
     lv_obj_add_event_cb(g_ctSlider, [](lv_event_t *) {
         int v = lv_slider_get_value(g_ctSlider);
         board::setWarmth(v);
-        lv_label_set_text_fmt(g_ctValue, "Warmth %d %%", v);
+        lv_label_set_text(g_ctValue, i18n::fmt(Str::WarmthValue, v).c_str());
     }, LV_EVENT_VALUE_CHANGED, nullptr);
     lv_obj_add_event_cb(g_ctSlider, [](lv_event_t *) {
         settings::setWarmth(lv_slider_get_value(g_ctSlider));
         lv_slider_set_value(g_warmth, settings::warmth(), LV_ANIM_OFF);
     }, LV_EVENT_RELEASED, nullptr);
-    lv_obj_t *done = button(g_colourTest, "Done", [](lv_event_t *) { lv_obj_set_hidden(g_colourTest, true); });
+    lv_obj_t *done = button(g_colourTest, tr(Str::Done), [](lv_event_t *) { lv_obj_set_hidden(g_colourTest, true); });
     lv_obj_align(done, LV_ALIGN_BOTTOM_RIGHT, -X(20), -Y(24));
     lv_obj_set_hidden(g_colourTest, true);
 }
@@ -484,7 +501,7 @@ void build(lv_obj_t *scr, const Hooks &hooks) {
     lv_obj_set_scrollable(g_root, false);
     lv_obj_set_clickable(g_root, true);   // modal
 
-    lv_obj_t *h = label(g_root, fonts::lyricsOther, COL_TEXT, "Settings");
+    lv_obj_t *h = label(g_root, fonts::lyricsOther, COL_TEXT, tr(Str::Settings));
     lv_obj_set_pos(h, X(32), Y(20));
     lv_obj_t *x = lv_button_create(g_root);
     lv_obj_set_size(x, S(64), S(64));
@@ -543,36 +560,37 @@ void closePageQr() {
 void showColourTest() {
     if (!g_colourTest) buildColourTest();
     lv_slider_set_value(g_ctSlider, settings::warmth(), LV_ANIM_OFF);
-    lv_label_set_text_fmt(g_ctValue, "Warmth %d %%", (int)settings::warmth());
+    lv_label_set_text(g_ctValue, i18n::fmt(Str::WarmthValue, (int)settings::warmth()).c_str());
     lv_obj_set_hidden(g_colourTest, false);
 }
 
 void refresh(const net::Snapshot &s, const ota::Status &o) {
     if (!isOpen()) return;
     settings::Settings st = settings::get();
-    setText(g_wifiTitle, "Wi-Fi  " + (st.wifiSsid.length() ? st.wifiSsid : String("(not set)")));
-    setText(g_fwTitle, String("Firmware  ") + FW_VERSION);
+    setText(g_wifiTitle, "Wi-Fi  " + (st.wifiSsid.length() ? st.wifiSsid : String(tr(Str::NotSet))));
+    setText(g_fwTitle, i18n::fmt(Str::FirmwareVersion, FW_VERSION));
     g_updateAvailable = o.state == ota::State::Available;
     String status;
     switch (o.state) {
-        case ota::State::Idle: status = "Checks for updates by itself every day."; break;
-        case ota::State::Checking: status = "Checking for updates..."; break;
-        case ota::State::UpToDate: status = "Up to date" + (o.latest.length() ? " (latest " + o.latest + ")" : String()); break;
-        case ota::State::Available: status = o.latest + " is available."; break;
-        case ota::State::Downloading: status = "Downloading " + o.latest + "... " + String(o.percent) + " %"; break;
-        case ota::State::Installed: status = "Installed, restarting..."; break;
-        case ota::State::Failed: status = "Last attempt failed: " + o.error; break;
+        case ota::State::Idle: status = tr(Str::FwIdle); break;
+        case ota::State::Checking: status = tr(Str::FwChecking); break;
+        case ota::State::UpToDate:
+            status = o.latest.length() ? i18n::fmt(Str::FwUpToDateLatest, o.latest.c_str()) : String(tr(Str::FwUpToDate));
+            break;
+        case ota::State::Available: status = i18n::fmt(Str::FwAvailable, o.latest.c_str()); break;
+        case ota::State::Downloading: status = i18n::fmt(Str::FwDownloading, o.latest.c_str(), (int)o.percent); break;
+        case ota::State::Installed: status = tr(Str::FwInstalled); break;
+        case ota::State::Failed: status = i18n::fmt(Str::FwFailed, o.error.c_str()); break;
     }
     setText(g_fwStatus, status);
-    setText(g_fwButtonLabel, g_updateAvailable ? "Install " + o.latest : String("Check now"));
+    setText(g_fwButtonLabel, g_updateAvailable ? i18n::fmt(Str::FwInstall, o.latest.c_str()) : String(tr(Str::CheckNow)));
     char ram[24];
     snprintf(ram, sizeof ram, "%u KB", (unsigned)(heap_caps_get_free_size(MALLOC_CAP_INTERNAL) / 1024));
     // "Companion" was true of the only source there used to be; in direct mode that address is
     // the music server itself. And the panel is the only place someone holds this product: it
     // should be able to say where it comes from, without a search engine.
-    setText(g_about, "Panel " + net::hostName() + ".local  (" + (s.staIp.length() ? s.staIp : String("-")) + ")\nMusic server " +
-                         (s.companion.length() ? s.companion : String("searching...")) + "\nFree internal RAM " + ram +
-                         "\nSource, guide and releases: github.com/r45635/tft-panel");
+    setText(g_about, i18n::fmt(Str::AboutText, net::hostName().c_str(), s.staIp.length() ? s.staIp.c_str() : "-",
+                               s.companion.length() ? s.companion.c_str() : tr(Str::Searching), ram));
 }
 
 void applyTz() {
