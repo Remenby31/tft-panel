@@ -39,8 +39,11 @@ void printStatus() {
     Serial.printf("[status] source=%s server=%s (%s) token=%s\n",
                   settings::source() == settings::SourceKind::Direct ? "direct" : "companion",
                   s.companion.c_str(), st.companionUrl.length() ? "manual" : "mDNS", st.accessToken.length() ? "set" : "none");
-    Serial.printf("[status] zone=\"%s\" %s state=%s track=\"%s - %s\" pos=%d/%u ms\n", s.zoneName.c_str(),
-                  s.zonePinned ? "pinned" : "auto", s.state.c_str(), s.artist.c_str(), s.title.c_str(),
+    // The id as well as the name: `zone <id>` is the only way to pin one without the touch
+    // screen, and nothing else prints it.
+    Serial.printf("[status] zone=\"%s\" (%s) %s state=%s track=\"%s - %s\" pos=%d/%u ms\n", s.zoneName.c_str(),
+                  s.zoneId.c_str(), s.zonePinned ? "pinned" : "auto", s.state.c_str(),
+                  s.artist.c_str(), s.title.c_str(),
                   (int)s.positionAt(millis()), (unsigned)s.durationMs);
     Serial.printf("[status] lyrics status=%d lines=%u synced=%d offset=%d lead=%d source=%s clock window=%d ms\n",
                   (int)s.lyricsStatus, s.lyrics ? (unsigned)s.lyrics->lines.size() : 0u, s.lyrics ? s.lyrics->synced : 0,
