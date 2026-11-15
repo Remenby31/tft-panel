@@ -30,6 +30,13 @@ and nothing more:
   the next restart: it would otherwise hand the screen's contents to anyone on the network.
 - **Updates are checked over HTTPS against GitHub**, verified by SHA-256 before they are installed,
   and rolled back automatically if the new image never reports itself healthy.
+- **Once the maintainer compiles in a signing key, updates must be signed by it**: an image without
+  a valid ECDSA P-256 signature is refused, from GitHub and from the panel's upload page, before it
+  is committed. Until then, the SHA-256 only proves the image is the one the release published, so
+  whoever can publish a release can ship any image. See `docs/RELEASING.md`, *Signed updates*.
+  A signature says who made an image, not which version or screen it is for: the upload page,
+  behind the code on the screen, still installs an older signed release or another board's.
+  Secure boot and flash encryption are not used: they burn eFuses, which cannot be undone.
 
 ## A full-flash backup is a secret
 

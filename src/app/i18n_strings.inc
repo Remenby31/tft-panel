@@ -347,3 +347,23 @@ X(StWifiChip, "Updating the Wi-Fi chip to %s - about a minute, do not unplug the
   "Mise à jour de la puce Wi-Fi vers %s - environ une minute, ne débranchez pas le panneau")
 X(StWifiChipPct, "Updating the Wi-Fi chip to %s: %d %% - do not unplug the panel",
   "Mise à jour de la puce Wi-Fi vers %s : %d %% - ne débranchez pas le panneau")
+
+// Signed updates (web page)
+X(WebSigLabel, "Signature", "Signature")
+X(WebSigHint, "This panel installs only signed firmware: pick <code>%s-vX.Y.Z.sig</code> from the same release.",
+  "Ce panneau n’installe que des logiciels signés : choisissez <code>%s-vX.Y.Z.sig</code> dans la même version.")
+X(WebSigMismatch,
+  "Signature does not match: nothing installed. This panel installs only firmware signed by its maintainer; pick "
+  "the .sig published with this file.",
+  "La signature ne correspond pas : rien n’a été installé. Ce panneau n’installe que des logiciels signés par "
+  "son mainteneur ; choisissez le .sig publié avec ce fichier.")
+X(WebSigMissing,
+  "No signature: nothing installed. This panel installs only signed firmware: pick the .sig published beside the .bin.",
+  "Pas de signature : rien n’a été installé. Ce panneau n’installe que des logiciels signés : choisissez le "
+  ".sig publié à côté du .bin.")
+X(WebSigMismatchScreen, "That file is not signed by the maintainer: nothing installed.",
+  "Ce fichier n’est pas signé par le mainteneur : rien n’a été installé.")
+X(WebSigMissingScreen, "That file came without its signature: nothing installed.",
+  "Ce fichier est arrivé sans sa signature : rien n’a été installé.")
+P(PgUpNotSig, "That is not a signature file: pick the .sig of this firmware.",
+  "Ce n’est pas un fichier de signature : choisissez le .sig de ce logiciel.")

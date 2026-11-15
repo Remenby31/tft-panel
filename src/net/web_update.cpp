@@ -22,6 +22,7 @@
 #include "ota.h"
 #include "portal.h"
 #include "settings.h"
+#include "signature.h"
 
 namespace webupdate {
 namespace {
@@ -86,7 +87,7 @@ a{color:#6db56d}</style></head><body>
 <p><input id="file" type="file" accept=".bin"></p>
 <p><input id="sha" maxlength="64" autocomplete="off" placeholder="%PgUpSha%" style="width:100%;max-width:34em">
 <br><small>%PgUpShaHint%</small></p>
-<p><button id="go">%PgUpGo%</button></p><div id="msg"></div>
+%SIGROW%<p><button id="go">%PgUpGo%</button></p><div id="msg"></div>
 <p><small>%PgUpReleases%
 <a href="https://github.com/r45635/tft-panel/releases">github.com/r45635/tft-panel/releases</a>.
 %PgUpAsset%</small></p>
@@ -97,7 +98,10 @@ x.upload.onprogress=e=>{msg.textContent='%PgUpUploading% '+Math.round(100*e.load
 x.onload=()=>{msg.textContent=x.responseText};x.onerror=()=>{msg.textContent='%PgUpLost%'};
 const s=(sha.value.trim().split(/\s+/)[0]||'').toLowerCase();
 if(s&&!/^[0-9a-f]{64}$/.test(s)){msg.textContent='%PgUpNotSha%';return}
-x.open('POST','/update?code='+encodeURIComponent(code.value)+(s?'&sha='+s:''));x.send(fd);go.disabled=true}
+const send=g=>{x.open('POST','/update?code='+encodeURIComponent(code.value)+(s?'&sha='+s:'')+(g?'&sig='+g:''));x.send(fd);go.disabled=true};
+const g=window.sig&&sig.files[0];if(!g){send('');return}
+if(g.size>72){msg.textContent='%PgUpNotSig%';return}
+go.disabled=true;g.arrayBuffer().then(b=>send([...new Uint8Array(b)].map(v=>v.toString(16).padStart(2,'0')).join('')))}
 </script></body></html>)HTML";
 
 // The code lives on the panel's screen; it is also printed here, because a USB cable already
@@ -126,6 +130,9 @@ bool g_upShaOn = false;
 size_t g_upBytes = 0;          // what actually arrived, on either write path
 size_t g_upTotal = 0;          // what the browser announced, for the progress screen
 String g_upWant, g_upGot;
+uint8_t g_upDigest[32];        // g_upGot as bytes, what a release signature covers
+uint8_t g_upSig[signature::MAX_SIG];
+size_t g_upSigLen = 0;
 
 void shaStart() {
     if (g_upShaOn) mbedtls_sha256_free(&g_upSha);
@@ -138,12 +145,11 @@ void shaStart() {
 
 String shaFinish() {
     if (!g_upShaOn) return String();
-    uint8_t out[32];
-    mbedtls_sha256_finish(&g_upSha, out);
+    mbedtls_sha256_finish(&g_upSha, g_upDigest);
     mbedtls_sha256_free(&g_upSha);
     g_upShaOn = false;
     char hex[65];
-    for (int i = 0; i < 32; i++) snprintf(hex + i * 2, 3, "%02x", out[i]);
+    for (int i = 0; i < 32; i++) snprintf(hex + i * 2, 3, "%02x", g_upDigest[i]);
     return String(hex);
 }
 
@@ -224,6 +230,7 @@ void handleUpload() {
         g_upWant = g_server->arg("sha");
         g_upWant.trim();
         g_upWant.toLowerCase();
+        g_upSigLen = signature::fromHex(g_server->arg("sig").c_str(), g_upSig, sizeof g_upSig);
         if (board::OTA_DOWNLOAD_FIRST) {
             const esp_partition_t *slot = esp_ota_get_next_update_partition(nullptr);
             g_imageCap = slot ? slot->size : 0;
@@ -257,6 +264,13 @@ void handleUpload() {
             // Refused before a single byte is committed: a digest that does not match is either
             // the wrong file or a damaged transfer, and neither should reach the flash.
             refuse(i18n::fmt(Str::WebChecksum, g_upGot.c_str(), g_upWant.c_str()), tr(Str::WebChecksumScreen));
+            if (g_image) dropImage();
+            else Update.abort();
+            return;
+        }
+        if (signature::enforced() && !signature::verifyRelease(g_upDigest, g_upSig, g_upSigLen)) {
+            refuse(tr(g_upSigLen ? Str::WebSigMismatch : Str::WebSigMissing),
+                   tr(g_upSigLen ? Str::WebSigMismatchScreen : Str::WebSigMissingScreen));
             if (g_image) dropImage();
             else Update.abort();
             return;
@@ -487,6 +501,10 @@ void start() {
         page.replace("%LANG%", i18n::code(i18n::lang()));
         page.replace("%VERSION%", FW_VERSION);
         page.replace("%ASSET%", board::BOARD_ASSET);
+        page.replace("%SIGROW%", signature::enforced()
+                                     ? "<p>" + String(tr(Str::WebSigLabel)) + " <input id=\"sig\" type=\"file\" accept=\".sig\"><br><small>" +
+                                           i18n::fmt(Str::WebSigHint, board::BOARD_ASSET) + "</small></p>"
+                                     : String());
         g_server->send(200, "text/html; charset=utf-8", page);
     });
     g_server->on("/update", HTTP_POST, handleUploadDone, handleUpload);
