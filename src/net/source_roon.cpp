@@ -133,7 +133,7 @@ void DirectSource::onState(void *, tftcore::State state, const char *detail) {
             setPhase(Phase::Discovering, String("Connecting to ") + g_client.serverName());
             break;
         case tftcore::State::NeedsApproval:
-            setPhase(Phase::CompanionError, String("Found the music server") +
+            setPhase(Phase::Pairing, String("Found the music server") +
                                                 (*g_client.serverName() ? String(" \"") + g_client.serverName() + "\"" : String()) +
                                                 ". One step left: in its Settings > Extensions, enable \"" +
                                                 g_displayName + "\"");

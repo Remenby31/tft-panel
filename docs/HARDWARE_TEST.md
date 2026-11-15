@@ -107,7 +107,7 @@ discovery is not. Start each case with `erase-all`, then `wifi <ssid> <password>
    *Found a TextFromTrack companion. Checking for a music server too...*, then about 12 s later
    *Found a TextFromTrack companion: music and lyrics come from it.* Music and lyrics play.
 3. **Music server only** (companion stopped): *Found the music server "…". One step left: in its
-   Settings > Extensions, enable "TFT Panel xxxx"*. Enable it: the zone plays. Settings → *Music
+   Settings > Extensions, enable "TFT Panel xxxx"*, in the normal grey, not red. Enable it: the zone plays. Settings → *Music
    from* says *Found your music server: music comes from it directly.*
 4. **Both**: direct is picked; once enabled, Settings → *Music from* says *music from the server,
    lyrics from the companion*, and a song with lyrics shows them.

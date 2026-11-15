@@ -158,7 +158,7 @@ void fakeSearching(net::Snapshot &s, const String &screen) {
     s.phase = net::Phase::Discovering;
     s.status = line;
     if (screen == "pairing") {   // the direct source's line, with an invented server and panel
-        s.phase = net::Phase::CompanionError;
+        s.phase = net::Phase::Pairing;
         s.status = "Found the music server \"Living Room\". One step left: in its Settings > Extensions, "
                    "enable \"TFT Panel A1B2\"";
     }
