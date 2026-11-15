@@ -91,7 +91,7 @@ bool locate(const String &place) {
     if (!found || hit.isNull()) {
         Serial.printf("[weather] no place called \"%s\"\n", place.c_str());
         Now w;
-        w.problem = "No place called \"" + place + "\". Try the town on its own, as in Montreal.";
+        w.problem = i18n::fmt(Str::WeatherNoPlace, place.c_str());
         publishWeather(w);   // say so rather than showing nothing and leaving them guessing
         return false;
     }

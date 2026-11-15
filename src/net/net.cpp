@@ -26,6 +26,7 @@
 #include "source_roon.h"
 #include "news.h"
 #include "weather.h"
+#include "../app/i18n.h"
 
 namespace net {
 using namespace internal;
@@ -601,7 +602,7 @@ void publishNews(const String &headlines, const String &problem) {
 }
 
 void commandFailed(const String &what, const HttpResult &r) {
-    String msg = what + " failed: " + (r.message.length() ? r.message : "HTTP " + String(r.code));
+    String msg = i18n::fmt(Str::CmdFailed, what.c_str(), (r.message.length() ? r.message : "HTTP " + String(r.code)).c_str());
     Serial.printf("[net] %s\n", msg.c_str());
     update([&](Snapshot &s) {
         s.commandError = msg;

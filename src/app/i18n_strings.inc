@@ -322,3 +322,28 @@ X(WxHeavyShowers, "Heavy showers", "Fortes averses")
 X(WxSnowShowers, "Snow showers", "Averses de neige")
 X(WxThunderstorm, "Thunderstorm", "Orage")
 X(WxThunderstormWithHail, "Thunderstorm with hail", "Orage avec grêle")
+
+// Status line and errors from the music source and the network
+X(StCompanionToken, "Companion needs its access token (set it in the setup portal)",
+  "Le compagnon demande son jeton d’accès (à saisir sur la page de configuration)")
+X(StCompanionNoCore, "Companion: Roon Core not connected", "Compagnon : Roon Core non connecté")
+X(StCompanionFailed, "Companion %s failed: %s", "Compagnon, échec de %s : %s")
+X(StLookingCompanion, "Looking for the TextFromTrack companion on the network...",
+  "Recherche du compagnon TextFromTrack sur le réseau…")
+X(StNoCompanion, "No companion found on the network yet (is it running?)",
+  "Aucun compagnon trouvé sur le réseau pour l’instant (est-il lancé ?)")
+X(StCompanionNoZone, "The companion sees no Roon zone", "Le compagnon ne voit aucune zone Roon")
+X(CmdControl, "Control %s", "Commande %s")
+X(CmdFailed, "%s failed: %s", "%s : échec (%s)")
+X(NewsNoAnswer, "That feed did not answer (%s). Trying again every %d minutes.",
+  "Ce flux n’a pas répondu (%s). Nouvel essai toutes les %d minutes.")
+X(NewsNoHeadline,
+  "That address answered, but it holds nothing that looks like a headline. An RSS or Atom feed is wanted, not a web page.",
+  "Cette adresse a répondu, mais rien n’y ressemble à un titre d’actualité. Il faut un flux RSS ou Atom, "
+  "pas une page web.")
+X(WeatherNoPlace, "No place called \"%s\". Try the town on its own, as in Montreal.",
+  "Aucun lieu nommé « %s ». Essayez la ville seule, par exemple Montréal.")
+X(StWifiChip, "Updating the Wi-Fi chip to %s - about a minute, do not unplug the panel",
+  "Mise à jour de la puce Wi-Fi vers %s - environ une minute, ne débranchez pas le panneau")
+X(StWifiChipPct, "Updating the Wi-Fi chip to %s: %d %% - do not unplug the panel",
+  "Mise à jour de la puce Wi-Fi vers %s : %d %% - ne débranchez pas le panneau")
