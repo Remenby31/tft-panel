@@ -182,10 +182,13 @@ void dropImage() {
 // Every refusal goes through here: the screen is showing "Updating..." by then, and a path that
 // returns without saying so leaves the panel on that picture for ever. Which is what the checksum
 // branch did, the first time it ran.
-void refuse(const String &why) {
+// `why` answers the browser, which can hold a paragraph; `onScreen` is what the panel says, and
+// it is short on purpose - two full sha256 across a screen in a living room is not a message,
+// it is a wall of hex. The browser already has the digests.
+void refuse(const String &why, const String &onScreen = String()) {
     g_uploadAllowed = false;
     g_uploadError = why;
-    ota::uploadFailed(why);
+    ota::uploadFailed(onScreen.length() ? onScreen : why);
 }
 
 void handleUpload() {
@@ -249,7 +252,8 @@ void handleUpload() {
             // Refused before a single byte is committed: a digest that does not match is either
             // the wrong file or a damaged transfer, and neither should reach the flash.
             refuse("Checksum does not match: nothing installed. The panel received sha256 " +
-                   g_upGot + ", you asked for " + g_upWant + ".");
+                       g_upGot + ", you asked for " + g_upWant + ".",
+                   "That file is not the one you asked for: nothing installed.");
             if (g_image) dropImage();
             else Update.abort();
             return;

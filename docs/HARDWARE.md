@@ -221,6 +221,18 @@ Pin map in code: [`src/board/pins_waveshare_p4_7b.h`](../src/board/pins_waveshar
   (75 % on the CrowPanel), per board (`DEFAULT_WARMTH`).
 - Flash writes do not stall the display (PSRAM has its own bus): no frozen update screen
   (`HAS_STATIC_SCREEN = false`), the progress bar stays live.
+- **Open, cosmetic: the update screen can come out turquoise** (2026-11-15). During a firmware
+  upload from the panel's page the near-black background of the update picture is displayed as a
+  light cyan, text and progress bar crisp on top, and it stays that way until something redraws
+  the screen. What is established: `board::frameBuffer()` (that is `g_fb`, cache-synced) reads
+  **black** - `(8, 4, 0)` at every point sampled - while the panel is visibly cyan, so the pixels
+  the firmware produces are right and the fault is below them. Refuted, each by experiment, so
+  that nobody spends an evening on them again: the warmth filter (its gains only ever *reduce*
+  green and blue, 255/256 and 250/256 at 6 %); the panel drifting on a large uniform dark field
+  (the failure screen is one and stays black for minutes); the flash write (a 3.5 MB upload
+  refused on its checksum does the whole transfer and writes no flash - the framebuffer stayed
+  black); and the screen being drawn once and left alone (shown through `demo` + `show progress`
+  and watched, nothing happens). It needs an upload to appear. Not reproduced on the CrowPanel.
 - ESP Web Tools learned the ESP32-P4 in 10.4.0; 10.2 does not list it.
 - Building this environment and `crowpanel7` one after the other makes pioarduino redo the
   CrowPanel's framework rebuild (~2 min), whose first pass can fail on a missing `.sconsign` file;
