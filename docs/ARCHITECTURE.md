@@ -243,9 +243,18 @@ carries `zone_or_output_id` = the followed zone, so actions play there.
 - **`esp_lcd` RGB panel directly, not LovyanGFX**: IDF 5's bounce buffers keep the RGB DMA reading
   internal SRAM, which avoids the image drifting when Wi-Fi or flash access loads PSRAM.
 - **LVGL 9.6**, partial rendering into one 48-line internal-RAM strip, copied into a single PSRAM
-  framebuffer. The flush is a synchronous CPU copy, so a second strip bought nothing; one strip of
-  twice the height halves the passes over the text. Double framebuffer + vsync swap remains the
-  step if tearing shows.
+  framebuffer. By default the flush is a synchronous CPU copy, so a second strip buys nothing; one
+  strip of twice the height halves the passes over the text. Double framebuffer + vsync swap
+  remains the step if tearing shows. Two GDMA flush modes are built in, unmeasured until someone
+  compares them on the board (console `flush cpu|dma|dma2`): `dma` copies the same strip by GDMA,
+  `dma2` splits the 48 lines into two 24-line strips so LVGL renders one while the other is copied.
+  A second 48-line strip would cost 77 KB of internal RAM the Wi-Fi stack needs. The DMA modes
+  widen redrawn areas to the full width, so each strip is one aligned GDMA copy.
+- **No LVGL PPA draw unit on the P4** (checked 2026-11-15): LVGL 9.6's `lv_draw_ppa_buf.c` calls
+  `esp_cache_get_line_size_by_addr`, which ESP-IDF only has from v6.0 (absent from v5.5.1, v5.5.2
+  and release/v5.5). The only pioarduino release past our pin is `61.04.00-RC1`, a release
+  candidate of Arduino-ESP32 4.0 on IDF 6. Revisit when a stable pioarduino on IDF 6 ships; the
+  PPA still turns and copies the strips in the flush.
 - **Framework rebuilt with 64-byte data cache lines** (`custom_sdkconfig` in `platformio.ini`,
   pioarduino hybrid compile): twice the PSRAM burst per cache miss. Measured on a lyrics slide
   (760×340 px over the backdrop): 110 → 88 ms per frame, flush 30 → 20 ms. The rest is PSRAM
