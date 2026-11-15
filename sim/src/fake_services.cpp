@@ -78,6 +78,7 @@ void selectZone(const String &) {}
 void volumeSet(float) {}
 void mute(bool) {}
 void setOffset(int32_t) {}
+void seek(int32_t) {}
 void library(LibOp, int, const String &) {}
 
 namespace weather {
