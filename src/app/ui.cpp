@@ -375,7 +375,7 @@ void fillPicker() {
         lv_obj_set_style_bg_color(g, lv_color_hex(0x2C2C30), 0);
         lv_obj_set_style_bg_color(g, lv_color_hex(COL_ACCENT), LV_STATE_PRESSED);
         lv_obj_set_style_pad_hor(g, X(16), 0);
-        lv_obj_set_style_pad_ver(g, Y(8), 0);
+        lv_obj_set_style_pad_ver(g, Y(4), 0);
         lv_obj_center(label(g, fonts::ui16, COL_TEXT));
         setText(lv_obj_get_child(g, 0), text);
         lv_obj_add_event_cb(g, join ? onGroup : onUngroup, LV_EVENT_CLICKED, (void *)(intptr_t)(g_pickerIds.size() - 1));
