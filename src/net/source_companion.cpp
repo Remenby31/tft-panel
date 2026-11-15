@@ -283,7 +283,7 @@ void CompanionSource::command(const Command &c) {
         body["offset_ms"] = (int32_t)c.value;
         HttpResult r = request("/api/lyrics/offset", &body, resp, 4000);
         if (r.code != 200) {
-            commandFailed(tr(Str::OffsetTitle), r);
+            commandFailed(tr(Str::CmdLyricsOffset), r);
             return;
         }
         int32_t saved = resp["offset_ms"] | (int32_t)c.value;

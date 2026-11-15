@@ -77,7 +77,7 @@ a{color:#6db56d}</style></head><body>
 </body></html>)HTML";
 
 const char PAGE[] PROGMEM = R"HTML(<!doctype html><html lang="%LANG%"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1"><title>%PgUpTitle%</title>
+<meta name="viewport" content="width=device-width, initial-scale=1"><title>%PgUpTabTitle%</title>
 <style>body{font:17px/1.5 system-ui,sans-serif;max-width:560px;margin:32px auto;padding:0 16px;background:#15161a;color:#f6f4ee}
 input,button{font:inherit;padding:10px;border-radius:8px;border:1px solid #2f3037;background:#202127;color:#f6f4ee}
 button{background:#6db56d;color:#15161a;border:0;padding:10px 24px}#msg{margin-top:16px;color:#a9aaa6}
