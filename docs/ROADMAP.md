@@ -115,10 +115,12 @@
       question: a companion found on the network, an LRCLIB-compatible server, or none
 - [x] Flash cost on the ESP32-S3 measured: +46.4 KiB, image at 95.3 % of the slot — one image can
       carry both modes
-- [ ] The other half of that decision: internal heap on the S3 with the connection open and the
-      library browsed (needs the CrowPanel plugged in). Until then `-DSOURCE_ROON` is only in the
-      `p4-s070-wba` env
-- [ ] Vincent's run in direct mode over a few days; then make the library public
+- [x] The CrowPanel runs it too (2026-11-15): paired, zones, now playing, covers, library and the
+      update check, with 51 KB of internal RAM free (43 KB low water) and no movement while 200
+      albums and their thumbnails load — the list lives in PSRAM. Both thresholds met, so
+      `-DSOURCE_ROON` is in the `crowpanel7` env as well and one image carries both sources
+- [ ] Vincent's run in direct mode over a few days; then make the library public (until it is,
+      a clone of this repo alone cannot build the two envs that use it: `symlink://../tft-core-client`)
 
 ## The clock face, and what has to be typed (2026-11-14)
 
@@ -131,7 +133,14 @@
 - [x] Code once, then a month-long cookie that the page, the Wi-Fi reset and `erase-all` revoke;
       refusals keep what was typed and say what was wrong; a save names what moved; an unsent field
       is left alone; a firmware upload still asks for a fresh code
-- [ ] Vincent's finger test of the clock view and his eye on the page from a phone
+- [x] Vincent's eye on the page from a phone (2026-11-15). Two things came out of it: the address
+      QR covered the code the page then asks for, so it closes itself when the code appears
+      (console `settings qr` replays it); and a feed that gives no headlines now says why on the
+      page, as the weather already did
+- [x] News checked end to end (2026-11-15): BBC and CBC, 1.7 s a feed, 8 headlines, the ticker
+      readable. 🪤 cbc.ca never answered until the panel stopped calling itself `ESP32HTTPClient`
+      (`docs/ARCHITECTURE.md`)
+- [ ] Vincent's finger test of the clock view
 
 ## Other boards (not started)
 

@@ -26,6 +26,11 @@ own extension of the music server, through `tft-core-client`, and needs no compa
   so the panel either finds a companion on the network by itself, asks an LRCLIB-compatible server
   whose address it is given, or shows none.
 - Name never contains "Roon" (Roon Labs trademark).
+- Every HTTP request the panel makes says `TFT-Panel/<version>` as its user agent
+  (`src/net/http_get.cpp`). 🪤 The Arduino default, `ESP32HTTPClient`, is accepted and then never
+  answered by some CDNs in front of news feeds (cbc.ca behind Akamai: the connection opens, no
+  header ever arrives, and it reads here as a read timeout). A plain product name gets through;
+  a URL in parentheses after it does not. Nothing identifying the owner goes in it.
 
 ## Companion API contract (as of companion v0.5.15)
 

@@ -137,6 +137,7 @@ struct Snapshot {
     weather::Now weather;
     uint32_t weatherSerial = 0;
     String news;              // headlines, joined; empty = no feed set
+    String newsProblem;       // why there are none, in words for whoever typed the feed
     uint32_t newsSerial = 0;
 
     bool playing() const { return state == "playing"; }

@@ -67,7 +67,7 @@ a{color:#6db56d}</style></head><body>
  <code>Montreal, Canada</code>, <code>Paris, Texas</code>, <code>Lyon, France</code>)</small>
 <input name=weather placeholder="Montreal" value="%WEATHER%"></label>%WNOTE%
 <label>News feed <small>(RSS or Atom, slid under the clock; empty = none)</small>
-<input name=news placeholder="https://example.com/rss" value="%NEWS%"></label>
+<input name=news placeholder="https://example.com/rss" value="%NEWS%"></label>%NNOTE%
 %BMSG%<button>Save</button></form>
 %FORGET%
 <p><small>Firmware update: <a href=/update>/update</a></small></p>
@@ -271,6 +271,11 @@ void sendSettings(const String &message, bool error = false, bool keepTyped = fa
     else if (w.located.length()) note = "<p class=found>Showing " + esc(w.located) + "</p>";
     h.replace("%WNOTE%", note);
     h.replace("%NEWS%", esc(val("news", st.newsUrl)));
+    String nnote;
+    net::Snapshot snap = net::snapshot();   // a copy, like the weather note above
+    if (snap.newsProblem.length()) nnote = "<p class=warn>" + esc(snap.newsProblem) + "</p>";
+    else if (snap.news.length()) nnote = "<p class=found>Showing " + esc(snap.news.substring(0, 60)) + "...</p>";
+    h.replace("%NNOTE%", nnote);
     g_server->send(200, "text/html; charset=utf-8", h);
 }
 

@@ -168,8 +168,12 @@ void showPageAddress() {
                                      .c_str());
 }
 
-// Point a phone at it rather than typing an address.
-void showPageQr() {
+// The address QR sits on the top layer, above the code the page then asks for, so it is
+// remembered here and closed as soon as that code appears (`closePageQr`).
+lv_obj_t *g_pageQr = nullptr;
+
+// Point a phone at it rather than typing an address. Public (console: `settings qr`).
+void showPageQrBox() {
     lv_obj_t *mb = lv_msgbox_create(nullptr);
     lv_msgbox_add_title(mb, net::displayName().c_str());
     lv_obj_t *content = lv_msgbox_get_content(mb);
@@ -187,6 +191,8 @@ void showPageQr() {
     lv_obj_set_style_text_font(mb, fonts::ui20, 0);
     lv_obj_add_event_cb(ok, [](lv_event_t *e) { lv_msgbox_close((lv_obj_t *)lv_event_get_user_data(e)); },
                         LV_EVENT_CLICKED, mb);
+    g_pageQr = mb;
+    lv_obj_add_event_cb(mb, [](lv_event_t *) { g_pageQr = nullptr; }, LV_EVENT_DELETE, nullptr);
 }
 
 lv_obj_t *g_sourceDrop = nullptr;
@@ -390,7 +396,7 @@ void buildRows() {
 
     r = row("Settings page", nullptr, &g_pageSub);
     showPageAddress();
-    button(r, "QR code", [](lv_event_t *) { showPageQr(); });
+    button(r, "QR code", [](lv_event_t *) { showPageQrBox(); });
 
     r = row("Firmware", &g_fwTitle, &g_fwStatus);
     g_fwButton = button(r, "Check now", [](lv_event_t *) {
@@ -522,6 +528,17 @@ void close() {
 }
 
 bool isOpen() { return (g_root && !lv_obj_is_hidden(g_root)) || (g_colourTest && !lv_obj_is_hidden(g_colourTest)); }
+
+// Called when the page asks for the code: the QR has done its job, and nothing should stand
+// between the reader and the six digits.
+void showPageQr() { showPageQrBox(); }
+
+void closePageQr() {
+    if (!g_pageQr) return;
+    lv_obj_t *mb = g_pageQr;
+    g_pageQr = nullptr;
+    lv_msgbox_close(mb);
+}
 
 void showColourTest() {
     if (!g_colourTest) buildColourTest();

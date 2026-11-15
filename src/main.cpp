@@ -45,7 +45,7 @@ void printStatus() {
     Serial.printf("[status] lyrics status=%d lines=%u synced=%d offset=%d lead=%d source=%s clock window=%d ms\n",
                   (int)s.lyricsStatus, s.lyrics ? (unsigned)s.lyrics->lines.size() : 0u, s.lyrics ? s.lyrics->synced : 0,
                   (int)s.offsetMs, (int)settings::leadMs(), s.lyricsSource.c_str(), (int)s.positionUncertaintyMs);
-    if (s.weather.valid || s.news.length()) {
+    if (s.weather.valid || s.weather.problem.length() || s.news.length() || s.newsProblem.length()) {
         Serial.printf("[status] weather %s\n",
                       s.weather.valid ? (s.weather.place + " " + String((int)s.weather.tempC) + " C, " +
                                          net::weather::describe(s.weather.code) + ", today " +
@@ -53,7 +53,9 @@ void printStatus() {
                                             .c_str()
                       : s.weather.problem.length() ? s.weather.problem.c_str()
                                                    : "off");
-        Serial.printf("[status] news %s\n", s.news.length() ? s.news.substring(0, 120).c_str() : "off");
+        Serial.printf("[status] news %s\n", s.news.length()           ? s.news.substring(0, 120).c_str()
+                                            : s.newsProblem.length() ? s.newsProblem.c_str()
+                                                                     : "off");
     }
     Serial.printf("[status] screen %s, view %s (saved %s), backdrop=%d scroll=%d sleep=%d min, brightness %d %%, "
                   "warmth %d %%\n", ui::screenState(), ui::viewName(),
@@ -116,7 +118,7 @@ void help() {
     Serial.println("[cmd] status | portal | wifi <ssid> [password] | forget-wifi | companion <http://host:port>|auto");
     Serial.println("[cmd] source companion|direct | server <host:port>|auto | lyrics auto|<url>|none | lyrics-token <t>|none | forget-pairing");
     Serial.println("[cmd] weather <town>|none | news <rss url>|none");
-    Serial.println("[cmd] token <token>|none | zone <zone_id>|auto | lead <ms> | backdrop on|off | scroll on|off | sleep <min>|off | view lyrics|cover|clock | ota check|install | settings [close] | tz <POSIX TZ>|default | warmth <0-100> | colours | backlight <0-100> | demo [off|pos <ms>|manual on|off|slide <%>] | show <screen>|none | shots on|off | screenshot | lib ... | touchdiag | erase-all | bringup | restart");
+    Serial.println("[cmd] token <token>|none | zone <zone_id>|auto | lead <ms> | backdrop on|off | scroll on|off | sleep <min>|off | view lyrics|cover|clock | ota check|install | settings [close|qr] | tz <POSIX TZ>|default | warmth <0-100> | colours | backlight <0-100> | demo [off|pos <ms>|manual on|off|slide <%>] | show <screen>|none | shots on|off | screenshot | lib ... | touchdiag | erase-all | bringup | restart");
 }
 
 // Development console on the USB serial port (115200).
@@ -203,7 +205,11 @@ void handleCommand(String line) {
         Serial.printf("[cmd] ota %s requested\n", arg.c_str());
     } else if (cmd == "settings") {
         if (arg == "close") settingsui::close();
-        else {
+        else if (arg == "qr") {
+            settingsui::open();
+            settingsui::refresh(net::snapshot(), ota::status());
+            settingsui::showPageQr();   // what the "QR code" button does, for a test over USB
+        } else {
             settingsui::open();
             settingsui::refresh(net::snapshot(), ota::status());
         }

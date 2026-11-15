@@ -158,13 +158,15 @@ share their names, so add what tells yours apart: `Montreal, Canada`, `Paris, Te
 when it cannot find the one you meant.
 
 Give it the address of an **RSS or Atom feed** and the headlines slide under the clock at reading
-pace. Both are typed on the panel's page, below.
+pace. Both are typed on the panel's page, below. If nothing slides, the page says why, under the
+field: the feed did not answer, or the address holds a web page rather than a feed.
 
 ## 7. The panel's own page
 
 Everything that has to be typed lives on one page, in any browser on your network:
 `http://tft-panel-xxxx.local` — the settings screen shows it as a QR code, and its name, board,
-address and firmware are written at the top, so two panels are never confused.
+address and firmware are written at the top, so two panels are never confused. The QR closes
+itself as soon as the page asks for the code, which is shown on the same screen it was covering.
 
 It carries where the music comes from, the companion's address and token, the lyrics server and its
 token, the weather town and the news feed.

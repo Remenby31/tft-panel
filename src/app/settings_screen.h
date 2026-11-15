@@ -22,6 +22,8 @@ void open();
 void close();
 bool isOpen();
 void showColourTest();   // the colour test card (also from the console: colours)
+void showPageQr();       // the address QR dialog (console: settings qr)
+void closePageQr();      // the address QR dialog, closed when the code must be read instead
 
 // Live values (Wi-Fi, firmware, about); cheap when nothing changed.
 void refresh(const net::Snapshot &s, const ota::Status &o);

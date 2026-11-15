@@ -4,6 +4,8 @@
 #include <NetworkClientSecure.h>
 #include <WiFi.h>
 
+#include "../version.h"
+
 namespace net::httpget {
 namespace {
 
@@ -12,6 +14,11 @@ int open(HTTPClient &http, NetworkClientSecure &secure, WiFiClient &plain, const
          uint32_t timeoutMs, String &message) {
     bool https = url.startsWith("https://");
     if (https) secure.useBuiltinCACertBundle();   // the roots the update check already trusts
+    // Our own name, not the Arduino default. 🪤 A CDN in front of a news feed (cbc.ca, Akamai)
+    // accepts the connection and then never answers an unknown agent such as "ESP32HTTPClient",
+    // which reads as a read timeout here; a plain product name gets through. No URL in it: some
+    // of them refuse that too, and nothing about the owner belongs in a request to a stranger.
+    http.setUserAgent(String("TFT-Panel/") + FW_VERSION);
     http.setConnectTimeout(3000);
     http.setTimeout(timeoutMs);
     http.setReuse(false);

@@ -549,9 +549,10 @@ void publishWeather(const weather::Now &w) {
     });
 }
 
-void publishNews(const String &headlines) {
+void publishNews(const String &headlines, const String &problem) {
     update([&](Snapshot &s) {
         s.news = headlines;
+        s.newsProblem = problem;
         s.newsSerial++;
     });
 }

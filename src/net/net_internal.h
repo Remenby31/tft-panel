@@ -69,6 +69,6 @@ void publishLibrary(std::shared_ptr<const LibraryPage> page);
 
 // --- Idle clock extras ---
 void publishWeather(const weather::Now &w);
-void publishNews(const String &headlines);
+void publishNews(const String &headlines, const String &problem = String());
 
 }  // namespace net::internal

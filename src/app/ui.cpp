@@ -910,6 +910,7 @@ void tickCode() {
         snprintf(buf, sizeof buf, "%06u", (unsigned)code);
         setText(g_codeValue, buf);
         g_activeAt = millis();   // wake the screen: the user is in front of it
+        settingsui::closePageQr();   // the QR that opened the page would hide the code
     }
     setHidden(g_codePopup, code == 0);
 }
