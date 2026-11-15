@@ -3,7 +3,8 @@
 // Check: GET the latest release over HTTPS (built-in CA bundle) at boot and every 24 h;
 // a newer tag vX.Y.Z than FW_VERSION becomes `Available`. Install (asked by the UI after the
 // user confirmed on screen): stream tft-panel-<tag>.bin into the other app slot while hashing
-// it, compare with tft-panel-<tag>.sha256, then reboot into it.
+// it, compare with tft-panel-<tag>.sha256 - and, when a signing key is compiled in
+// (signing_key.h), check tft-panel-<tag>.sig over that digest - then reboot into it.
 // Rollback: a freshly installed image stays "pending verify" until markHealthy(), which happens
 // as soon as a server answers or, failing that, once the panel has simply held its Wi-Fi link
 // for 90 s - the image has to prove itself, not that someone else's server is up. If neither

@@ -21,6 +21,7 @@
 #include "ota.h"
 #include "portal.h"
 #include "settings.h"
+#include "signature.h"
 
 namespace webupdate {
 namespace {
@@ -89,7 +90,7 @@ and type the code shown on the panel's screen.</p>
 <p><input id="sha" maxlength="64" autocomplete="off" placeholder="sha256 from the release (optional)" style="width:100%;max-width:34em">
 <br><small>Paste the line from <code>%ASSET%-vX.Y.Z.sha256</code> and the panel refuses the file if it does not match.
 The panel checks the image itself either way, and goes back to this version if the new one does not start.</small></p>
-<p><button id="go">Upload and install</button></p><div id="msg"></div>
+%SIGROW%<p><button id="go">Upload and install</button></p><div id="msg"></div>
 <p><small>The firmware files and their sha256 are on the releases page,
 <a href="https://github.com/r45635/tft-panel/releases">github.com/r45635/tft-panel/releases</a>.
 This panel takes <code>%ASSET%-vX.Y.Z.bin</code> &mdash; the name matters: two different screens
@@ -101,7 +102,10 @@ x.upload.onprogress=e=>{msg.textContent='Uploading '+Math.round(100*e.loaded/e.t
 x.onload=()=>{msg.textContent=x.responseText};x.onerror=()=>{msg.textContent='Upload failed (connection lost).'};
 const s=(sha.value.trim().split(/\s+/)[0]||'').toLowerCase();
 if(s&&!/^[0-9a-f]{64}$/.test(s)){msg.textContent='That does not look like a sha256: 64 hex characters.';return}
-x.open('POST','/update?code='+encodeURIComponent(code.value)+(s?'&sha='+s:''));x.send(fd);go.disabled=true}
+const send=g=>{x.open('POST','/update?code='+encodeURIComponent(code.value)+(s?'&sha='+s:'')+(g?'&sig='+g:''));x.send(fd);go.disabled=true};
+const g=window.sig&&sig.files[0];if(!g){send('');return}
+if(g.size>72){msg.textContent='That is not a signature file: pick the .sig of this firmware.';return}
+go.disabled=true;g.arrayBuffer().then(b=>send([...new Uint8Array(b)].map(v=>v.toString(16).padStart(2,'0')).join('')))}
 </script></body></html>)HTML";
 
 // The code lives on the panel's screen; it is also printed here, because a USB cable already
@@ -130,6 +134,9 @@ bool g_upShaOn = false;
 size_t g_upBytes = 0;          // what actually arrived, on either write path
 size_t g_upTotal = 0;          // what the browser announced, for the progress screen
 String g_upWant, g_upGot;
+uint8_t g_upDigest[32];        // g_upGot as bytes, what a release signature covers
+uint8_t g_upSig[signature::MAX_SIG];
+size_t g_upSigLen = 0;
 
 void shaStart() {
     if (g_upShaOn) mbedtls_sha256_free(&g_upSha);
@@ -142,12 +149,11 @@ void shaStart() {
 
 String shaFinish() {
     if (!g_upShaOn) return String();
-    uint8_t out[32];
-    mbedtls_sha256_finish(&g_upSha, out);
+    mbedtls_sha256_finish(&g_upSha, g_upDigest);
     mbedtls_sha256_free(&g_upSha);
     g_upShaOn = false;
     char hex[65];
-    for (int i = 0; i < 32; i++) snprintf(hex + i * 2, 3, "%02x", out[i]);
+    for (int i = 0; i < 32; i++) snprintf(hex + i * 2, 3, "%02x", g_upDigest[i]);
     return String(hex);
 }
 
@@ -226,6 +232,7 @@ void handleUpload() {
         g_upWant = g_server->arg("sha");
         g_upWant.trim();
         g_upWant.toLowerCase();
+        g_upSigLen = signature::fromHex(g_server->arg("sig").c_str(), g_upSig, sizeof g_upSig);
         if (board::OTA_DOWNLOAD_FIRST) {
             const esp_partition_t *slot = esp_ota_get_next_update_partition(nullptr);
             g_imageCap = slot ? slot->size : 0;
@@ -261,6 +268,17 @@ void handleUpload() {
             refuse("Checksum does not match: nothing installed. The panel received sha256 " +
                        g_upGot + ", you asked for " + g_upWant + ".",
                    "That file is not the one you asked for: nothing installed.");
+            if (g_image) dropImage();
+            else Update.abort();
+            return;
+        }
+        if (signature::enforced() && !signature::verifyRelease(g_upDigest, g_upSig, g_upSigLen)) {
+            refuse(g_upSigLen ? "Signature does not match: nothing installed. This panel installs only "
+                                "firmware signed by its maintainer; pick the .sig published with this file."
+                              : "No signature: nothing installed. This panel installs only signed firmware: "
+                                "pick the .sig published beside the .bin.",
+                   g_upSigLen ? "That file is not signed by the maintainer: nothing installed."
+                              : "That file came without its signature: nothing installed.");
             if (g_image) dropImage();
             else Update.abort();
             return;
@@ -471,6 +489,11 @@ void start() {
         String page = FPSTR(PAGE);
         page.replace("%VERSION%", FW_VERSION);
         page.replace("%ASSET%", board::BOARD_ASSET);
+        page.replace("%SIGROW%", signature::enforced()
+                                     ? "<p>Signature <input id=\"sig\" type=\"file\" accept=\".sig\"><br><small>This panel "
+                                       "installs only signed firmware: pick <code>" + String(board::BOARD_ASSET) +
+                                           "-vX.Y.Z.sig</code> from the same release.</small></p>"
+                                     : String());
         g_server->send(200, "text/html", page);
     });
     g_server->on("/update", HTTP_POST, handleUploadDone, handleUpload);
