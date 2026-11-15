@@ -31,6 +31,14 @@ and nothing more:
 - **Updates are checked over HTTPS against GitHub**, verified by SHA-256 before they are installed,
   and rolled back automatically if the new image never reports itself healthy.
 
+## A full-flash backup is a secret
+
+`tools/backup-firmware.py` copies the whole flash, which is what makes it restorable — and that
+includes NVS: the Wi-Fi password the panel was given, any access token, and its pairing with your
+music server. Verified by restoring one: the panel came back on the network and paired, with no
+setup. Keep those files as you keep passwords, and never attach one to an issue. A firmware image
+built from this repository carries none of it.
+
 ## What is out of scope
 
 An attacker who already has your Wi-Fi password, physical access to the panel's USB port, or

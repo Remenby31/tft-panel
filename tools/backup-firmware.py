@@ -13,6 +13,11 @@ device; `verify-flash` does, because it is the board that is asked again.
 
 Nothing is written to the board. Exit code 0 only when the copy is verified.
 
+⚠️ The copy is the **whole** flash, which includes the panel's settings: the Wi-Fi password it was
+given, any access token, and its pairing with your music server. Restoring it elsewhere hands that
+board the same credentials. Keep the file as you keep a password, and never attach one to a bug
+report — a firmware image alone is `tools/…/firmware.bin`, which carries none of this.
+
     --out DIR     where to keep it (default ~/tft-panel-backups)
     --baud N      serial speed for the read (default: what the board's adapter tolerates over a
                   whole flash dump, which is slower than the speed it is flashed at)
@@ -151,6 +156,9 @@ def main():
     print("\nVerified against the board.")
     print("  %s" % path)
     print("  sha256 %s" % sha)
+    print("\n  This file holds the panel's settings as well as its firmware: the Wi-Fi password")
+    print("  it was given, any token, and its pairing with your music server. Keep it like a")
+    print("  password, and never attach it to a bug report.")
     print("\nPut it back one day with:")
     print("  tools/backup-firmware.py --port %s --restore %s" % (a.port, path))
     return 0

@@ -46,7 +46,10 @@ It says what the board is and which image it takes, copies the whole flash to
 check the copy against the board**. If anything is short or different it tells you there is no
 backup rather than leaving you a file that looks like one. Nothing is written to the board.
 
-One day, to put it back: `tools/backup-firmware.py --port … --restore <the .bin>`.
+One day, to put it back: `tools/backup-firmware.py --port … --restore <the .bin>`. That restores
+the settings too — a restored panel rejoins your Wi-Fi and finds its music server with nothing to
+set up again, because the copy holds the panel's whole memory. Which is also why the file deserves
+the same care as a password, and should never be attached to a bug report.
 
 It is also the only thing that tells the two ESP32-P4 boards apart before you flash them — the
 browser installer sees one chip for both, and the wrong image leaves the screen dark. If you
