@@ -146,6 +146,18 @@ show none either.
 6. Close with the cross. Report how fast the list appears (step 1) and whether a 20-item queue
    scrolls smoothly.
 
+Zone grouping, P4 boards, companion source, with two zones free to group (say A plays, B is idle):
+
+7. Follow A (zone picker: pick A). Open the picker again: B's row ends with "+ Group", A's with
+   nothing. Tap B's "+ Group". The picker closes; within ~5 s the zone button reads Roon's name
+   for the group (e.g. "A + B"), A's music goes on and B plays it too. The Roon app shows the same
+   group. Report whether the panel still follows the group or fell back to "auto" (the pinned zone
+   id may change when Roon makes the group).
+8. Open the picker: the group's row ends with "Ungroup". Tap it. Within ~5 s A and B are two zones
+   again, each listed on its own row; A still plays.
+9. With the companion stopped, tap "+ Group": a "Group failed: ..." message shows for a few
+   seconds; nothing else changes.
+
 ### Render speed: P4 draw unit, S3 DMA flush
 
 P4 boards: nothing to test. The LVGL PPA draw unit needs IDF 6 (docs/ARCHITECTURE.md).
