@@ -54,6 +54,15 @@ const int THUMB_GAP = X(14);
 
 // Header
 lv_obj_t *g_zone = nullptr, *g_status = nullptr;
+// "Playing" in the brand's own hand: the five bars of the TextFromTrack mark (assets/brand/
+// icon.svg), dancing. A word in 16 px in a corner is not read from a sofa - two panels side by
+// side, both playing, looked equally idle. Inside the 24 px header mark each bar would be under
+// a pixel wide, so they live where the word was, at a size the eye catches.
+constexpr int EQ_BARS = 5;
+const int EQ_REST[EQ_BARS] = {6, 14, 22, 10, 3};      // the mark's own heights, on its 96 grid
+const uint32_t EQ_MS[EQ_BARS] = {520, 770, 430, 650, 590};   // never a common multiple: no pulse
+lv_obj_t *g_eq = nullptr, *g_eqBar[EQ_BARS] = {};
+bool g_eqRunning = false;
 // Track
 lv_obj_t *g_title = nullptr, *g_artist = nullptr;
 // Lyrics stage
@@ -1030,6 +1039,56 @@ void applyOta() {
     }
 }
 
+// Five bars on a baseline, each aligned to the bottom so a change of height grows upwards.
+void buildEqualizer() {
+    const int w = S(4), gap = S(3), h = Y(20);
+    g_eq = lv_obj_create(g_scr);
+    lv_obj_remove_style_all(g_eq);
+    lv_obj_set_size(g_eq, EQ_BARS * w + (EQ_BARS - 1) * gap, h);
+    lv_obj_set_scrollable(g_eq, false);
+    lv_obj_set_clickable(g_eq, false);
+    lv_obj_align(g_eq, LV_ALIGN_TOP_RIGHT, -X(24), Y(14));
+    lv_obj_set_hidden(g_eq, true);
+    for (int i = 0; i < EQ_BARS; i++) {
+        lv_obj_t *b = lv_obj_create(g_eq);
+        lv_obj_remove_style_all(b);
+        lv_obj_set_style_bg_color(b, lv_color_hex(COL_ACCENT), 0);
+        lv_obj_set_style_bg_opa(b, LV_OPA_COVER, 0);
+        lv_obj_set_style_radius(b, S(2), 0);
+        lv_obj_set_width(b, w);
+        lv_obj_set_height(b, h * EQ_REST[i] / 22);
+        lv_obj_set_clickable(b, false);
+        lv_obj_align(b, LV_ALIGN_BOTTOM_LEFT, i * (w + gap), 0);
+        g_eqBar[i] = b;
+    }
+}
+
+// Stopped when it is not shown: a hidden object still animates, and this panel spends its
+// evenings dimmed on the clock view with nothing else moving.
+void eqRun(bool on) {
+    if (!g_eq || on == g_eqRunning) return;
+    g_eqRunning = on;
+    const int h = lv_obj_get_height(g_eq);
+    for (int i = 0; i < EQ_BARS; i++) {
+        lv_anim_delete(g_eqBar[i], nullptr);
+        if (!on) {
+            lv_obj_set_height(g_eqBar[i], h * EQ_REST[i] / 22);   // back to the logo's own shape
+            continue;
+        }
+        lv_anim_t a;
+        lv_anim_init(&a);
+        lv_anim_set_var(&a, g_eqBar[i]);
+        lv_anim_set_exec_cb(&a, [](void *o, int32_t v) { lv_obj_set_height((lv_obj_t *)o, v); });
+        lv_anim_set_values(&a, S(3), h);
+        lv_anim_set_duration(&a, EQ_MS[i]);
+        lv_anim_set_playback_duration(&a, EQ_MS[i] * 3 / 4);
+        lv_anim_set_delay(&a, i * 80);
+        lv_anim_set_repeat_count(&a, LV_ANIM_REPEAT_INFINITE);
+        lv_anim_set_path_cb(&a, lv_anim_path_ease_in_out);
+        lv_anim_start(&a);
+    }
+}
+
 void build() {
     // LVGL's theme colours (slider tracks, switches, dropdowns, message boxes): the brand green,
     // not the default blue.
@@ -1059,6 +1118,9 @@ void build() {
     lv_obj_set_style_text_align(g_status, LV_TEXT_ALIGN_RIGHT, 0);
     marquee(g_status);
     lv_obj_align(g_status, LV_ALIGN_TOP_RIGHT, -X(24), Y(12));
+    // Built here, before the clock overlay, so it dims with the rest of the header instead of
+    // floating above it.
+    buildEqualizer();
 
     auto viewBox = []() {
         lv_obj_t *v = lv_obj_create(g_scr);
@@ -1246,7 +1308,12 @@ void applySnapshot() {
     bool bad = g_s.phase == net::Phase::WifiFailed || g_s.phase == net::Phase::CompanionError;
     g_errorShown = g_s.commandError.length() && millis() - g_s.commandErrorAt < COMMAND_ERROR_MS;
     setTextColour(g_status, bad || g_errorShown ? COL_ERROR : COL_DIM);
-    setText(g_status, g_errorShown ? g_s.commandError.c_str() : g_s.status.c_str());
+    // The bars say "playing" better than the word did, and only that: every other state - paused,
+    // an error, a zone with nothing in it - still has words, which the bars would not carry.
+    bool eqOn = g_s.phase == net::Phase::Playing && g_s.playing() && !bad && !g_errorShown;
+    setHidden(g_eq, !eqOn);
+    eqRun(eqOn);
+    setText(g_status, g_errorShown ? g_s.commandError.c_str() : eqOn ? "" : g_s.status.c_str());
     updateControls();
 
     bool track = g_s.phase == net::Phase::Playing || (g_s.title.length() && bad);
