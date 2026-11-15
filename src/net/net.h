@@ -81,6 +81,29 @@ struct LibraryPage {
 // Find = Search then open the one exact match (index 0 artist, 1 album; text "<name>\n<artist>").
 enum class LibOp : uint8_t { Open, Close, Search, Browse, Find, Drill, Back, More, Actions, Action, CloseActions };
 
+// The followed zone's play queue (HAS_QUEUE boards, companion source): the playing track first,
+// then what comes next. At most 20 items, the companion's own limit.
+struct QueueItem {
+    uint32_t id = 0;          // queue_item_id: what "play from here" sends back
+    PStr title, artist, imageKey;
+    uint32_t durationS = 0;
+    std::shared_ptr<const Picture> thumb;   // filled in as thumbnails arrive
+};
+using QueueItems = std::vector<QueueItem, PsramAllocator<QueueItem>>;
+
+struct QueuePage {
+    uint32_t id = 0;          // changes when the items change, not when a thumbnail arrives
+    String zoneId;
+    QueueItems items;
+    bool loading = false;
+    bool failed = false;      // the last load failed (the list is the one before, or empty)
+    String message;           // result of "play from here", or an error
+    bool error = false;
+    uint32_t messageAt = 0;   // millis()
+};
+
+enum class QueueOp : uint8_t { Open, Close, Play };
+
 struct Snapshot {
     Phase phase = Phase::WifiConnecting;
     String status;            // one human-readable line, with the reason on failure
@@ -100,6 +123,10 @@ struct Snapshot {
     // Music library browsing (HAS_LIBRARY boards), null until first opened.
     std::shared_ptr<const LibraryPage> library;
     uint32_t librarySerial = 0;
+
+    // Play queue (HAS_QUEUE boards), null until first opened.
+    std::shared_ptr<const QueuePage> queue;
+    uint32_t queueSerial = 0;
 
     // Followed zone and track.
     String zoneId, zoneName;
@@ -170,5 +197,10 @@ void setOffset(int32_t ms);
 // Library (HAS_LIBRARY boards): Open/Close (thumbnails only load while open), Search `text`,
 // Browse (Roon's root), Drill/Actions/Action on item `index`, Back, More (next page), CloseActions.
 void library(LibOp op, int index = -1, const String &text = String());
+
+// Queue (HAS_QUEUE boards): Open/Close (refreshed and thumbnails loaded only while open),
+// Play = play the followed zone's queue from the item whose queue_item_id is `itemId`. The id, not a
+// row number: the queue may have moved on between the drawing and the tap.
+void queue(QueueOp op, uint32_t itemId = 0);
 
 }  // namespace net

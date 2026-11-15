@@ -16,6 +16,7 @@
 #include "fonts.h"
 #include "settings_screen.h"
 #include "library_screen.h"
+#include "queue_screen.h"
 #include "wifi_screen.h"
 #include "showcase.h"
 #include "../version.h"
@@ -412,11 +413,26 @@ void buildControls() {
             showControls(false);
             libui::open();
         });
+    bool queue = board::HAS_QUEUE && settings::source() == settings::SourceKind::Companion;
+    if (queue)   // what plays next (the companion's queue)
+        roundButton(g_controls, LV_SYMBOL_AUDIO, nullptr, [](lv_event_t *) {
+            showControls(false);
+            queueui::open();
+        });
     roundButton(g_controls, LV_SYMBOL_SETTINGS, nullptr, [](lv_event_t *) {
         showControls(false);
         settingsui::open();
         settingsui::refresh(g_s, g_ota);
     });
+    if (queue) {   // nine controls: a little narrower each, so the gaps stay those of eight
+        for (uint32_t i = 0; i < lv_obj_get_child_count(g_controls); i++) {
+            lv_obj_t *c = lv_obj_get_child(g_controls, i);
+            if (c != g_btnZone && c != g_volLabel) lv_obj_set_size(c, S(70), S(70));
+        }
+        lv_obj_set_width(g_btnZone, X(130));
+        lv_obj_set_width(g_zoneBtnLabel, X(104));
+        lv_obj_set_width(g_volLabel, X(70));
+    }
     setHidden(g_controls, true);
 
     // Zone picker: full-screen list.
@@ -585,6 +601,7 @@ void startNews(const char *text) {
 // other views it would show through all of these.
 bool overlayOpen() {
     return settingsui::isOpen() || wifiui::isOpen() || (board::HAS_LIBRARY && libui::isOpen()) ||
+           (board::HAS_QUEUE && queueui::isOpen()) ||
            !isHidden(g_picker) || !isHidden(g_volPopup) || !isHidden(g_offPopup) || !isHidden(g_codePopup) ||
            !isHidden(g_otaConfirm) || !isHidden(g_otaProgress);
 }
@@ -671,7 +688,9 @@ void onLibraryLink(lv_event_t *e) {
 
 void onGesture(lv_event_t *) {
     lv_indev_t *indev = lv_indev_active();
-    if (!indev || g_s.portalActive || !isHidden(g_picker) || settingsui::isOpen() || wifiui::isOpen() || libui::isOpen()) return;
+    if (!indev || g_s.portalActive || !isHidden(g_picker) || settingsui::isOpen() || wifiui::isOpen() || libui::isOpen() ||
+        (board::HAS_QUEUE && queueui::isOpen()))
+        return;
     lv_dir_t dir = lv_indev_get_gesture_dir(indev);
     if (dir != LV_DIR_LEFT && dir != LV_DIR_RIGHT) return;
     // No click at the end of a swipe, on the screen or on a button the finger started on.
@@ -871,7 +890,9 @@ void buildOffsetPopup() {
 
 void onLongPress(lv_event_t *) {
     lv_indev_t *indev = lv_indev_active();
-    if (g_view != View::Lyrics || g_s.portalActive || !isHidden(g_picker) || settingsui::isOpen() || wifiui::isOpen() || libui::isOpen()) return;
+    if (g_view != View::Lyrics || g_s.portalActive || !isHidden(g_picker) || settingsui::isOpen() || wifiui::isOpen() || libui::isOpen() ||
+        (board::HAS_QUEUE && queueui::isOpen()))
+        return;
     if (g_s.lyricsStatus != net::LyricsStatus::Found || !g_s.lyrics || !g_s.lyrics->synced) return;
     if (indev) lv_indev_wait_release(indev);   // no tap (controls toggle) at the release
     showControls(false);
@@ -1212,6 +1233,7 @@ void build() {
         []() { wifiui::open(); },
     });
     if (board::HAS_LIBRARY) libui::build(g_scr);
+    if (board::HAS_QUEUE) queueui::build(g_scr);
     wifiui::build(g_scr);
     buildVolumePopup();
     buildOffsetPopup();
@@ -1650,6 +1672,7 @@ bool showcase(const String &what) {
         settingsui::close();
         wifiui::close();
         if (board::HAS_LIBRARY) libui::close();
+        if (board::HAS_QUEUE) queueui::close();
         for (lv_obj_t *o : {g_volPopup, g_offPopup, g_codePopup, g_otaConfirm, g_otaProgress, g_otaBadge, g_clock})
             setHidden(o, true);
         closePicker();
@@ -1720,6 +1743,8 @@ bool showcase(const String &what) {
         applySnapshot();
     } else if ((what == "library" || what == "library-actions") && board::HAS_LIBRARY) {
         libui::showcase(g_s.thumb, what == "library-actions");
+    } else if (what == "queue" && board::HAS_QUEUE) {
+        queueui::showcase(g_s.thumb);
     } else if (what == "wifi" || what == "wifi-password") {
         wifiui::showcase(what == "wifi-password");
     } else if (what == "code") {
@@ -1752,6 +1777,7 @@ void tick() {
         syncVolumePopup();
         wifiui::refresh(g_s);
         if (board::HAS_LIBRARY) libui::refresh(g_s);
+        if (board::HAS_QUEUE) queueui::refresh(g_s);
         g_seenOtaVersion = UINT32_MAX;   // badge visibility depends on the portal state
     }
     static uint32_t lastRefresh = 0;
@@ -1768,6 +1794,7 @@ void tick() {
     }
     tickPopups(now);
     if (board::HAS_LIBRARY) libui::tick(now);
+    if (board::HAS_QUEUE) queueui::tick(now);
     if (!isHidden(g_controls) && isHidden(g_picker) && now - g_controlsShownAt > CONTROLS_HIDE_MS)
         showControls(false);
     if (g_errorShown && now - g_s.commandErrorAt >= COMMAND_ERROR_MS) applySnapshot();

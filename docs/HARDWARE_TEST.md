@@ -103,6 +103,24 @@ Each change that needs the board adds its steps under its heading when it lands 
 
 ### Queue and zone grouping
 
+P4 boards, companion source, a zone with an album playing and more tracks queued. The CrowPanel
+has no queue button (`HAS_QUEUE` false: its firmware slot is full); in `source direct` the P4 boards
+show none either.
+
+1. Tap the screen, then the note button in the controls bar (between the library and settings).
+   The Queue screen lists the playing track under "Now playing" (green frame, no play arrow) and
+   the rest under "Up next", in the order the Roon app shows. The zone name is top right.
+   Thumbnails fill in one by one. With the Roon app open next to it: the same tracks.
+2. Tap the third "Up next" row. Within ~2 s the zone plays that track (Roon app and the panel's
+   own title agree), a "Playing <title>" message shows at the bottom, and the list moves on: the
+   tapped track is now "Now playing". Nothing changed on any other zone.
+3. Leave the screen open and skip a track from the Roon app: within ~5 s the list follows.
+4. Pick another zone in the zone picker, open the queue again: it shows that zone's queue.
+5. Stop the companion (or unplug its Mac) with the queue open: one "Could not load the queue"
+   message, not one every 5 s; the list stays. Start it again: the message clears at the next refresh.
+6. Close with the cross. Report how fast the list appears (step 1) and whether a 20-item queue
+   scrolls smoothly.
+
 ### Render speed: P4 draw unit, S3 DMA flush
 
 P4 boards: nothing to test. The LVGL PPA draw unit needs IDF 6 (docs/ARCHITECTURE.md).

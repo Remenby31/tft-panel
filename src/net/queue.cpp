@@ -1,0 +1,150 @@
+#include "queue.h"
+
+#include <esp_heap_caps.h>
+
+#include <algorithm>
+
+#include "../app/cover.h"
+#include "net_internal.h"
+#include "queue_parse.h"
+#include "source.h"
+
+namespace net::q {
+namespace {
+
+using namespace net::internal;
+
+constexpr uint32_t REFRESH_MS = 5000;   // the queue moves on as tracks end, or from another remote
+
+// The two with destructors are function-local: a board without HAS_QUEUE never calls in, and
+// the linker then drops them with everything else here.
+std::shared_ptr<QueuePage> &page() {   // working copy; published as a const copy
+    static std::shared_ptr<QueuePage> p;
+    return p;
+}
+std::vector<PStr, PsramAllocator<PStr>> &failedThumbs() {
+    static std::vector<PStr, PsramAllocator<PStr>> keys;
+    return keys;
+}
+bool g_open = false;
+uint32_t g_loadedAt = 0;                // millis() of the last answer, 0 = load now
+uint32_t g_nextId = 1;
+
+void publish() { publishQueue(std::make_shared<const QueuePage>(*page())); }
+
+void setMessage(const String &m, bool error) {
+    page()->message = m;
+    page()->error = error;
+    page()->messageAt = millis();
+    Serial.printf("[queue] %s%s\n", error ? "ERROR: " : "", m.c_str());
+}
+
+String errorText(const HttpResult &r) {
+    if (r.code == 401) return "the companion needs its access token";
+    if (r.code == 503) return "Roon is not connected to the companion";
+    return r.message.length() ? r.message : "HTTP " + String(r.code);
+}
+
+bool sameItems(const QueueItems &a, const QueueItems &b) {
+    return std::equal(a.begin(), a.end(), b.begin(), b.end(),
+                      [](const QueueItem &x, const QueueItem &y) { return x.id == y.id; });
+}
+
+void load() {
+    String zone = followedZoneId();
+    g_loadedAt = millis() ? millis() : 1;
+    page()->loading = false;
+    QueueItems items;
+    bool failed = false;
+    if (zone.length()) {
+        JsonDocument resp(psram());
+        HttpResult r = source().queue(zone, resp);
+        // 404: the zone has nothing loaded, which is an empty queue rather than a failure.
+        failed = r.code != 200 && r.code != 404;
+        if (failed && !page()->failed)   // once, not at every refresh
+            setMessage("Could not load the queue: " + errorText(r), true);
+        if (r.code == 200) parse(resp.as<JsonVariantConst>(), items);
+    }
+    page()->failed = failed;
+    // A failure keeps the list, unless it is another zone's: a tap must play where the screen says.
+    if (failed && zone == page()->zoneId) {
+        publish();
+        return;
+    }
+    if (zone != page()->zoneId || !sameItems(items, page()->items)) {
+        for (QueueItem &i : items)
+            for (const QueueItem &old : page()->items)
+                if (old.thumb && old.imageKey == i.imageKey) i.thumb = old.thumb;
+        page()->items = std::move(items);
+        page()->zoneId = zone;
+        page()->id = g_nextId++;
+    }
+    publish();
+}
+
+void play(uint32_t itemId) {
+    auto it = std::find_if(page()->items.begin(), page()->items.end(),
+                           [&](const QueueItem &i) { return i.id == itemId; });
+    if (it == page()->items.end()) return;   // gone from the queue meanwhile: the screen redraws
+    HttpResult r = source().playFromHere(page()->zoneId, itemId);
+    if (r.code == 200) setMessage("Playing " + String(it->title), false);
+    else setMessage("Could not play from here: " + errorText(r), true);
+    g_loadedAt = millis() - REFRESH_MS + 1000;   // Roon moves the queue on: look again in a second
+    if (!g_loadedAt) g_loadedAt = 1;
+    publish();
+}
+
+// Loads the next missing thumbnail, one per call so the net task stays responsive.
+void nextThumb() {
+    PStr key;
+    for (const QueueItem &i : page()->items)
+        if (!i.thumb && i.imageKey.length() &&
+            std::find(failedThumbs().begin(), failedThumbs().end(), i.imageKey) == failedThumbs().end()) {
+            key = i.imageKey;
+            break;
+        }
+    if (!key.length()) return;
+    uint8_t *jpeg = nullptr;
+    size_t len = 0;
+    HttpResult r = getBytes(source().imageUrl(String(key.c_str()), COVER_THUMB_PX), jpeg, len, 64 * 1024, 4000);
+    cover::Cover c;
+    String why;
+    bool ok = r.code == 200 && jpeg && cover::build(jpeg, len, false, COVER_THUMB_PX, false, 0, 0, c, why) && c.thumb;
+    if (jpeg) heap_caps_free(jpeg);
+    if (!ok) {
+        failedThumbs().push_back(key);
+        if (failedThumbs().size() > 40) failedThumbs().erase(failedThumbs().begin());
+        return;
+    }
+    for (QueueItem &i : page()->items)
+        if (i.imageKey == key) i.thumb = c.thumb;
+    publish();
+}
+
+}  // namespace
+
+void run(QueueOp op, uint32_t itemId) {
+    if (!page()) page() = std::make_shared<QueuePage>();
+    switch (op) {
+    case QueueOp::Open:
+        g_open = true;
+        page()->loading = page()->items.empty();
+        publish();
+        load();
+        break;
+    case QueueOp::Close:
+        g_open = false;
+        break;
+    case QueueOp::Play:
+        play(itemId);
+        break;
+    }
+}
+
+void tick() {
+    if (!g_open || !page() || !source().ready()) return;
+    if (!g_loadedAt || millis() - g_loadedAt >= REFRESH_MS || followedZoneId() != page()->zoneId) load();
+    else nextThumb();
+}
+
+}  // namespace net::q

@@ -18,7 +18,7 @@
 
 namespace net {
 
-enum class CmdType : uint8_t { Control, Volume, Zone, VolumeSet, Mute, Offset, Library };
+enum class CmdType : uint8_t { Control, Volume, Zone, VolumeSet, Mute, Offset, Library, Queue };
 
 // A user action, queued from the UI so a tap never blocks it.
 struct Command {
@@ -85,6 +85,18 @@ class Source {
     // The body is already in the server's own terms (hierarchy, multi_session_key, item_key...).
     virtual internal::HttpResult browse(JsonDocument &body, JsonDocument &resp) = 0;
     virtual internal::HttpResult browseLoad(JsonDocument &body, JsonDocument &resp) = 0;
+
+    // --- Play queue (HAS_QUEUE boards) ---
+    // The zone's queue as the companion's GET /api/roon/queue answers it, and playing it from one
+    // item. A source without a queue answers 501 and the panel never offers it.
+    virtual internal::HttpResult queue(const String &zoneId, JsonDocument &resp) {
+        (void)zoneId, (void)resp;
+        return {501, "", "no queue with this source"};
+    }
+    virtual internal::HttpResult playFromHere(const String &zoneId, uint32_t queueItemId) {
+        (void)zoneId, (void)queueItemId;
+        return {501, "", "no queue with this source"};
+    }
 
     // Full URL of a cover at `px` pixels, empty when there is nothing to fetch. Built on the net
     // task and passed to the cover task, which must never read a source's mutable state.

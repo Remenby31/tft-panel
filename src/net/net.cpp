@@ -14,6 +14,7 @@
 #include "../board/board_pins.h"
 #include "coprocessor.h"
 #include "library.h"
+#include "queue.h"
 #include "net_internal.h"
 #include "ota.h"
 #include "portal.h"
@@ -251,6 +252,13 @@ void publishLibrary(std::shared_ptr<const LibraryPage> page) {
     update([&](Snapshot &s) {
         s.library = std::move(page);
         s.librarySerial++;
+    });
+}
+
+void publishQueue(std::shared_ptr<const QueuePage> page) {
+    update([&](Snapshot &s) {
+        s.queue = std::move(page);
+        s.queueSerial++;
     });
 }
 
@@ -615,11 +623,15 @@ namespace {
 
 // ---- User commands ----
 
-// A queued user action: the library and the zone choice are the panel's own business,
+// A queued user action: the library, the queue and the zone choice are the panel's own business,
 // everything else is the source's.
 void handleCommand(const Command &c) {
     if (c.type == CmdType::Library) {   // its own module: browse session, levels, thumbnails
         if (board::HAS_LIBRARY) lib::run((LibOp)c.direction, (int)c.value, String(c.arg));
+        return;
+    }
+    if (c.type == CmdType::Queue) {
+        if (board::HAS_QUEUE) q::run((QueueOp)c.direction, (uint32_t)strtoul(c.arg, nullptr, 10));
         return;
     }
     if (c.type == CmdType::Zone) {
@@ -790,6 +802,7 @@ void task(void *) {
         }
         if (source().nowPlayingDue(now)) source().pollNowPlaying();
         if (board::HAS_LIBRARY) lib::tick();   // next thumbnail while the library is open
+        if (board::HAS_QUEUE) q::tick();       // refresh and thumbnails while the queue is open
         delay(10);
     }
 }
@@ -871,6 +884,9 @@ void mute(bool on) { enqueue(CmdType::Mute, nullptr, on ? 1 : 0); }
 void setOffset(int32_t ms) { enqueue(CmdType::Offset, nullptr, 0, (float)ms); }
 void library(LibOp op, int index, const String &text) {
     if (board::HAS_LIBRARY) enqueue(CmdType::Library, text.c_str(), (int8_t)op, (float)index);
+}
+void queue(QueueOp op, uint32_t itemId) {   // in the text: a float cannot hold every uint32
+    if (board::HAS_QUEUE) enqueue(CmdType::Queue, String(itemId).c_str(), (int8_t)op, 0);
 }
 
 }  // namespace net
