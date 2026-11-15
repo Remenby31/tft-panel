@@ -19,15 +19,17 @@ board the same credentials. Keep the file as you keep a password, and never atta
 report — a firmware image alone is `tools/…/firmware.bin`, which carries none of this.
 
     --out DIR     where to keep it (default ~/tft-panel-backups)
-    --baud N      serial speed for the read (default: what the board's adapter tolerates over a
-                  whole flash dump, which is slower than the speed it is flashed at)
-    --restore F   identify the board, print the exact command to put a backup back at its
-                  flash speed, and stop
+    --baud N      serial speed (default: for a read, what the board's adapter tolerates over a
+                  whole flash dump; for --restore, the speed the board is flashed at)
+    --restore F   print the exact command to put a backup back, and stop. The board comes from
+                  the file's name (this tool names it after the board); only a renamed file
+                  makes it ask the board, which restarts it.
 """
 import argparse
 import hashlib
 import os
 import re
+import shutil
 import subprocess
 import sys
 from collections import namedtuple
@@ -52,13 +54,15 @@ BOARDS = {
                             "tft-panel-p4-s070-wba", 230400, 230400, 512 * 1024),
 }
 UNKNOWN = Board("unknown board", "", "", 115200, 115200, None)
-ATTEMPTS = 3
+ATTEMPTS = 3   # per piece, in total; a whole-flash read gets them too
 
 
-def esptool(args, port, baud=None, capture=True):
+def esptool(args, port, baud=None, capture=True, after=None):
     cmd = [PY, "-m", "esptool", "--port", port]
     if baud:
         cmd += ["--baud", str(baud)]
+    if after:
+        cmd += ["--after", after]
     cmd += args
     if capture:
         r = subprocess.run(cmd, capture_output=True, text=True)
@@ -70,7 +74,7 @@ def identify(port):
     """Chip, revision, flash megabytes and MAC, read from the board itself."""
     code, out = esptool(["flash-id"], port)
     if code != 0:
-        sys.exit("Could not talk to the board on %s.\n%s" % (port, out.strip()))
+        raise SystemExit("Could not talk to the board on %s.\n%s" % (port, out.strip()))
     chip = rev = mac = None
     mb = 0
     for line in out.splitlines():
@@ -90,15 +94,17 @@ def identify(port):
         if m:
             mb = int(m.group(1))
     if not chip or not mb:
-        sys.exit("The board answered, but not with a chip and a flash size:\n" + out.strip())
+        raise SystemExit("The board answered, but not with a chip and a flash size:\n" + out.strip())
     return chip, rev, mb, mac
 
 
 def read_flash(port, baud, size, piece, path):
     """Dump `size` bytes of flash to `path`, `piece` bytes per esptool call (None: one call).
 
-    A piece that fails or comes back short is asked again, up to ATTEMPTS times. `path` only
+    A piece that fails or comes back short is asked again, up to ATTEMPTS attempts. `path` only
     appears once every piece has arrived; on failure nothing is left behind. Returns success.
+    Every read leaves the chip in its bootloader (`--after no-reset`): the firmware must not run,
+    and maybe write its settings, between two pieces. The verify that follows restarts it.
     """
     step = piece or size
     plan = [(off, min(step, size - off)) for off in range(0, size, step)]
@@ -109,16 +115,17 @@ def read_flash(port, baud, size, piece, path):
                 for attempt in range(1, ATTEMPTS + 1):
                     if os.path.exists(part):
                         os.remove(part)
-                    code, _ = esptool(["read-flash", hex(off), str(length), part], port, baud,
-                                      capture=len(plan) > 1)
+                    code, log = esptool(["read-flash", hex(off), str(length), part], port, baud,
+                                        capture=len(plan) > 1, after="no-reset")
                     if code == 0 and os.path.exists(part) and os.path.getsize(part) == length:
                         break
-                    print("  piece %d of %d (0x%x) failed, attempt %d of %d" %
-                          (n, len(plan), off, attempt, ATTEMPTS))
+                    what = "piece %d of %d (0x%x)" % (n, len(plan), off) if len(plan) > 1 else "read"
+                    print("  %s failed, attempt %d of %d" % (what, attempt, ATTEMPTS))
                 else:
+                    print(log.strip())
                     return False
                 with open(part, "rb") as f:
-                    out.write(f.read())
+                    shutil.copyfileobj(f, out)
                 if len(plan) > 1:
                     print("  piece %d of %d read" % (n, len(plan)))
         os.replace(partial, path)
@@ -127,6 +134,25 @@ def read_flash(port, baud, size, piece, path):
         for leftover in (part, partial):
             if os.path.exists(leftover):
                 os.remove(leftover)
+
+
+def print_restore(port, backup, baud):
+    named = os.path.basename(backup).split("-factory-")[0]
+    board = next((b for b in BOARDS.values() if b.env == named), None)
+    if not board:
+        print("The file's name does not say which board it came from: asking the board (this "
+              "restarts it)...")
+        try:
+            chip, _, mb, _ = identify(port)
+            board = BOARDS.get((chip, mb), UNKNOWN)
+        except SystemExit as e:
+            print("%s\nNo answer: the command below uses a slow, safe speed." % e)
+            board = UNKNOWN
+    print("Put this backup back on the board (%s), then check it:\n" % board.name)
+    print("  %s -m esptool --port %s --baud %d write-flash 0x0 %s"
+          % (PY, port, baud or board.flash_baud, backup))
+    print("  %s -m esptool --port %s verify-flash 0x0 %s" % (PY, port, backup))
+    return 0
 
 
 def main():
@@ -138,17 +164,13 @@ def main():
     ap.add_argument("--restore", metavar="FILE")
     a = ap.parse_args()
 
+    if a.restore:
+        return print_restore(a.port, a.restore, a.baud)
+
     print("Asking the board what it is (this restarts it)...")
     chip, rev, mb, mac = identify(a.port)
     known = BOARDS.get((chip, mb))
     board = known or UNKNOWN
-
-    if a.restore:
-        print("Put this backup back on the board (%s), then check it:\n" % board.name)
-        print("  %s -m esptool --port %s --baud %d write-flash 0x0 %s"
-              % (PY, a.port, a.baud or board.flash_baud, a.restore))
-        print("  %s -m esptool --port %s verify-flash 0x0 %s" % (PY, a.port, a.restore))
-        return 0
 
     print("  chip        %s%s" % (chip, " rev " + rev if rev else ""))
     print("  flash       %d MB" % mb)
@@ -175,7 +197,8 @@ def main():
     print("\nReading all %d MB at %d baud. This takes a few minutes; do not unplug the board." %
           (mb, baud))
     if not read_flash(a.port, baud, size, board.piece, path):
-        sys.exit("The read failed, so there is no backup. Nothing was written to the board.")
+        sys.exit("The read failed, so there is no backup. Nothing was written to the board; "
+                 "unplug and replug it to restart it.")
     got = os.path.getsize(path)
     if got != size:
         sys.exit("The file is %d bytes, not the %d the board reports: the read was cut short, "

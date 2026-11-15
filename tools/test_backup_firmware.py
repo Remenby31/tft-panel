@@ -32,29 +32,37 @@ FLASH_ID = {
 
 
 class FakeBoard:
-    """Answers esptool calls from a byte string. `drops` maps a read offset to how many times
-    that read stops early, as the VIEWE's CH340 does."""
+    """Answers esptool calls from a byte string. `faults` maps a read offset to the ways that
+    read fails, one per attempt: "stopped" (exit 2, no file: esptool 5), "cut" (exit 2, part of
+    a file), "short" (exit 0, part of a file) or "error" (exit 2, a whole file)."""
 
-    def __init__(self, flash, flash_id="", drops=None):
-        self.flash, self.flash_id, self.drops = flash, flash_id, dict(drops or {})
-        self.reads = []
+    def __init__(self, flash=b"", flash_id="", faults=None):
+        self.flash, self.flash_id = flash, flash_id
+        self.faults = {k: list(v) for k, v in (faults or {}).items()}
+        self.calls, self.reads = [], []
 
-    def __call__(self, args, port, baud=None, capture=True):
+    def __call__(self, args, port, baud=None, capture=True, after=None):
+        self.calls.append(args[0])
         if args[0] == "flash-id":
-            return 0, self.flash_id
-        assert args[0] == "read-flash", args
+            return (0, self.flash_id) if self.flash_id else (2, "No serial data received.")
+        if args[0] == "verify-flash":
+            with open(args[2], "rb") as f:
+                return (0, "") if f.read() == self.flash else (1, "verify failed")
         off, length, path = int(args[1], 16), int(args[2]), args[3]
-        self.reads.append((off, length, baud))
+        self.reads.append((off, length, after))
+        fault = self.faults.get(off, [None]).pop(0) if self.faults.get(off) else None
+        if fault == "stopped":
+            return 2, "Serial data stream stopped"
         with open(path, "wb") as f:
-            if self.drops.get(off, 0) > 0:
-                self.drops[off] -= 1
-                f.write(self.flash[off:off + 1000])
-                return 2, "Serial data stream stopped"
-            f.write(self.flash[off:off + length])
-        return 0, ""
+            f.write(self.flash[off:off + (1000 if fault in ("cut", "short") else length)])
+        return (0 if fault in (None, "short") else 2), ""
 
 
-class ReadFlash(unittest.TestCase):
+def quiet():
+    return contextlib.redirect_stdout(io.StringIO())
+
+
+class Backup(unittest.TestCase):
     def setUp(self):
         self.dir = tempfile.TemporaryDirectory()
         self.path = os.path.join(self.dir.name, "dump.bin")
@@ -63,49 +71,79 @@ class ReadFlash(unittest.TestCase):
     def tearDown(self):
         self.dir.cleanup()
 
-    def read(self, board, piece):
-        with mock.patch.object(backup, "esptool", board), contextlib.redirect_stdout(io.StringIO()):
-            return backup.read_flash("/dev/null", 230400, len(self.flash), piece, self.path)
+    def read(self, board, piece, size=None):
+        with mock.patch.object(backup, "esptool", board), quiet():
+            return backup.read_flash("/dev/x", 230400, size or len(self.flash), piece, self.path)
 
-    def test_viewe_is_read_in_32_pieces_that_rebuild_the_flash(self):
-        board = FakeBoard(self.flash)
-        self.assertTrue(self.read(board, VIEWE.piece))
-        self.assertEqual([(o, n) for o, n, _ in board.reads],
-                         [(i * 512 * 1024, 512 * 1024) for i in range(32)])
+    def content(self):
         with open(self.path, "rb") as f:
-            self.assertEqual(f.read(), self.flash)
+            return f.read()
 
-    def test_a_dropped_piece_is_read_again(self):
-        board = FakeBoard(self.flash, drops={5 * 512 * 1024: 2})
+    def test_a_viewe_backup_is_32_pieces_with_the_board_held_in_its_bootloader(self):
+        board = FakeBoard(self.flash, FLASH_ID["p4-s070-wba"])
+        argv = ["backup", "--port", "/dev/x", "--out", self.dir.name]
+        with mock.patch.object(backup, "esptool", board), quiet(), mock.patch("sys.argv", argv):
+            self.assertEqual(backup.main(), 0)
+        self.assertEqual(board.reads, [(i * 512 * 1024, 512 * 1024, "no-reset") for i in range(32)])
+        files = sorted(os.listdir(self.dir.name))
+        self.assertEqual([f.split("-factory-")[0] for f in files], ["p4-s070-wba"] * 2)
+        self.assertEqual([os.path.splitext(f)[1] for f in files], [".bin", ".sha256"])
+        self.path = os.path.join(self.dir.name, files[0])
+        self.assertEqual(self.content(), self.flash)
+
+    def test_every_kind_of_broken_piece_is_read_again(self):
+        faults = {3 * 512 * 1024: ["stopped", "cut"], 9 * 512 * 1024: ["short"],
+                  20 * 512 * 1024: ["error", "stopped"]}
+        board = FakeBoard(self.flash, faults=faults)
         self.assertTrue(self.read(board, VIEWE.piece))
-        self.assertEqual(len(board.reads), 34)
-        with open(self.path, "rb") as f:
-            self.assertEqual(f.read(), self.flash)
+        self.assertEqual(len(board.reads), 32 + 5)
+        self.assertEqual(self.content(), self.flash)
+        self.assertEqual(os.listdir(self.dir.name), ["dump.bin"])
 
     def test_a_piece_that_never_arrives_leaves_no_file(self):
-        board = FakeBoard(self.flash, drops={3 * 512 * 1024: 3})
+        board = FakeBoard(self.flash, faults={3 * 512 * 1024: ["stopped", "cut", "short"]})
         self.assertFalse(self.read(board, VIEWE.piece))
         self.assertEqual(os.listdir(self.dir.name), [])
+
+    def test_the_last_piece_is_only_what_is_left(self):
+        size = 3 * 512 * 1024 + 100
+        board = FakeBoard(self.flash)
+        self.assertTrue(self.read(board, VIEWE.piece, size))
+        self.assertEqual(board.reads[-1][:2], (3 * 512 * 1024, 100))
+        self.assertEqual(self.content(), self.flash[:size])
 
     def test_other_boards_are_read_in_one_call(self):
         board = FakeBoard(self.flash)
         self.assertTrue(self.read(board, WAVESHARE.piece))
-        self.assertEqual([(o, n) for o, n, _ in board.reads], [(0, 16 * MB)])
+        self.assertEqual(board.reads, [(0, 16 * MB, "no-reset")])
 
 
 class Restore(unittest.TestCase):
-    def restore_command(self, env):
-        board = FakeBoard(b"", FLASH_ID[env])
+    def restore(self, backup_file, flash_id="", baud=None):
+        board = FakeBoard(flash_id=flash_id)
+        argv = ["backup", "--port", "/dev/x", "--restore", backup_file] + (
+            ["--baud", str(baud)] if baud else [])
         out = io.StringIO()
         with mock.patch.object(backup, "esptool", board), contextlib.redirect_stdout(out), \
-                mock.patch("sys.argv", ["backup", "--port", "/dev/x", "--restore", "f.bin"]):
+                mock.patch("sys.argv", argv):
             self.assertEqual(backup.main(), 0)
-        return [l for l in out.getvalue().splitlines() if "write-flash" in l][0]
+        line = [l for l in out.getvalue().splitlines() if "write-flash" in l][0]
+        return line.split("--baud ")[1].split()[0], board.calls
 
-    def test_restore_prints_each_boards_flash_speed(self):
-        self.assertIn("--baud 460800 write-flash", self.restore_command("crowpanel7"))
-        self.assertIn("--baud 921600 write-flash", self.restore_command("waveshare-p4-7b"))
-        self.assertIn("--baud 230400 write-flash", self.restore_command("p4-s070-wba"))
+    def test_the_file_name_gives_the_flash_speed_without_touching_the_board(self):
+        for env, baud in (("crowpanel7", "460800"), ("waveshare-p4-7b", "921600"),
+                          ("p4-s070-wba", "230400")):
+            self.assertEqual(self.restore("/b/%s-factory-80f1b2-2026-11-15.bin" % env),
+                             (baud, []), env)
+
+    def test_a_renamed_file_asks_the_board(self):
+        self.assertEqual(self.restore("/b/old.bin", FLASH_ID["p4-s070-wba"]), ("230400", ["flash-id"]))
+
+    def test_a_board_that_does_not_answer_still_gets_a_command(self):
+        self.assertEqual(self.restore("/b/old.bin"), ("115200", ["flash-id"]))
+
+    def test_baud_overrides(self):
+        self.assertEqual(self.restore("/b/p4-s070-wba-factory-x.bin", baud=115200)[0], "115200")
 
     def test_flash_speeds_match_platformio_ini(self):
         ini = configparser.ConfigParser(interpolation=None, inline_comment_prefixes=(";",))
