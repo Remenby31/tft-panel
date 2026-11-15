@@ -117,7 +117,7 @@ void onPick(lv_event_t *e) {
     lv_label_set_text(g_passTitle, i18n::fmt(Str::PasswordFor, g_chosen.c_str()).c_str());
     lv_textarea_set_text(g_ta, "");
     lv_textarea_set_password_mode(g_ta, true);
-    lv_label_set_text(g_showLabel, tr(Str::Show));
+    lv_label_set_text(g_showLabel, tr(Str::ShowPassword));
     lv_label_set_text(g_passError, "");
     showPage(g_passPage);
     keyboard::focus(g_ta, true);
@@ -207,10 +207,10 @@ void buildPassword() {
     lv_obj_set_width(g_ta, X(500));
     lv_obj_set_pos(g_ta, X(32), Y(58));
 
-    lv_obj_t *show = textButton(g_passPage, tr(Str::Show), 0x232326, [](lv_event_t *) {
+    lv_obj_t *show = textButton(g_passPage, tr(Str::ShowPassword), 0x232326, [](lv_event_t *) {
         bool hidden = lv_textarea_get_password_mode(g_ta);
         lv_textarea_set_password_mode(g_ta, !hidden);
-        lv_label_set_text(g_showLabel, tr(hidden ? Str::Hide : Str::Show));
+        lv_label_set_text(g_showLabel, tr(hidden ? Str::HidePassword : Str::ShowPassword));
     }, &g_showLabel);
     lv_obj_set_pos(show, X(548), Y(62));
     lv_obj_t *back = textButton(g_passPage, tr(Str::Back), 0x232326, [](lv_event_t *) { showPage(g_listPage); });
@@ -294,7 +294,7 @@ void showcase(bool password) {
         lv_label_set_text(g_passTitle, i18n::fmt(Str::PasswordFor, g_chosen.c_str()).c_str());
         lv_textarea_set_text(g_ta, "autumn2026");
         lv_textarea_set_password_mode(g_ta, false);
-        lv_label_set_text(g_showLabel, tr(Str::Hide));
+        lv_label_set_text(g_showLabel, tr(Str::HidePassword));
         lv_label_set_text(g_passError, "");
         showPage(g_passPage);
         keyboard::focus(g_ta, true);

@@ -123,7 +123,7 @@ X(OffsetTitle, "Lyrics timing for this track", "Décalage des paroles pour ce ti
 X(Earlier, "Earlier", "Plus tôt")
 X(Reset, "Reset", "Remettre à zéro")
 X(CodeText, "This panel's web page\n\nType this code there to allow the change (valid 5 minutes):",
-  "Page web de ce panneau\n\nSaisissez-y ce code pour autoriser la modification (valable 5 minutes) :")
+  "Page web de ce panneau\n\nSaisissez-y ce code pour valider le changement (5 minutes) :")
 X(InstallNow, "Install now", "Installer maintenant")
 X(OtaBadge, "Update %s", "Mise à jour %s")
 X(OtaConfirm,
@@ -166,9 +166,10 @@ X(WifiNoneHeard, "No network heard. Move the panel closer to the router, then re
   "Aucun réseau capté. Rapprochez le panneau du routeur, puis actualisez.")
 X(WifiChoose, "Choose your Wi-Fi", "Choisissez votre Wi-Fi")
 X(WifiNote, "2.4 GHz networks. Hidden network: use the setup page on a phone.",
-  "Réseaux 2,4 GHz. Réseau masqué : passez par la page de configuration sur un téléphone.")
+  "Réseaux 2,4 GHz. Réseau masqué : page de configuration sur un téléphone.")
 X(Password, "Password", "Mot de passe")
-X(Hide, "Hide", "Masquer")
+X(ShowPassword, "Show", "Voir")
+X(HidePassword, "Hide", "Cacher")
 X(Back, "Back", "Retour")
 X(Connect, "Connect", "Se connecter")
 
