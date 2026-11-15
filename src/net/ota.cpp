@@ -23,6 +23,13 @@ constexpr const char *LATEST_URL = "https://api.github.com/repos/r45635/tft-pane
 constexpr uint32_t CHECK_PERIOD_MS = 24UL * 3600 * 1000;
 constexpr uint32_t FIRST_CHECK_DELAY_MS = 30 * 1000;   // let lyrics and the cover load first
 constexpr uint64_t VERIFY_DEADLINE_US = 180ULL * 1000 * 1000;
+// A fresh image is also healthy once it has simply held a Wi-Fi link this long. The quick
+// proof is a server answering (internal::markHealthy), but that is someone else's server:
+// without this, a panel whose companion is gone installs every new firmware and rolls it
+// back three minutes later, for ever - and the panel that cannot reach a server is exactly
+// the one that needs the update. What rollback really guards against (no Wi-Fi, an image
+// that never reaches this code) still trips, because the window needs an unbroken link.
+constexpr uint32_t SELF_PROOF_MS = 90 * 1000;
 
 SemaphoreHandle_t g_lock = nullptr;
 Status g_status;
@@ -33,6 +40,7 @@ bool g_checkedOnce = false;
 String g_binUrl, g_shaUrl;
 volatile bool g_pendingVerify = false;
 esp_timer_handle_t g_deadline = nullptr;
+uint32_t g_wifiUpSince = 0;   // SELF_PROOF_MS is counted from here, and a drop resets it
 
 template <typename F>
 void update(F &&fn) {
@@ -343,7 +351,7 @@ void begin() {
     esp_ota_img_states_t st;
     if (running && esp_ota_get_state_partition(running, &st) == ESP_OK && st == ESP_OTA_IMG_PENDING_VERIFY) {
         g_pendingVerify = true;
-        Serial.printf("[ota] first boot of %s: rollback in 3 min unless Wi-Fi and the companion answer\n",
+        Serial.printf("[ota] first boot of %s: rollback in 3 min unless it holds Wi-Fi for 90 s\n",
                       FW_VERSION);
         esp_timer_create_args_t args = {};
         args.callback = [](void *) {
@@ -367,6 +375,15 @@ Status status() {
 }
 
 void tick(bool wifiUp) {
+    if (g_pendingVerify) {
+        uint32_t now = millis();
+        if (!wifiUp) g_wifiUpSince = 0;
+        else if (!g_wifiUpSince) g_wifiUpSince = now;
+        else if (now - g_wifiUpSince >= SELF_PROOF_MS) {
+            Serial.println("[ota] no server answered, but the Wi-Fi link has held for 90 s: the image works");
+            markHealthy();
+        }
+    }
     if (!wifiUp) return;
     if (g_installRequested) {
         g_installRequested = false;

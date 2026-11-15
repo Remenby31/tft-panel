@@ -741,6 +741,7 @@ void task(void *) {
                 g_wifiAttemptAt = now;
             }
             if (now - g_wifiDownSince > WIFI_PORTAL_AFTER_MS) openPortalNow();
+            ota::tick(false);   // tells the rollback window the link is down, nothing else
             delay(20);
             continue;
         }
