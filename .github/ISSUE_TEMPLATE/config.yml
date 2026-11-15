@@ -3,6 +3,3 @@ contact_links:
   - name: User guide and troubleshooting
     url: https://github.com/r45635/tft-panel/blob/main/docs/USER_GUIDE.md#troubleshooting
     about: Install, Wi-Fi, lyrics, settings, updates — and what each message on the screen means.
-  - name: Report a vulnerability
-    url: https://github.com/r45635/tft-panel/security/advisories/new
-    about: Privately, never in a public issue.

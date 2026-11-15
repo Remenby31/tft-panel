@@ -61,7 +61,7 @@ body:
       options:
         - The TextFromTrack companion
         - An LRCLIB-compatible server (lrclib.net or a mirror)
-        - None
+        - No lyrics (set to none)
         - Not sure
     validations:
       required: true
