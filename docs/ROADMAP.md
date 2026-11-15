@@ -103,9 +103,9 @@
 - [ ] Vincent's eye check (colours, warmth, orientation, touch comfort)
 - [x] Published since v0.1.19: `tools/release.sh` builds and ships its three files, so a VIEWE
       updates over the air and from its own page like the others
-- [ ] Web installer: a board choice, since it picks by chip and two P4 boards share one. Until then
-      the VIEWE is kept **out of the manifest on purpose** (a second ESP32-P4 entry would hand one
-      of the two screens the other's image) and is flashed from a computer the first time
+- [x] Web installer carries it too (2026-11-15): the page **asks which screen is connected** and
+      hands it that board's own `manifest-<env>.json`, instead of ESP Web Tools picking by chip —
+      which cannot work once two boards share one, and would have left a screen dark
 
 ## Direct to the music server (2026-11-14)
 
@@ -205,7 +205,8 @@ would install.
 
 - **Guition JC1060P470C** (ESP32-P4, JD9165, 16 MB flash) — asked by a user 2026-11-11; about half a day
   of code, but blocked until someone can test on the board. Details: `docs/HARDWARE.md#other-boards`.
-- Install page: a board choice for boards that share a chip (needed as soon as a second P4 board is added).
+- Install page: the board choice exists since 2026-11-15, so a new board is one more entry and one
+  more manifest — no longer blocked on the chip being unique.
 
 ## To discuss (estimated 2026-11-07, not started)
 

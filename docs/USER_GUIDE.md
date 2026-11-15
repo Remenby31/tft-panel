@@ -15,9 +15,7 @@ zones and cover are invented.*
 - One of these screens, and a USB-C cable that carries data:
   - **Elecrow CrowPanel ESP32 Display 7.0"** (DIS08070H), board **V3.0**;
   - **Waveshare ESP32-P4-WIFI6-Touch-LCD-7B** (1024×600);
-  - **VIEWE ESP32-P4 7"** (UEP4S070H1024V600C-WB-C, 1024×600) — this one is flashed from a computer
-    the first time, because the web installer cannot yet tell the two ESP32-P4 boards apart. Every
-    release carries its firmware, and it updates over the air afterwards like the others.
+  - **VIEWE ESP32-P4 7"** (UEP4S070H1024V600C-WB-C, 1024×600).
 
   Other screens are not supported, even look-alikes with the same ESP32-P4 chip and the same display
   controller (for example the Guition JC1060P470C): their display needs different settings, and the
@@ -60,12 +58,14 @@ already flashed and the screen stayed black, plug in the USB cable and read the 
 ### Flash it
 
 1. On a computer, open the [web installer](https://r45635.github.io/tft-panel/install.html) in **Chrome or Edge**.
-2. Connect the panel with the USB-C cable — on the Waveshare, the port marked **USB 1.1** — click
-   **Install**, pick the serial port and confirm. The installer recognises the screen and picks its
-   firmware. It takes about 3 minutes on the CrowPanel, about a minute on the Waveshare.
-   - CrowPanel: the port is called *USB Serial*, *CH340* or *usbserial*.
+2. **Say which screen you have.** The page asks, because it only sees the chip and two of the three
+   boards answer to the same one — picking for you would risk leaving a panel dark.
+3. Connect the panel with the USB-C cable — on the Waveshare, the port marked **USB 1.1** — click
+   **Install**, pick the serial port and confirm. It takes about 3 minutes on the CrowPanel, about a
+   minute on the ESP32-P4 boards.
+   - CrowPanel and VIEWE: the port is called *USB Serial*, *CH340* or *usbserial*.
    - Waveshare: *USB JTAG/serial debug unit* or *usbmodem*.
-3. CrowPanel on Windows: if no port shows up, install the
+4. CrowPanel or VIEWE on Windows: if no port shows up, install the
    [CH340 driver](https://www.wch-ic.com/downloads/CH341SER_EXE.html) and plug the panel again.
 
 After this, updates come over Wi-Fi (see [Updates](#updates)).
