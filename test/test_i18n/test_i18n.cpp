@@ -38,8 +38,9 @@ void test_every_string_has_french_with_the_same_arguments_and_items() {
         char what[96];
         snprintf(what, sizeof what, "id %d \"%.60s\"", id, en);
         TEST_ASSERT_TRUE_MESSAGE(*en && *fr, what);
-        // A wrong argument list reads the stack: a crash in one language only.
-        TEST_ASSERT_TRUE_MESSAGE(conversions(en) == conversions(fr), what);
+        // A wrong argument list reads the stack: a crash in one language only. Page rows are not
+        // printf formats (their %VERSION% is a template token).
+        if (!i18n::pageName(id)) TEST_ASSERT_TRUE_MESSAGE(conversions(en) == conversions(fr), what);
         // Lists (days, time zones, dropdown choices) are picked by position.
         TEST_ASSERT_EQUAL_INT_MESSAGE(lines(en), lines(fr), what);
         bool same = false;

@@ -82,6 +82,13 @@ source only discovers a server, reads it, and calls the `publish*` functions of 
 It also builds the cover URLs, because the cover task runs on another core and must never read a
 source's address while the net task changes it.
 
+**Languages.** Every word the screens and the panel's pages show is an id in one table,
+`src/app/i18n_strings.inc`, with its English and its French. `X()` rows are for the screens,
+`P()` rows fill the `%Id%` tokens of the page templates. The language is read from NVS once at boot,
+so changing it restarts the panel instead of rebuilding screens. Logs and the console stay English.
+`-DI18N_NO_FR` builds the table with English only (CrowPanel, short of flash).
+`test/test_i18n` checks that every row has its French, with the same printf arguments and list items.
+
 **Boards.** `board.h` is the only interface the rest of the firmware sees; each board compiles
 its own file, chosen by the environment's `-DBOARD_…` flag: `board_crowpanel7.cpp` (ESP32-S3, RGB
 panel fed from bounce buffers, frozen update screen) and `board_p4_mipi.cpp` (ESP32-P4, MIPI-DSI,
