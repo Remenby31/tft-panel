@@ -125,6 +125,33 @@ strip and only swaps the CPU copy for the GDMA one. `cpu` stays the default unti
 Report the three modes' `[ui] scroll:` lines, the largest `settle`, and what you saw. If `dma` or `dma2` wins without
 artefacts, its name becomes the default in `g_mode` (`src/board/board_crowpanel7.cpp`).
 
+### Signed updates
+
+Needs a throwaway key (never the release key) and two builds: `A` with the key, `B` the same with
+a higher version. On the Mac: `TFT_SIGNING_KEY=/tmp/hwtest.pem tools/signing-key.sh`, then
+`TFT_FW_VERSION=v0.0.1-test pio run -e <env> -t upload` (A); `TFT_FW_VERSION=v0.0.2-test pio run -e <env>`
+and keep `.pio/build/<env>/firmware.bin` as `b.bin` (B). `git checkout src/net/signing_key.h` after.
+
+1. **Upload page shows the field**: open `http://<panel>/update`. A *Signature* file field is there.
+2. **Unsigned is refused**: upload `b.bin` without a signature. The browser says `No signature:
+   nothing installed`, the panel says `That file came without its signature: nothing installed.`
+   and keeps running v0.0.1-test (`status`).
+3. **Wrong signature is refused**: sign with another key
+   (`openssl ecparam -name prime256v1 -genkey -noout -out /tmp/other.pem`,
+   `openssl dgst -sha256 -sign /tmp/other.pem -out b.sig b.bin`) and upload `b.bin` with `b.sig`:
+   `Signature does not match: nothing installed`, still v0.0.1-test. On the CrowPanel, the
+   picture has no lasting shift after the refusal (the image was streamed into the other slot).
+4. **Signed installs**: `openssl dgst -sha256 -sign /tmp/hwtest.pem -out b.sig b.bin`, upload both:
+   the panel restarts into v0.0.2-test and logs `confirmed working`.
+5. **Unsigned GitHub release**: flash A again; console `ota check`. The real latest release has no
+   `.sig`: no update badge, and *Settings › Updates* reads
+   `Last attempt failed: update vX.Y.Z is not signed, so it is not installed`. No download starts.
+6. **No key, nothing changed**: a build from the repository as committed (empty `signing_key.h`)
+   has no Signature field on the upload page and installs `b.bin` without one, as before.
+
+Expected: steps 2-3 leave the running version unchanged; step 4 takes the same ~30 s as an
+unsigned upload (the check runs once on a 32-byte digest).
+
 ## Results block
 
 Copy once per board, fill in, paste into the pull request.

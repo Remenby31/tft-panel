@@ -17,6 +17,8 @@ tag. It then:
    `tft-panel-waveshare-p4-7b` for the Waveshare, `tft-panel-p4-s070-wba` for the VIEWE:
    - `<base>-<tag>.bin` — app image, what the panels install over the air;
    - `<base>-<tag>.sha256` — `<hex>  <file>`; the panel compares it before committing the image;
+   - `<base>-<tag>.sig` — only once a signing key is set (see *Signed updates*): the ECDSA P-256
+     signature of that SHA-256, DER, as `openssl dgst -sha256 -sign` writes it;
    - `<base>-<tag>-factory.bin` — bootloader + partition table + app (PlatformIO's
      `firmware.factory.bin`), for a manual flash at the bootloader offset (0x0 on the S3, 0x2000 on the P4);
 3. pushes the tag and creates the GitHub release with these assets;
@@ -43,8 +45,31 @@ script retries once, and copies each board's files right after its build.
 - 30 s after boot and every 24 h it reads `releases/latest`. A tag greater than its own
   `FW_VERSION` (a dev build `vX.Y.Z-n-gsha` counts as `vX.Y.Z`) with both assets shows the badge.
 - Install: SHA-256 of the stream must match the `.sha256` asset, else nothing is committed.
+  With a signing key compiled in, the `.sig` must also verify that SHA-256, else nothing is
+  committed; a release without a `.sig` gets no badge and the settings screen says it is not signed.
 - First boot of the new image: confirmed once Wi-Fi is up and the companion answers; if not
   within 3 minutes, the bootloader rolls back to the previous image.
+
+## Signed updates
+
+Without a key, a panel trusts whatever the latest GitHub release holds: whoever can publish a
+release, or tamper with its files, can ship any image. With a key compiled in, a panel installs only
+an image signed by the maintainer, from GitHub and from its own upload page alike.
+
+1. Once: `tools/signing-key.sh`. It creates the private key in `~/.config/tft-panel/signing-key.pem`
+   (or `$TFT_SIGNING_KEY`, never inside the repository) and writes its public half into
+   `src/net/signing_key.h`. Commit that header. Keep a copy of the private key offline: without it,
+   panels built with this key take no update but a USB flash or the browser installer.
+2. Every release: `tools/release.sh` sees the key in the header, checks that the private key is
+   its pair (before tagging), signs each `.bin`, verifies the signature with `openssl` and uploads
+   the `.sig` with the other files.
+
+The first release that carries the key is installed on trust like any before it; from then on,
+panels refuse unsigned or badly signed images. Signing covers the image, not the bootloader:
+secure boot and flash encryption burn eFuses for good and stay out of scope.
+
+ECDSA P-256 rather than Ed25519: the mbedTLS of ESP-IDF 5.5 has no EdDSA, and P-256 is already in
+the image for TLS, so the check costs almost no flash.
 
 ## Testing an update without publishing
 
@@ -53,6 +78,8 @@ The local upload page exercises the same install and rollback path as a GitHub u
 1. `GET http://tft-panel-xxxx.local/update` (or the panel's IP) — the panel shows a 6-digit code.
 2. `curl -F firmware=@.pio/build/<env>/firmware.bin "http://<panel>/update?code=<code>"`
    (~30 s for 1.8 MB). The log shows `first boot of …: rollback in 3 min…`, then `confirmed working`.
+   A build with a signing key also wants the signature, as hex:
+   `&sig=$(openssl dgst -sha256 -sign ~/.config/tft-panel/signing-key.pem firmware.bin | xxd -p -c0)`.
 3. Rollback: put `#define OTA_TEST_NEVER_HEALTHY 1` at the top of `src/net/ota.cpp` (temporarily —
    `PLATFORMIO_SRC_BUILD_FLAGS` did not reach it), build, upload: after 3 min the log shows
    `never got healthy` and the panel boots the previous image, without the "first boot" line.
