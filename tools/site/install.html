@@ -92,7 +92,10 @@
       const m = 'manifest-' + e.target.value + '.json';
       b.setAttribute('manifest', m);   // and the property: the element may read either
       b.manifest = m;
-      b.innerHTML = '<span slot="unsupported">This browser cannot flash devices: please open this page in Chrome or Edge on a computer.</span>'
+      // Named "Install", because that is what this page and the guide tell people to click;
+      // the library's own default label is "Connect".
+      b.innerHTML = '<button slot="activate">Install</button>'
+                  + '<span slot="unsupported">This browser cannot flash devices: please open this page in Chrome or Edge on a computer.</span>'
                   + '<span slot="not-allowed">Flashing needs a secure page (https).</span>';
       document.getElementById('install').replaceChildren(b);
     });
