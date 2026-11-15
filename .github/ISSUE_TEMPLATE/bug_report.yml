@@ -1,0 +1,99 @@
+name: Something does not work
+description: The panel misbehaves on one of the three supported boards.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before you write: the [troubleshooting table](https://github.com/r45635/tft-panel/blob/main/docs/USER_GUIDE.md#troubleshooting) answers the usual questions.
+
+        **A VIEWE screen that stays dark after the web installer** is known: the installer gives every ESP32-P4 board the Waveshare firmware. Flash it over USB instead (see [Build and flash](https://github.com/r45635/tft-panel#build-and-flash)).
+
+        **Another board** — even with the same chip — is not supported: open a *New board* issue instead.
+
+  - type: dropdown
+    id: board
+    attributes:
+      label: Board
+      options:
+        - Elecrow CrowPanel 7.0" (ESP32-S3)
+        - Waveshare ESP32-P4 7B
+        - VIEWE ESP32-P4 7"
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Firmware version
+      description: Shown on the Settings screen and on the panel's own page.
+      placeholder: "0.1.18"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: install
+    attributes:
+      label: How it got that version
+      options:
+        - Web installer
+        - Update on the panel (over the air)
+        - Uploaded from the panel's own page
+        - Built and flashed with PlatformIO
+    validations:
+      required: true
+
+  - type: dropdown
+    id: music
+    attributes:
+      label: Where the music comes from
+      options:
+        - The music server directly
+        - The TextFromTrack companion
+        - It does not find either
+    validations:
+      required: true
+
+  - type: dropdown
+    id: lyrics
+    attributes:
+      label: Where the lyrics come from
+      options:
+        - The TextFromTrack companion
+        - An LRCLIB-compatible server (lrclib.net or a mirror)
+        - None
+        - Not sure
+    validations:
+      required: true
+
+  - type: textarea
+    id: what
+    attributes:
+      label: What happens, and what you expected
+      description: The screen you were on and what you touched. A photo of the screen helps.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: How to make it happen again
+      placeholder: |
+        1. …
+        2. …
+
+  - type: textarea
+    id: log
+    attributes:
+      label: Serial log
+      description: |
+        `pio device monitor` (115200), or the console's `status`. Leave out tokens and addresses you would rather keep private.
+      render: text
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checked
+      options:
+        - label: I searched the open and closed issues.
+          required: true

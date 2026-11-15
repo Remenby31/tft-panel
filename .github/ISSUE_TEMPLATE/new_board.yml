@@ -1,0 +1,57 @@
+name: New board
+description: Ask for a screen that is not one of the three supported boards — and help bring it up.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Other boards are not supported**, even with the same chip and the same display controller: the pins, timings, backlight and orientation differ, and the firmware would leave the screen dark. See [Other boards](https://github.com/r45635/tft-panel/blob/main/docs/HARDWARE.md#other-boards).
+
+        A board is added only after it has run **on the real board** — colour bars and orientation, touch at the four corners, backlight, Wi-Fi, an OTA. That takes someone who owns it and can flash test builds and send serial logs. I cannot debug a board I do not have.
+
+        Do not flash a supported board's firmware on yours to "see if it works".
+
+  - type: input
+    id: board
+    attributes:
+      label: Board
+      description: Vendor, name and exact model or SKU, as printed on the board or its listing.
+      placeholder: "Guition JC1060P470C"
+    validations:
+      required: true
+
+  - type: input
+    id: chip
+    attributes:
+      label: Chip, flash and PSRAM
+      placeholder: "ESP32-P4, 16 MB flash, 32 MB PSRAM, ESP32-C6 for Wi-Fi"
+    validations:
+      required: true
+
+  - type: input
+    id: display
+    attributes:
+      label: Display and touch
+      description: Resolution, interface (RGB, MIPI-DSI…), display controller, touch controller.
+      placeholder: "1024×600 MIPI-DSI, JD9165, GT911"
+    validations:
+      required: true
+
+  - type: textarea
+    id: sources
+    attributes:
+      label: Vendor sources
+      description: Links to the vendor's board support package, schematic, pin map or demo code. Pins come from the vendor, not from a look-alike board.
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: tester
+    attributes:
+      label: Testing
+      options:
+        - label: I own this board, I can flash test builds over USB and send serial logs and photos of the screen.
+          required: true
+        - label: I saved the board's original firmware first (`tools/backup-firmware.py`).
+          required: true
+        - label: I can write the `pins_<board>.h` and open a pull request myself.
