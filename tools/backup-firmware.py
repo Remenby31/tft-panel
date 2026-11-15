@@ -21,7 +21,8 @@ report — a firmware image alone is `tools/…/firmware.bin`, which carries non
     --out DIR     where to keep it (default ~/tft-panel-backups)
     --baud N      serial speed for the read (default: what the board's adapter tolerates over a
                   whole flash dump, which is slower than the speed it is flashed at)
-    --restore F   print the exact command to put a backup back, and stop
+    --restore F   identify the board, print the exact command to put a backup back at its
+                  flash speed, and stop
 """
 import argparse
 import hashlib
@@ -29,22 +30,29 @@ import os
 import re
 import subprocess
 import sys
+from collections import namedtuple
 from datetime import date
 
 PY = sys.executable
 
 # What each chip and flash size means here. The two ESP32-P4 boards differ only by flash size,
 # which is exactly why the browser installer cannot tell them apart.
-# The last field is the speed for *reading*, which is not the speed for writing: a CH340 that
-# flashes happily at 460800 loses bytes somewhere in four megabytes of read ("Serial data stream
-# stopped"), and a backup that stops early is not a backup. Measured on the boards.
+# Reading is not writing: a CH340 that flashes happily at 460800 loses bytes somewhere in four
+# megabytes of read ("Serial data stream stopped"), and a backup that stops early is not a backup.
+# The VIEWE's CH340 even loses them at 230400 over its 16 MB in one go (died after 284 KB), so it
+# is read in retryable 512 KB pieces, which worked with one retry in 32. Measured on the boards.
+# flash_baud is the board's upload_speed in platformio.ini (a test holds them equal).
+Board = namedtuple("Board", "name env asset read_baud flash_baud piece")
 BOARDS = {
-    ("ESP32-S3", 4): ("Elecrow CrowPanel 7\" V3.0", "crowpanel7", "tft-panel", 230400),
-    ("ESP32-P4", 32): ("Waveshare ESP32-P4-WIFI6-Touch-LCD-7B", "waveshare-p4-7b",
-                       "tft-panel-waveshare-p4-7b", 921600),
-    ("ESP32-P4", 16): ("VIEWE UEP4S070H1024V600C-WB-C", "p4-s070-wba",
-                       "tft-panel-p4-s070-wba", 230400),
+    ("ESP32-S3", 4): Board("Elecrow CrowPanel 7\" V3.0", "crowpanel7", "tft-panel",
+                           230400, 460800, None),
+    ("ESP32-P4", 32): Board("Waveshare ESP32-P4-WIFI6-Touch-LCD-7B", "waveshare-p4-7b",
+                            "tft-panel-waveshare-p4-7b", 921600, 921600, None),
+    ("ESP32-P4", 16): Board("VIEWE UEP4S070H1024V600C-WB-C", "p4-s070-wba",
+                            "tft-panel-p4-s070-wba", 230400, 230400, 512 * 1024),
 }
+UNKNOWN = Board("unknown board", "", "", 115200, 115200, None)
+ATTEMPTS = 3
 
 
 def esptool(args, port, baud=None, capture=True):
@@ -86,6 +94,41 @@ def identify(port):
     return chip, rev, mb, mac
 
 
+def read_flash(port, baud, size, piece, path):
+    """Dump `size` bytes of flash to `path`, `piece` bytes per esptool call (None: one call).
+
+    A piece that fails or comes back short is asked again, up to ATTEMPTS times. `path` only
+    appears once every piece has arrived; on failure nothing is left behind. Returns success.
+    """
+    step = piece or size
+    plan = [(off, min(step, size - off)) for off in range(0, size, step)]
+    partial, part = path + ".partial", path + ".piece"
+    try:
+        with open(partial, "wb") as out:
+            for n, (off, length) in enumerate(plan, 1):
+                for attempt in range(1, ATTEMPTS + 1):
+                    if os.path.exists(part):
+                        os.remove(part)
+                    code, _ = esptool(["read-flash", hex(off), str(length), part], port, baud,
+                                      capture=len(plan) > 1)
+                    if code == 0 and os.path.exists(part) and os.path.getsize(part) == length:
+                        break
+                    print("  piece %d of %d (0x%x) failed, attempt %d of %d" %
+                          (n, len(plan), off, attempt, ATTEMPTS))
+                else:
+                    return False
+                with open(part, "rb") as f:
+                    out.write(f.read())
+                if len(plan) > 1:
+                    print("  piece %d of %d read" % (n, len(plan)))
+        os.replace(partial, path)
+        return True
+    finally:
+        for leftover in (part, partial):
+            if os.path.exists(leftover):
+                os.remove(leftover)
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
@@ -95,29 +138,31 @@ def main():
     ap.add_argument("--restore", metavar="FILE")
     a = ap.parse_args()
 
+    print("Asking the board what it is (this restarts it)...")
+    chip, rev, mb, mac = identify(a.port)
+    known = BOARDS.get((chip, mb))
+    board = known or UNKNOWN
+
     if a.restore:
-        print("Put this backup back on the board, then check it:\n")
-        print("  %s -m esptool --port %s --baud 460800 write-flash 0x0 %s" % (PY, a.port, a.restore))
+        print("Put this backup back on the board (%s), then check it:\n" % board.name)
+        print("  %s -m esptool --port %s --baud %d write-flash 0x0 %s"
+              % (PY, a.port, a.baud or board.flash_baud, a.restore))
         print("  %s -m esptool --port %s verify-flash 0x0 %s" % (PY, a.port, a.restore))
         return 0
 
-    print("Asking the board what it is...")
-    chip, rev, mb, mac = identify(a.port)
-    known = BOARDS.get((chip, mb))
     print("  chip        %s%s" % (chip, " rev " + rev if rev else ""))
     print("  flash       %d MB" % mb)
     print("  MAC         %s" % (mac or "unknown"))
     if known:
-        name, env, asset, baud = known
-        print("  board       %s" % name)
-        print("  its image   %s  (pio run -e %s)" % (asset, env))
+        print("  board       %s" % board.name)
+        print("  its image   %s  (pio run -e %s)" % (board.asset, board.env))
     else:
-        name, env, asset, baud = "unknown board", "", "", 115200
         print("  board       not one of the three this firmware supports.")
         print("              Back it up anyway, but do not flash TFT Panel onto it: a panel")
         print("              driven by the wrong settings stays dark. docs/HARDWARE.md explains.")
 
-    baud = a.baud or baud
+    baud = a.baud or board.read_baud
+    env = board.env
     os.makedirs(a.out, exist_ok=True)
     stem = "%s-factory-%s-%s" % (env or chip.lower(), (mac or "nomac").replace(":", ""), date.today())
     path = os.path.join(a.out, stem + ".bin")
@@ -129,8 +174,7 @@ def main():
 
     print("\nReading all %d MB at %d baud. This takes a few minutes; do not unplug the board." %
           (mb, baud))
-    code, _ = esptool(["read-flash", "0x0", str(size), path], a.port, baud, capture=False)
-    if code != 0 or not os.path.exists(path):
+    if not read_flash(a.port, baud, size, board.piece, path):
         sys.exit("The read failed, so there is no backup. Nothing was written to the board.")
     got = os.path.getsize(path)
     if got != size:
