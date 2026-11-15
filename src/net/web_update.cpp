@@ -6,7 +6,6 @@
 #include "news.h"
 #include "weather.h"
 
-#include <ESPmDNS.h>
 #include <Update.h>
 #include <WebServer.h>
 
@@ -484,7 +483,10 @@ void start() {
             g_server->sendContent((const char *)fb + off, std::min((size_t)32768, bytes - off));
     });
     g_server->begin();
-    MDNS.addService("http", "tcp", 80);
+    // The service record belongs to the net task, which owns mDNS and attaches the panel's name,
+    // board, MAC and version to it (internal::startMdns). Announcing it from here raced that task
+    // and lost: "addService(): Failed adding service http.tcp" at every boot, printed and ignored,
+    // and the panel's page went unannounced on the network.
     Serial.println("[web] update page on port 80 (/update)");
 }
 
