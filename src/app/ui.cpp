@@ -1603,6 +1603,16 @@ bool showcase(const String &what) {
         setText(g_clockTime, "21:47");
         setText(g_clockDate, "Saturday 7 November");
         setText(g_clockTrack, "Paused  -  Neon Autumn  -  The Demo Lights");
+        // Invented weather and headlines too: the real ones name the town someone lives in and
+        // put a news agency's words in a published picture.
+        setText(g_clockWeather, "Harbour City   7 \u00B0C   Clear   4 to 11 \u00B0C today");
+        startNews("Ferry service returns to the old pier after eleven years   \u00B7   "
+                  "City votes to plant four thousand trees along the canal   \u00B7   "
+                  "Observatory reopens for the autumn meteor showers");
+        // Frozen where it reads, not caught entering from the right: a still picture of a
+        // scrolling line should show the line.
+        lv_anim_delete(g_clockNews, nullptr);
+        lv_obj_set_x(g_clockNews, X(30));
         setHidden(g_clock, false);
     } else if (what == "update" || what == "confirm") {
         g_ota.state = ota::State::Available;
