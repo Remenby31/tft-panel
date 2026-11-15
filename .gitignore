@@ -24,3 +24,6 @@ secrets.h
 __pycache__/
 # ESP32-C6 coprocessor firmware, fetched at build time by tools/hosted_fw.py
 /assets/hosted/
+# Release-signing private key: tools/signing-key.sh keeps it outside the repo; this is a safety net
+*.pem
+*.key
