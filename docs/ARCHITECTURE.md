@@ -51,6 +51,8 @@ own extension of the music server, through `tft-core-client`, and needs no compa
 | Lyrics | `GET /api/lyrics/current?zone_id=` | `offset_ms` > 0 = shown later → lyric time = position − offset |
 | Control | `POST /api/roon/control` | always send `zone_id`; 404 on an idle zone |
 | Cover | `GET /api/roon/image/:key?scale=fit&width=&height=` | ask for the exact pixel size; JPEG decoded on device |
+| Queue | `GET /api/roon/queue?zone_id=` | P4 boards; playing track first, at most 20 items; 404 = nothing loaded |
+| Play from here | `POST /api/roon/queue/play` | `{queue_item_id, zone_id}`; no route removes, moves or clears items |
 
 Rules learned on the watch client:
 - **Always pass `zone_id`. Never call `POST /api/roon/active-zone`** — it is global to the
@@ -173,6 +175,16 @@ carries `zone_or_output_id` = the followed zone, so actions play there.
   commands go through `net::library(op, index, text)`. Console: `lib search <text> | browse |
   find artist|album [name] | open <n> | back | more | actions <n> | show | ui [close]`
   (`lib action <n>` plays: not while someone listens).
+
+### Play queue (P4 boards, `HAS_QUEUE`)
+
+`src/net/queue.cpp` (net task) reads the followed zone's queue through the source
+(`Source::queue` / `playFromHere`; the direct source has none and answers 501, and the controls bar
+then has no queue button). Only while the screen is open: loaded on open, again every 5 s and when
+the followed zone changes, thumbnails one by one. A refresh that brings the same `queue_item_id`s
+keeps the page id, so the screen does not redraw. `src/net/queue_parse.h` turns the body into items
+(host test `test/test_queue`); `src/app/queue_screen.cpp` draws `Snapshot::queue`. Not on the
+CrowPanel: its firmware slot is full (`HAS_QUEUE` false compiles it out).
 
 ### Following the playback
 

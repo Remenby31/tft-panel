@@ -80,6 +80,7 @@ void mute(bool) {}
 void setOffset(int32_t) {}
 void seek(int32_t) {}
 void library(LibOp, int, const String &) {}
+void queue(QueueOp, uint32_t) {}
 
 namespace weather {
 const char *describe(uint8_t) { return "Clear"; }
