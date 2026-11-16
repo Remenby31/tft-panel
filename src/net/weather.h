@@ -7,6 +7,8 @@
 
 #include <Arduino.h>
 
+#include "../app/i18n.h"
+
 namespace net::weather {
 
 struct Now {
@@ -21,6 +23,6 @@ struct Now {
 
 void tick(uint32_t now);       // net task: resolves the place, then refreshes on its own schedule
 void reset();                  // the place changed: look it up again
-const char *describe(uint8_t wmoCode);   // "Light snow", "Overcast"...
+const char *describe(uint8_t wmoCode, i18n::Lang lang = i18n::lang());   // "Light snow", "Overcast"...
 
 }  // namespace net::weather

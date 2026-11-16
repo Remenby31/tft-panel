@@ -8,6 +8,7 @@
 #include "../layout.h"
 #include "../net/settings.h"
 #include "fonts.h"
+#include "i18n.h"
 #include "keyboard.h"
 
 namespace wifiui {
@@ -85,13 +86,13 @@ void showPage(lv_obj_t *p) {
 }
 
 const char *strength(int8_t rssi) {
-    return rssi > -55 ? "Excellent" : rssi > -67 ? "Good" : rssi > -78 ? "Fair" : "Weak";
+    return rssi > -55 ? tr(Str::SignalExcellent) : rssi > -67 ? tr(Str::SignalGood) : rssi > -78 ? tr(Str::SignalFair) : tr(Str::SignalWeak);
 }
 
 void save(const String &ssid, const String &pass) {
     settings::setWifi(ssid, pass);
     Serial.printf("[wifi] saved from the screen for ssid \"%s\", restarting\n", ssid.c_str());
-    lv_label_set_text_fmt(g_savedText, "Saved. The panel restarts and joins\n%s", ssid.c_str());
+    lv_label_set_text_fmt(g_savedText, tr(Str::WifiSaved), ssid.c_str());
     showPage(g_savedPage);
     lv_timer_create([](lv_timer_t *) { board::restart(); }, 1500, nullptr);
 }
@@ -99,7 +100,7 @@ void save(const String &ssid, const String &pass) {
 void connect() {
     String pass = lv_textarea_get_text(g_ta);
     if (pass.length() < 8 || pass.length() > 63) {
-        lv_label_set_text(g_passError, "A Wi-Fi password is 8 to 63 characters.");
+        lv_label_set_text(g_passError, tr(Str::WifiPassLength));
         return;
     }
     save(g_chosen, pass);
@@ -113,10 +114,10 @@ void onPick(lv_event_t *e) {
         save(g_chosen, "");
         return;
     }
-    lv_label_set_text_fmt(g_passTitle, "Password for %s", g_chosen.c_str());
+    lv_label_set_text_fmt(g_passTitle, tr(Str::PasswordFor), g_chosen.c_str());
     lv_textarea_set_text(g_ta, "");
     lv_textarea_set_password_mode(g_ta, true);
-    lv_label_set_text(g_showLabel, "Show");
+    lv_label_set_text(g_showLabel, tr(Str::ShowPassword));
     lv_label_set_text(g_passError, "");
     showPage(g_passPage);
     keyboard::focus(g_ta, true);
@@ -142,7 +143,7 @@ void fillList() {
                                ((cur ? String(LV_SYMBOL_OK "  ") : String()) + w.ssid).c_str());
         lv_obj_set_flex_grow(name, 1);
         lv_label_set_long_mode(name, LV_LABEL_LONG_MODE_DOTS);
-        label(b, fonts::ui16, COL_DIM, (String(strength(w.rssi)) + (w.open ? "  -  open" : "  -  secured")).c_str());
+        label(b, fonts::ui16, COL_DIM, (String(strength(w.rssi)) + "  -  " + (w.open ? tr(Str::WifiOpen) : tr(Str::WifiSecured))).c_str());
         lv_obj_add_event_cb(b, onPick, LV_EVENT_CLICKED, (void *)(intptr_t)i);
     }
 }
@@ -150,15 +151,15 @@ void fillList() {
 void showListInfo() {
     bool looking = g_scanning || g_seenSerial == g_waitingFrom;
     const char *t = !g_nets.empty() ? ""
-                    : looking       ? "Looking for networks..."
-                                    : "No network heard. Move the panel closer to the router, then refresh.";
+                    : looking       ? tr(Str::WifiLooking)
+                                    : tr(Str::WifiNoneHeard);
     lv_label_set_text(g_listInfo, t);
     lv_obj_set_hidden(g_listInfo, !*t);
 }
 
 void buildList() {
     g_listPage = page();
-    lv_obj_t *h = label(g_listPage, fonts::lyricsOther, COL_TEXT, "Choose your Wi-Fi");
+    lv_obj_t *h = label(g_listPage, fonts::lyricsOther, COL_TEXT, tr(Str::WifiChoose));
     lv_obj_set_pos(h, X(32), Y(20));
     lv_obj_t *x = roundButton(g_listPage, LV_SYMBOL_CLOSE, [](lv_event_t *) { close(); });
     lv_obj_align(x, LV_ALIGN_TOP_RIGHT, -X(20), Y(12));
@@ -168,7 +169,7 @@ void buildList() {
         showListInfo();
     });
     lv_obj_align(r, LV_ALIGN_TOP_RIGHT, -X(20) - S(64) - X(14), Y(12));
-    lv_obj_t *note = label(g_listPage, fonts::ui16, COL_DIM, "2.4 GHz networks. Hidden network: use the setup page on a phone.");
+    lv_obj_t *note = label(g_listPage, fonts::ui16, COL_DIM, tr(Str::WifiNote));
     lv_obj_set_pos(note, X(32), Y(64));
     g_list = lv_obj_create(g_listPage);
     lv_obj_remove_style_all(g_list);
@@ -196,7 +197,7 @@ void buildPassword() {
     lv_textarea_set_one_line(g_ta, true);
     lv_textarea_set_password_mode(g_ta, true);
     lv_textarea_set_max_length(g_ta, 63);
-    lv_textarea_set_placeholder_text(g_ta, "Password");
+    lv_textarea_set_placeholder_text(g_ta, tr(Str::Password));
     lv_obj_set_style_text_font(g_ta, fonts::lyricsOther, 0);
     lv_obj_set_style_text_color(g_ta, lv_color_hex(COL_TEXT), 0);
     lv_obj_set_style_bg_color(g_ta, lv_color_hex(0x18181B), 0);
@@ -206,13 +207,13 @@ void buildPassword() {
     lv_obj_set_width(g_ta, X(500));
     lv_obj_set_pos(g_ta, X(32), Y(58));
 
-    lv_obj_t *show = textButton(g_passPage, "Show", 0x232326, [](lv_event_t *) {
+    lv_obj_t *show = textButton(g_passPage, tr(Str::ShowPassword), 0x232326, [](lv_event_t *) {
         bool hidden = lv_textarea_get_password_mode(g_ta);
         lv_textarea_set_password_mode(g_ta, !hidden);
-        lv_label_set_text(g_showLabel, hidden ? "Hide" : "Show");
+        lv_label_set_text(g_showLabel, (hidden ? tr(Str::HidePassword) : tr(Str::ShowPassword)));
     }, &g_showLabel);
     lv_obj_set_pos(show, X(548), Y(62));
-    lv_obj_t *back = textButton(g_passPage, "Back", 0x232326, [](lv_event_t *) { showPage(g_listPage); });
+    lv_obj_t *back = textButton(g_passPage, tr(Str::Back), 0x232326, [](lv_event_t *) { showPage(g_listPage); });
     lv_obj_align(back, LV_ALIGN_TOP_RIGHT, -X(20), Y(62));
 
     g_passError = label(g_passPage, fonts::ui16, COL_ERROR);
@@ -224,7 +225,7 @@ void buildPassword() {
     lv_obj_add_event_cb(g_kb, [](lv_event_t *) { showPage(g_listPage); }, LV_EVENT_CANCEL, nullptr);
     lv_obj_add_event_cb(g_ta, [](lv_event_t *) { connect(); }, LV_EVENT_READY, nullptr);   // the Enter key
 
-    lv_obj_t *go = textButton(g_passPage, "Connect", COL_PRIMARY, [](lv_event_t *) { connect(); });
+    lv_obj_t *go = textButton(g_passPage, tr(Str::Connect), COL_PRIMARY, [](lv_event_t *) { connect(); });
     lv_obj_align_to(go, g_kb, LV_ALIGN_OUT_TOP_RIGHT, -X(20), -Y(12));
 }
 
@@ -290,10 +291,10 @@ void showcase(bool password) {
     showPage(g_listPage);
     if (password) {
         g_chosen = g_nets[0].ssid;
-        lv_label_set_text_fmt(g_passTitle, "Password for %s", g_chosen.c_str());
+        lv_label_set_text_fmt(g_passTitle, tr(Str::PasswordFor), g_chosen.c_str());
         lv_textarea_set_text(g_ta, "autumn2026");
         lv_textarea_set_password_mode(g_ta, false);
-        lv_label_set_text(g_showLabel, "Hide");
+        lv_label_set_text(g_showLabel, tr(Str::HidePassword));
         lv_label_set_text(g_passError, "");
         showPage(g_passPage);
         keyboard::focus(g_ta, true);

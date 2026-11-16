@@ -6,6 +6,7 @@
 
 #include "../layout.h"
 #include "fonts.h"
+#include "i18n.h"
 #include "keyboard.h"
 
 namespace libui {
@@ -82,7 +83,7 @@ lv_obj_t *roundButton(lv_obj_t *parent, const char *symbol, lv_event_cb_t cb) {
 void send(net::LibOp op, int index = -1, const String &text = String()) {
     if (g_demo) return;
     g_waiting = true;
-    lv_label_set_text(g_info, "Loading...");
+    lv_label_set_text(g_info, tr(Str::Loading));
     lv_obj_set_hidden(g_info, false);
     lv_obj_move_foreground(g_info);
     net::library(op, index, text);
@@ -172,7 +173,7 @@ void placeMoreButton() {
         g_moreButton = nullptr;
     }
     if (!g_page || g_page->total <= (int)g_page->items.size()) return;
-    String t = "Show more (" + String(g_page->total - (int)g_page->items.size()) + " left)";
+    String t = i18n::fmt(Str::ShowMore, g_page->total - (int)g_page->items.size());
     g_moreButton = textButton(g_list, t.c_str(), COL_BUTTON, [](lv_event_t *) { send(net::LibOp::More); });
 }
 
@@ -231,7 +232,7 @@ void showSheet() {
                                  onAction, (void *)(intptr_t)i);
         lv_obj_set_width(b, lv_pct(100));
     }
-    lv_obj_t *c = textButton(g_sheetBox, "Cancel", 0x18181B, [](lv_event_t *) {
+    lv_obj_t *c = textButton(g_sheetBox, tr(Str::Cancel), 0x18181B, [](lv_event_t *) {
         lv_obj_set_hidden(g_sheet, true);
         send(net::LibOp::CloseActions);
     });
@@ -256,7 +257,7 @@ void applyPage() {
         showToast(g_page->message, g_page->error);
     }
     bool empty = g_page->items.empty();
-    const char *info = g_page->loading ? "Loading..." : empty ? (g_page->error ? "" : "Nothing here") : "";
+    const char *info = g_page->loading ? tr(Str::Loading) : empty ? (g_page->error ? "" : tr(Str::NothingHere)) : "";
     lv_label_set_text(g_info, info);
     lv_obj_set_hidden(g_info, !*info);
     showHeader();
@@ -289,9 +290,9 @@ void search() {
 }
 
 void buildHeader() {
-    g_tabSearch = textButton(g_root, "Search", COL_PRIMARY, [](lv_event_t *) { selectTab(Tab::Search); });
+    g_tabSearch = textButton(g_root, tr(Str::Search), COL_PRIMARY, [](lv_event_t *) { selectTab(Tab::Search); });
     lv_obj_set_pos(g_tabSearch, X(20), Y(12));
-    g_tabBrowse = textButton(g_root, "Browse", COL_BUTTON, [](lv_event_t *) { selectTab(Tab::Browse); });
+    g_tabBrowse = textButton(g_root, tr(Str::Browse), COL_BUTTON, [](lv_event_t *) { selectTab(Tab::Browse); });
     lv_obj_align_to(g_tabBrowse, g_tabSearch, LV_ALIGN_OUT_RIGHT_MID, X(10), 0);
     lv_obj_t *x = roundButton(g_root, LV_SYMBOL_CLOSE, [](lv_event_t *) { close(); });
     lv_obj_align(x, LV_ALIGN_TOP_RIGHT, -X(20), Y(10));
@@ -308,7 +309,7 @@ void buildHeader() {
     g_ta = lv_textarea_create(g_searchRow);
     lv_textarea_set_one_line(g_ta, true);
     lv_textarea_set_max_length(g_ta, 40);
-    lv_textarea_set_placeholder_text(g_ta, "Artist, album, track...");
+    lv_textarea_set_placeholder_text(g_ta, tr(Str::SearchHint));
     lv_obj_set_style_text_font(g_ta, fonts::ui20, 0);
     lv_obj_set_style_text_color(g_ta, lv_color_hex(COL_TEXT), 0);
     lv_obj_set_style_bg_color(g_ta, lv_color_hex(0x18181B), 0);
@@ -319,7 +320,7 @@ void buildHeader() {
     lv_obj_align(g_ta, LV_ALIGN_LEFT_MID, 0, 0);
     lv_obj_add_event_cb(g_ta, [](lv_event_t *) { showKeyboard(true); }, LV_EVENT_CLICKED, nullptr);
     lv_obj_add_event_cb(g_ta, [](lv_event_t *) { search(); }, LV_EVENT_READY, nullptr);
-    lv_obj_t *go = textButton(g_searchRow, "Search", COL_PRIMARY, [](lv_event_t *) { search(); });
+    lv_obj_t *go = textButton(g_searchRow, tr(Str::Search), COL_PRIMARY, [](lv_event_t *) { search(); });
     lv_obj_align(go, LV_ALIGN_RIGHT_MID, 0, 0);
 
     g_titleRow = lv_obj_create(g_root);
@@ -446,7 +447,7 @@ bool isOpen() { return g_root && !lv_obj_is_hidden(g_root); }
 
 void refresh(const net::Snapshot &s) {
     if (!g_root || g_demo) return;
-    String zone = s.zoneName.length() ? "Plays on: " + s.zoneName : String("No zone: pick one in the controls bar");
+    String zone = s.zoneName.length() ? i18n::fmt(Str::PlaysOn, s.zoneName.c_str()) : String(tr(Str::NoZone));
     if (strcmp(lv_label_get_text(g_zone), zone.c_str()) != 0) lv_label_set_text(g_zone, zone.c_str());
     if (s.librarySerial == g_seenSerial) return;
     g_seenSerial = s.librarySerial;
@@ -491,7 +492,7 @@ void showcase(const std::shared_ptr<const Picture> &thumb, bool actions) {
     g_tab = Tab::Search;
     g_shownId = 0;
     g_sheetFor = "";
-    lv_label_set_text(g_zone, "Plays on: Living Room");
+    lv_label_set_text(g_zone, i18n::fmt(Str::PlaysOn, "Living Room").c_str());
     lv_obj_set_hidden(g_root, false);
     lv_obj_move_foreground(g_root);
     showKeyboard(false);

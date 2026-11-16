@@ -203,6 +203,10 @@ The gear button opens the settings: brightness, colour warmth, when the screen t
 far ahead the lyrics show, the blurred cover background, smooth scrolling, the idle clock and its
 time zone, the zone, forgetting the Wi-Fi, the firmware version and updates.
 
+On the ESP32-P4 boards, *Language* switches the screens and the panel's page between English and
+French; the panel restarts in the language chosen. The panel's page has the same choice. The
+CrowPanel's firmware is English only: its flash has no room left for a second language.
+
 ![Settings](images/settings.png)
 
 **Colour warmth**: this panel's white is bluish. *Colour test* shows white, greys and colours

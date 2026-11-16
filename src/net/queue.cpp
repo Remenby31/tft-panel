@@ -5,6 +5,7 @@
 #include <algorithm>
 
 #include "../app/cover.h"
+#include "../app/i18n.h"
 #include "net_internal.h"
 #include "queue_parse.h"
 #include "source.h"
@@ -40,8 +41,8 @@ void setMessage(const String &m, bool error) {
 }
 
 String errorText(const HttpResult &r) {
-    if (r.code == 401) return "the companion needs its access token";
-    if (r.code == 503) return "Roon is not connected to the companion";
+    if (r.code == 401) return tr(Str::LibErrToken);
+    if (r.code == 503) return tr(Str::LibErrNoCore);
     return r.message.length() ? r.message : "HTTP " + String(r.code);
 }
 
@@ -62,7 +63,7 @@ void load() {
         // 404: the zone has nothing loaded, which is an empty queue rather than a failure.
         failed = r.code != 200 && r.code != 404;
         if (failed && !page()->failed)   // once, not at every refresh
-            setMessage("Could not load the queue: " + errorText(r), true);
+            setMessage(i18n::fmt(Str::QueueCannotLoad, errorText(r).c_str()), true);
         if (r.code == 200) parse(resp.as<JsonVariantConst>(), items);
     }
     page()->failed = failed;
@@ -87,8 +88,8 @@ void play(uint32_t itemId) {
                            [&](const QueueItem &i) { return i.id == itemId; });
     if (it == page()->items.end()) return;   // gone from the queue meanwhile: the screen redraws
     HttpResult r = source().playFromHere(page()->zoneId, itemId);
-    if (r.code == 200) setMessage("Playing " + String(it->title), false);
-    else setMessage("Could not play from here: " + errorText(r), true);
+    if (r.code == 200) setMessage(i18n::fmt(Str::QueuePlaying, it->title.c_str()), false);
+    else setMessage(i18n::fmt(Str::QueueCannotPlay, errorText(r).c_str()), true);
     g_loadedAt = millis() - REFRESH_MS + 1000;   // Roon moves the queue on: look again in a second
     if (!g_loadedAt) g_loadedAt = 1;
     publish();

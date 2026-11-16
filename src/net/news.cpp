@@ -3,6 +3,7 @@
 #include "http_get.h"
 #include "net_internal.h"
 #include "settings.h"
+#include "../app/i18n.h"
 
 namespace net::news {
 
@@ -118,16 +119,14 @@ void tick(uint32_t now) {
     if (!r.ok()) {
         Serial.printf("[news] no feed: %s\n", r.message.c_str());
         // The page that took the address is where this belongs; the clock keeps its quiet line.
-        publishNews("", "That feed did not answer (" + r.message + "). Trying again every " +
-                            String(RETRY_MS / 60000) + " minutes.");
+        publishNews("", i18n::fmt(Str::NewsNoAnswer, r.message.c_str(), (int)(RETRY_MS / 60000)));
         g_nextAt = now + RETRY_MS;
         return;
     }
     String line = headlines(xml);
     if (!line.length()) {
         Serial.println("[news] nothing that looks like a headline in that feed");
-        publishNews("", "That address answered, but it holds nothing that looks like a headline. "
-                        "An RSS or Atom feed is wanted, not a web page.");
+        publishNews("", tr(Str::NewsNoHeadline));
         g_nextAt = now + RETRY_MS;
         return;
     }

@@ -15,6 +15,7 @@
 
 #include "net.h"
 #include "net_internal.h"
+#include "../app/i18n.h"
 
 namespace net {
 
@@ -91,11 +92,11 @@ class Source {
     // item. A source without a queue answers 501 and the panel never offers it.
     virtual internal::HttpResult queue(const String &zoneId, JsonDocument &resp) {
         (void)zoneId, (void)resp;
-        return {501, "", "no queue with this source"};
+        return {501, "", tr(Str::QueueNoSource)};
     }
     virtual internal::HttpResult playFromHere(const String &zoneId, uint32_t queueItemId) {
         (void)zoneId, (void)queueItemId;
-        return {501, "", "no queue with this source"};
+        return {501, "", tr(Str::QueueNoSource)};
     }
 
 #if BOARD_HAS_GROUPING

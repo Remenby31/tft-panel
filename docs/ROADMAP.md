@@ -180,8 +180,8 @@ screens; the S3 stays the panel it already is.
 
 ## To discuss (estimated 2026-11-07, not started)
 
-- **Multi-language UI** — ~120 strings, 3–6 KB of flash per language, about a day for English +
-  French (UI + setup portal), then mostly translation. Latin Extended-A already covers FR, DE, ES,
+- **Multi-language UI** — English + French done (P4 boards; the CrowPanel stays English for
+  flash); another language is a column in `src/app/i18n_strings.inc`. Latin Extended-A already covers FR, DE, ES,
   IT, PT, NL, PL, CS, SV… Greek / Cyrillic: +30–50 KB (two font weights), which would also make
   lyrics in those scripts readable (boxes today). CJK: too big for flash, needs the microSD.
 - Smaller ideas: a quick small cover before the big one, a French user guide / site, release CI.

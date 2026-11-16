@@ -29,6 +29,7 @@
 #include "source_roon.h"
 #include "news.h"
 #include "weather.h"
+#include "../app/i18n.h"
 
 namespace net {
 using namespace internal;
@@ -122,12 +123,12 @@ void closePortal() {
 
 const char *disconnectReasonText(uint8_t r) {
     switch (r) {
-        case WIFI_REASON_NO_AP_FOUND: return "network not found";
+        case WIFI_REASON_NO_AP_FOUND: return tr(Str::WifiReasonNotFound);
         case WIFI_REASON_AUTH_FAIL:
         case WIFI_REASON_4WAY_HANDSHAKE_TIMEOUT:
-        case WIFI_REASON_HANDSHAKE_TIMEOUT: return "wrong password?";
-        case WIFI_REASON_ASSOC_FAIL: return "association refused";
-        case 0: return "timeout";
+        case WIFI_REASON_HANDSHAKE_TIMEOUT: return tr(Str::WifiReasonPassword);
+        case WIFI_REASON_ASSOC_FAIL: return tr(Str::WifiReasonRefused);
+        case 0: return tr(Str::WifiReasonTimeout);
         default: return WiFi.disconnectReasonName((wifi_err_reason_t)r);
     }
 }
@@ -514,7 +515,7 @@ void publishIdle() {
     xSemaphoreTake(g_lock, portMAX_DELAY);
     zoneName = g_snap.zoneName;
     xSemaphoreGive(g_lock);
-    setPhase(Phase::Idle, "Nothing playing in " + zoneName);
+    setPhase(Phase::Idle, i18n::fmt(Str::StNothingPlayingIn, zoneName.c_str()));
 }
 
 // The position clock, the track change, the cover and the lyrics: the same for every source.
@@ -545,7 +546,9 @@ void publishNowPlaying(NowPlaying np) {
             s.lyricsSerial++;
         }
     });
-    setPhase(Phase::Playing, np.state == "playing" ? "Playing" : np.state == "paused" ? "Paused" : np.state);
+    setPhase(Phase::Playing, np.state == "playing"  ? String(tr(Str::StPlaying))
+                             : np.state == "paused" ? String(tr(Str::StPaused))
+                                                    : np.state);
 
     if (newTrack) {
         g_trackKey = key;
@@ -616,7 +619,7 @@ void publishNews(const String &headlines, const String &problem) {
 }
 
 void commandFailed(const String &what, const HttpResult &r) {
-    String msg = what + " failed: " + (r.message.length() ? r.message : "HTTP " + String(r.code));
+    String msg = i18n::fmt(Str::CmdFailed, what.c_str(), (r.message.length() ? r.message : "HTTP " + String(r.code)).c_str());
     Serial.printf("[net] %s\n", msg.c_str());
     update([&](Snapshot &s) {
         s.commandError = msg;
@@ -650,11 +653,11 @@ void runGroup(const String &arg, bool join) {
     if (target) ids = join ? (host ? group::joinOutputs(host->outputIds, target->outputIds) : ids)
                            : group::splitOutputs(target->outputIds);
     if (ids.empty()) {   // a zone gone or regrouped since the picker was drawn
-        internal::commandFailed(join ? "Group" : "Ungroup", {0, "", "the zones changed, try again"});
+        internal::commandFailed(join ? tr(Str::ZoneGroup) : tr(Str::ZoneUngroup), {0, "", tr(Str::ZonesChanged)});
         return;
     }
     HttpResult r = source().groupOutputs(ids, join);
-    if (r.code != 200) internal::commandFailed(join ? "Group" : "Ungroup", r);
+    if (r.code != 200) internal::commandFailed(join ? tr(Str::ZoneGroup) : tr(Str::ZoneUngroup), r);
 }
 #endif
 
@@ -785,7 +788,7 @@ void task(void *) {
         settings::Settings st = settings::get();
         if (!st.wifiSsid.length()) {
             openPortalNow();
-            setPhase(Phase::Setup, "Wi-Fi not set up: join the panel's network to configure it");
+            setPhase(Phase::Setup, tr(Str::StWifiNotSetUp));
             delay(10);
             continue;
         }
@@ -795,10 +798,10 @@ void task(void *) {
             if (!g_wifiDownSince) g_wifiDownSince = now;
             if (!wifiStarted || now - g_wifiAttemptAt > WIFI_TIMEOUT_MS) {
                 if (wifiStarted) {
-                    setPhase(Phase::WifiFailed, "Cannot join \"" + st.wifiSsid + "\": " +
-                                                    disconnectReasonText(g_lastDisconnectReason) + " - retrying");
+                    setPhase(Phase::WifiFailed, i18n::fmt(Str::StCannotJoin, st.wifiSsid.c_str(),
+                                                          disconnectReasonText(g_lastDisconnectReason)));
                 } else {
-                    setPhase(Phase::WifiConnecting, "Joining Wi-Fi \"" + st.wifiSsid + "\"...");
+                    setPhase(Phase::WifiConnecting, i18n::fmt(Str::StJoiningWifi, st.wifiSsid.c_str()));
                 }
                 if (!portal::active()) WiFi.mode(WIFI_STA);
                 WiFi.begin(st.wifiSsid.c_str(), st.wifiPass.c_str());

@@ -9,6 +9,7 @@
 
 #include "../net/source_choice.h"
 #include "cover.h"
+#include "i18n.h"
 
 namespace showcase {
 namespace {
@@ -88,7 +89,7 @@ cover::Cover g_cover;   // built once (generated art + the normal cover pipeline
 net::Snapshot make(int32_t positionMs) {
     net::Snapshot s;
     s.phase = net::Phase::Playing;
-    s.status = "Playing";
+    s.status = tr(Str::StPlaying);
     s.staIp = "192.168.1.42";
     s.companion = "http://textfromtrack.local:3888";
     s.zoneId = "zone-living";
@@ -156,7 +157,7 @@ net::Snapshot make(int32_t positionMs) {
 void fakePortal(net::Snapshot &s) {
     s.portalActive = true;
     s.phase = net::Phase::Setup;
-    s.status = "Wi-Fi not set up: join the panel's network to configure it";
+    s.status = tr(Str::StWifiNotSetUp);
     s.apSsid = "TFT-Panel-A1B2";
     s.apPass = "demo-setup-7";
     s.apIp = "192.168.4.1";
@@ -175,8 +176,7 @@ void fakeSearching(net::Snapshot &s, const String &screen) {
     s.status = line;
     if (screen == "pairing") {   // the direct source's line, with an invented server and panel
         s.phase = net::Phase::Pairing;
-        s.status = "Found the music server \"Living Room\". One step left: in its Settings > Extensions, "
-                   "enable \"TFT Panel A1B2\"";
+        s.status = i18n::fmt(Str::StPairingNamed, "Living Room", "TFT Panel A1B2");
     }
     s.state = "";
     s.title = s.artist = s.album = s.zoneName = "";
