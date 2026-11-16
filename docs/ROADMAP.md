@@ -174,8 +174,10 @@ with that, and lyrics became a section. What is still missing to be a credible r
 - [x] Scrub on the progress bar: written in PR #2 (batch 2) and tried by finger on the VIEWE
       2026-11-17 — tap and drag both behave; it reaches main with that batch
 - [ ] Output standby and convenience switch
-- [ ] First run should not ask "companion or direct": the panel can look for both and say what it
+- [x] First run should not ask "companion or direct": the panel can look for both and say what it
       found, so a newcomer never has to understand the project's history to hear music
+      (`source auto`, the default on a new panel; a panel updated from an earlier release keeps the
+      companion it was using)
 
 🪤 None of this fits the CrowPanel: it is at **97.6 % of its OTA slot, 47 KiB left**. These are P4
 screens; the S3 stays the panel it already is — and the next thing added to it has to pay for

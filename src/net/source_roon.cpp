@@ -100,6 +100,20 @@ bool DirectSource::connect(uint32_t) {
 
 void DirectSource::pump() { g_client.tick(); }
 
+bool DirectSource::serverFound() const {
+    switch (g_client.state()) {
+        case tftcore::State::Connecting:
+        case tftcore::State::Registering:
+        case tftcore::State::NeedsApproval:
+        case tftcore::State::Paired:
+            return true;
+        default:
+            return false;
+    }
+}
+
+void DirectSource::stop() { g_client.disconnect(); }
+
 void DirectSource::zoneSelectionChanged() {
     // The zone list is already here: re-pick from it at once instead of waiting for a push.
     tftcore::ZoneDelta delta;
@@ -119,8 +133,10 @@ void DirectSource::onState(void *, tftcore::State state, const char *detail) {
             setPhase(Phase::Discovering, String("Connecting to ") + g_client.serverName());
             break;
         case tftcore::State::NeedsApproval:
-            setPhase(Phase::CompanionError,
-                     "Enable \"" + g_displayName + "\" in the music server's extension settings");
+            setPhase(Phase::Pairing, String("Found the music server") +
+                                                (*g_client.serverName() ? String(" \"") + g_client.serverName() + "\"" : String()) +
+                                                ". One step left: in its Settings > Extensions, enable \"" +
+                                                g_displayName + "\"");
             break;
         case tftcore::State::Paired: {
             char url[80];

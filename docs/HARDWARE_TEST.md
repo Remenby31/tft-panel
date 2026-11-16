@@ -115,6 +115,26 @@ are enough.
    lifts can. Note it if seen and how often.
 8. Note `[net] ... Seek` lines in the console if a seek fails (toast on screen too).
 
+### First run finds the companion or the server
+
+Only a network can prove this: the choice logic is host-tested (`pio test -e native`), the
+discovery is not. Start each case with `erase-all`, then `wifi <ssid> <password>`; `status` prints
+`source=auto` and an `auto:` line once something is found.
+
+1. **Nothing running** (companion stopped, music server unreachable): the screen says *Looking for
+   your music server, or a TextFromTrack companion, on this Wi-Fi...* and stays on it.
+2. **Companion only** (server's network unreachable from the panel, or the server stopped):
+   *Found a TextFromTrack companion. Checking for a music server too...*, then about 12 s later
+   *Found a TextFromTrack companion: music and lyrics come from it.* Music and lyrics play.
+3. **Music server only** (companion stopped): *Found the music server "…". One step left: in its
+   Settings > Extensions, enable "TFT Panel xxxx"*, in the normal grey, not red. Enable it: the zone plays. Settings → *Music
+   from* says *Found your music server: music comes from it directly.*
+4. **Both**: direct is picked; once enabled, Settings → *Music from* says *music from the server,
+   lyrics from the companion*, and a song with lyrics shows them.
+5. **A choice made by hand stays**: `source companion` with both running: after the restart
+   `status` shows `source=companion` and no `auto:` line. `source auto` gives case 4 again.
+6. **An updated panel keeps its source**: flash the previous release, set Wi-Fi, leave the
+   source untouched, then update to this one. `status` shows `source=companion`, not `auto`.
 ## Results block
 
 Copy once per board, fill in, paste into the pull request.

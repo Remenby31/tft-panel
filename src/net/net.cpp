@@ -22,6 +22,7 @@
 #include "settings.h"
 #include "version.h"
 #include "source.h"
+#include "source_choice.h"
 #include "source_companion.h"
 #include "source_roon.h"
 #include "news.h"
@@ -60,6 +61,9 @@ uint32_t g_lastScanAt = 0;
 PositionClock g_clock;
 uint32_t g_lyricsFetchedAt = 0;
 int g_lyricsRetries = 0;
+// Auto (source_choice.h) and nothing picked yet this boot: the sources' own "looking for..."
+// lines would each name one of the two, so the probe's line replaces them.
+bool g_probing = false;
 
 template <typename F>
 void update(F &&fn) {
@@ -74,6 +78,7 @@ void update(F &&fn) {
 namespace internal {
 
 void setPhase(Phase p, const String &status) {
+    if (g_probing && p == Phase::Discovering) return;
     bool changed = false;
     xSemaphoreTake(g_lock, portMAX_DELAY);
     if (g_snap.phase != p || g_snap.status != status) {
@@ -693,6 +698,8 @@ void tickScan() {
     update([](Snapshot &s) { s.scanning = true; });
 }
 
+bool probeSources(uint32_t now);   // below, next to the sources
+
 void task(void *) {
     bool wifiStarted = false;
 
@@ -782,6 +789,10 @@ void task(void *) {
         ota::tick(true);   // update check (boot + daily) and a confirmed install; no server needed
         weather::tick(now);   // for the idle clock; it has its own schedule and needs no source
         news::tick(now);
+        if (g_probing && !probeSources(now)) {
+            delay(20);
+            continue;
+        }
         if (!source().ready() && !source().connect(now)) {
             delay(20);
             continue;
@@ -827,11 +838,58 @@ Source *g_source = &g_companion;
 
 Source &source() { return *g_source; }
 
-void begin() {
+namespace {
+sourcechoice::Probe g_probe;
+
+// Both looked for at once until choose() picks one; the other one is let go. True once a
+// source is in use. The pick holds until the next start, like a choice made by hand.
+bool probeSources(uint32_t now) {
+    using sourcechoice::Pick;
+    if (!g_probe.companion && g_companion.connect(now)) {
+        g_probe.companion = true;
+        g_probe.companionAtMs = millis();
+    }
 #if defined(SOURCE_ROON)
-    if (settings::source() == settings::SourceKind::Direct) g_source = &g_direct;
+    if (!g_probe.server) {
+        g_direct.connect(now);
+        g_probe.server = g_direct.serverFound();
+    }
 #endif
-    Serial.printf("[net] source: %s\n", g_source->name());
+    Pick pick = sourcechoice::choose(settings::SourceKind::Auto, g_probe, millis());
+    char line[160];
+    if (pick == Pick::Looking) {
+        sourcechoice::describe(pick, g_probe, false, line, sizeof line);
+        g_probing = false;   // the probe's own line goes through
+        internal::setPhase(Phase::Discovering, line);
+        g_probing = true;
+        return false;
+    }
+    g_probing = false;
+    // The lyrics' own default finds a companion by mDNS only, not at an address typed for the music.
+    settings::Settings st = settings::get();
+    bool companionLyrics = g_probe.companion && !st.lyricsUrl.length() && !st.companionUrl.length();
+    sourcechoice::describe(pick, g_probe, companionLyrics, line, sizeof line);
+    Serial.printf("[net] auto: %s\n", line);
+#if defined(SOURCE_ROON)
+    if (pick == Pick::Direct) g_source = &g_direct;
+    else g_direct.stop();
+#endif
+    // A source that already says more (waiting for its approval, an error) keeps its line.
+    update([&](Snapshot &s) {
+        s.sourceNote = line;
+        if (s.phase == Phase::Discovering) s.status = line;
+    });
+    return true;
+}
+}  // namespace
+
+void begin() {
+    sourcechoice::Pick pick = sourcechoice::choose(settings::source(), {}, 0);
+    g_probing = pick == sourcechoice::Pick::Looking;
+#if defined(SOURCE_ROON)
+    if (pick == sourcechoice::Pick::Direct) g_source = &g_direct;
+#endif
+    Serial.printf("[net] source: %s\n", g_probing ? "auto, looking for both" : g_source->name());
     g_coverQueue = xQueueCreate(1, sizeof(CoverRequest));
     xTaskCreatePinnedToCore(coverTask, "cover", 8192, nullptr, 1, nullptr, 0);
     ota::begin();

@@ -14,7 +14,9 @@ net::Snapshot make(int32_t positionMs);
 void fakePortal(net::Snapshot &s);
 
 // The moment after the Wi-Fi is given and before anything plays — the one a first-time user
-// worries about, so the guide can show it rather than describe it.
-void fakeSearching(net::Snapshot &s);
+// worries about, so the guide can show it rather than describe it. `screen`: "searching"
+// (nothing found yet), "found-companion" (waiting for a server too) or "pairing" (a server
+// found, waiting to be enabled in its settings).
+void fakeSearching(net::Snapshot &s, const String &screen);
 
 }  // namespace showcase

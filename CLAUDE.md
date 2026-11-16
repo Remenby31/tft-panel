@@ -54,7 +54,7 @@ second stage runs PlatformIO 6.2.0.post1 from `~/.platformio/penv`, which the pl
 (`pio pkg install -e crowpanel7 -p <platform URL from platformio.ini>`), then `pio run` again —
 the rebuilt libraries are kept and the build goes through.
 Serial console (115200, type `help`): `status`, `portal`, `wifi <ssid> [password]`, `companion <url>|auto`,
-`source companion|direct` (restarts), `server <host:port>|auto` (restarts), `lyrics auto|<url>|none`, `lyrics-token <t>|none`,
+`source auto|companion|direct` (restarts), `server <host:port>|auto` (restarts), `lyrics auto|<url>|none`, `lyrics-token <t>|none`,
 `forget-pairing` (restarts), `weather <town>|none`, `news <rss url>|none`, `zone <id>|auto`, `token`, `lead <ms>`,
 `lib search <text>|browse|find artist|album [name]|open <n>|back|more|actions <n>|show|ui [close]` (`lib action <n>` plays — not while someone listens), `backdrop on|off`, `scroll on|off`, `sleep <min>|off`, `view lyrics|cover|clock`, `ota check|install`, `settings [close|qr]`, `tz <POSIX>|default`, `warmth <0-100>`, `colours`, `backlight <0-100>`, `forget-wifi`, `erase-all`, `bringup` (colour bars + touch tracker), `restart`,
 `shots on` then `GET http://<panel>/screenshot` returns the framebuffer over Wi-Fi in ~4 s: 8-byte

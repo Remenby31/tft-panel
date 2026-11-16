@@ -1827,8 +1827,8 @@ bool showcase(const String &what) {
     } else if (what == "setup") {
         showcase::fakePortal(g_s);
         applySnapshot();
-    } else if (what == "searching") {
-        showcase::fakeSearching(g_s);
+    } else if (what == "searching" || what == "found-companion" || what == "pairing") {
+        showcase::fakeSearching(g_s, what);
         applySnapshot();
     } else if ((what == "library" || what == "library-actions") && board::HAS_LIBRARY) {
         libui::showcase(g_s.thumb, what == "library-actions");
