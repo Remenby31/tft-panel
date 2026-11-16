@@ -106,6 +106,10 @@
 - [x] Web installer carries it too (2026-11-15): the page **asks which screen is connected** and
       hands it that board's own `manifest-<env>.json`, instead of ESP Web Tools picking by chip —
       which cannot work once two boards share one, and would have left a screen dark
+- [ ] **Fix the v0.1.19 release notes**: they still tell people a VIEWE must be flashed from a
+      computer the first time "because the browser installer chooses by chip". True when they were
+      written, wrong a few hours later. `gh release edit v0.1.19 --notes-file …`, and the installer
+      paragraph of the published notes is what the r/roonlabs post of 2026-11-15 sends people to
 
 ## Direct to the music server (2026-11-14)
 
