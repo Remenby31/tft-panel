@@ -266,13 +266,20 @@ source only (`Source::groupOutputs`, 501 elsewhere).
   assets `tft-panel-<tag>.bin` + `.sha256` shows a header badge; a tap opens a confirmation,
   then the image streams into the other app slot while it is hashed (up to 3 attempts on a
   transport error, the update screen frozen in internal RAM meanwhile), and only a matching
-  SHA-256 is committed. The new image boots "pending verify": it is confirmed once Wi-Fi is up
-  and the companion answered, otherwise after 3 min the bootloader goes back to the previous
-  one. Console: `ota check|install`.
+  SHA-256 is committed. The new image boots "pending verify": it is confirmed as
+  soon as a server answers, or failing that once the panel has simply held its Wi-Fi link for
+  90 s, otherwise after 3 min the bootloader goes back to the previous one. The image has to
+  prove *itself*; making it wait for someone else's server meant a panel whose companion had
+  gone away installed every update and rolled it back three minutes later, for ever — and that
+  is the panel most in need of one. Console: `ota check|install`.
 - Local upload page (`src/net/web_update.*`): `http://tft-panel-xxxx.local/update` in station mode
   (not while the setup portal owns port 80). Opening it shows a 6-digit code on the panel for
-  5 min; the upload must carry it (`?code=`), else 403 before anything is written. Same
-  pending-verify rollback as a GitHub update.
+  5 min; the upload must carry it (`?code=`), else 403 before anything is written, and a wrong
+  code is burned on the spot. From the first accepted byte the panel shows the same full-screen
+  update picture as a download and counts up (`ota::uploadStarted/Progress/Writing/Failed`), the
+  code leaving the screen as it does; every refusal goes through one function so the picture is
+  always taken away again, and the panel states the reason while the browser keeps the detail.
+  Same pending-verify rollback as a GitHub update.
 - Every failure becomes the status line (401 → token needed, 503 → Roon Core not connected, transport
   errors by name). A discovered companion is dropped after 6 failures in a row and looked up again.
 
