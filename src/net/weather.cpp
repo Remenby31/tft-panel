@@ -91,7 +91,7 @@ bool locate(const String &place) {
     if (!found || hit.isNull()) {
         Serial.printf("[weather] no place called \"%s\"\n", place.c_str());
         Now w;
-        w.problem = "No place called \"" + place + "\". Try the town on its own, as in Montreal.";
+        w.problem = i18n::fmt(Str::WeatherNoPlace, place.c_str());
         publishWeather(w);   // say so rather than showing nothing and leaving them guessing
         return false;
     }
@@ -134,7 +134,7 @@ bool refresh() {
     w.code = (uint8_t)(doc["current"]["weather_code"] | 0);
     w.maxC = (int16_t)lroundf(doc["daily"]["temperature_2m_max"][0] | 0.0f);
     w.minC = (int16_t)lroundf(doc["daily"]["temperature_2m_min"][0] | 0.0f);
-    Serial.printf("[weather] %s %d C, %s, today %d to %d\n", w.place.c_str(), (int)w.tempC, describe(w.code),
+    Serial.printf("[weather] %s %d C, %s, today %d to %d\n", w.place.c_str(), (int)w.tempC, describe(w.code, i18n::Lang::En),
                   (int)w.minC, (int)w.maxC);
     publishWeather(w);
     return true;
@@ -150,29 +150,29 @@ void reset() {
     publishWeather({});
 }
 
-const char *describe(uint8_t c) {
+const char *describe(uint8_t c, i18n::Lang lang) {
     // WMO 4677, as Open-Meteo uses it, in the words a clock face needs.
     switch (c) {
-        case 0: return "Clear";
-        case 1: return "Mainly clear";
-        case 2: return "Partly cloudy";
-        case 3: return "Overcast";
-        case 45: case 48: return "Fog";
-        case 51: case 53: case 55: return "Drizzle";
-        case 56: case 57: return "Freezing drizzle";
-        case 61: return "Light rain";
-        case 63: return "Rain";
-        case 65: return "Heavy rain";
-        case 66: case 67: return "Freezing rain";
-        case 71: return "Light snow";
-        case 73: return "Snow";
-        case 75: return "Heavy snow";
-        case 77: return "Snow grains";
-        case 80: case 81: return "Showers";
-        case 82: return "Heavy showers";
-        case 85: case 86: return "Snow showers";
-        case 95: return "Thunderstorm";
-        case 96: case 99: return "Thunderstorm with hail";
+        case 0: return i18n::tr(Str::WxClear, lang);
+        case 1: return i18n::tr(Str::WxMainlyClear, lang);
+        case 2: return i18n::tr(Str::WxPartlyCloudy, lang);
+        case 3: return i18n::tr(Str::WxOvercast, lang);
+        case 45: case 48: return i18n::tr(Str::WxFog, lang);
+        case 51: case 53: case 55: return i18n::tr(Str::WxDrizzle, lang);
+        case 56: case 57: return i18n::tr(Str::WxFreezingDrizzle, lang);
+        case 61: return i18n::tr(Str::WxLightRain, lang);
+        case 63: return i18n::tr(Str::WxRain, lang);
+        case 65: return i18n::tr(Str::WxHeavyRain, lang);
+        case 66: case 67: return i18n::tr(Str::WxFreezingRain, lang);
+        case 71: return i18n::tr(Str::WxLightSnow, lang);
+        case 73: return i18n::tr(Str::WxSnow, lang);
+        case 75: return i18n::tr(Str::WxHeavySnow, lang);
+        case 77: return i18n::tr(Str::WxSnowGrains, lang);
+        case 80: case 81: return i18n::tr(Str::WxShowers, lang);
+        case 82: return i18n::tr(Str::WxHeavyShowers, lang);
+        case 85: case 86: return i18n::tr(Str::WxSnowShowers, lang);
+        case 95: return i18n::tr(Str::WxThunderstorm, lang);
+        case 96: case 99: return i18n::tr(Str::WxThunderstormWithHail, lang);
         default: return "";
     }
 }

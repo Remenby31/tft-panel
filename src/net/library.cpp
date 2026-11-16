@@ -6,6 +6,7 @@
 
 #include "../app/cover.h"
 #include "net_internal.h"
+#include "../app/i18n.h"
 #include "source.h"
 
 namespace net::lib {
@@ -53,8 +54,8 @@ void setMessage(const String &m, bool error) {
 }
 
 String errorText(const HttpResult &r) {
-    if (r.code == 401) return "the companion needs its access token";
-    if (r.code == 503) return "Roon is not connected to the companion";
+    if (r.code == 401) return tr(Str::LibErrToken);
+    if (r.code == 503) return tr(Str::LibErrNoCore);
     return r.message.length() ? r.message : "HTTP " + String(r.code);
 }
 
@@ -99,7 +100,7 @@ bool loadTop(int offset) {
     body["count"] = PAGE;
     HttpResult r = post(true, body, resp);
     if (r.code != 200) {
-        setMessage("Could not load the list: " + errorText(r), true);
+        setMessage(i18n::fmt(Str::LibCannotLoad, errorText(r).c_str()), true);
         return false;
     }
     if (offset == 0) {
@@ -128,7 +129,7 @@ bool syncTo() {
     body["pop_levels"] = g_roon - shown;
     HttpResult r = post(false, body, resp);
     if (r.code != 200) {
-        setMessage("Could not go back: " + errorText(r), true);
+        setMessage(i18n::fmt(Str::LibCannotGoBack, errorText(r).c_str()), true);
         return false;
     }
     g_roon = resp["list"]["level"] | shown;
@@ -150,12 +151,12 @@ void openRoot(const String &hier, const String &query) {
     if (zone.length()) body["zone_or_output_id"] = zone;
     HttpResult r = post(false, body, resp);
     if (r.code != 200) {
-        setMessage((hier == "search" ? "Search failed: " : "Could not open the library: ") + errorText(r), true);
+        setMessage(i18n::format(hier == "search" ? tr(Str::LibSearchFailed) : tr(Str::LibCannotOpenLibrary), errorText(r).c_str()), true);
     } else {
         g_roon = resp["list"]["level"] | 0;
-        String title = hier == "search" ? "Results for \"" + query + "\"" : String(resp["list"]["title"] | "Library");
+        String title = hier == "search" ? i18n::fmt(Str::LibResultsFor, query.c_str()) : String(resp["list"]["title"] | tr(Str::LibLibrary));
         g_levels.push_back({title, g_roon, 0});
-        if (loadTop(0) && g_page->items.empty()) setMessage(hier == "search" ? "Nothing found" : "Empty", false);
+        if (loadTop(0) && g_page->items.empty()) setMessage((hier == "search" ? tr(Str::LibNothingFound) : tr(Str::LibEmpty)), false);
     }
     g_page->loading = false;
     publish();
@@ -168,7 +169,7 @@ void restart(const char *why) {
     Serial.printf("[lib] %s: reloading\n", why);
     String hier = g_hier, query = g_page->query;
     openRoot(hier, query);
-    setMessage("The list changed: reloaded", false);
+    setMessage(tr(Str::LibReloaded), false);
     publish();
 }
 
@@ -180,7 +181,7 @@ void drill(int index) {
     if (it.hint == "action_list" || it.hint == "action") return openActions(index);
     if (it.hint != "list") return;   // a section header
     if (it.prompt) {
-        setMessage("Use the Search tab to search", false);
+        setMessage(tr(Str::LibUseSearchTab), false);
         return publish();
     }
     if (!syncTo()) return publish();
@@ -194,7 +195,7 @@ void drill(int index) {
     g_page->loading = false;
     if (r.code == 502) return restart("stale item key");
     if (r.code != 200) {
-        setMessage("Could not open \"" + it.title + "\": " + errorText(r), true);
+        setMessage(i18n::fmt(Str::LibCannotOpen, it.title.c_str(), errorText(r).c_str()), true);
         return publish();
     }
     String action = resp["action"] | "";
@@ -245,7 +246,7 @@ void find(bool album, const String &name, const String &artist) {
     for (size_t i = 0; i < g_page->items.size(); i++)
         if (g_page->items[i].hint == "list" && sameText(g_page->items[i].title, what)) cat = (int)i;
     if (cat < 0) {
-        setMessage(String("No ") + what + " among the results: choose below", false);
+        setMessage((album ? tr(Str::LibNoAlbums) : tr(Str::LibNoArtists)), false);
         return publish();
     }
     drill(cat);
@@ -260,7 +261,7 @@ void find(bool album, const String &name, const String &artist) {
     }
     Serial.printf("[lib] find %s \"%s\": %d exact match(es)\n", album ? "album" : "artist", name.c_str(), hits);
     if (hits != 1) {
-        setMessage(hits ? "Several match \"" + name + "\": choose below" : "No exact match for \"" + name + "\": choose below",
+        setMessage(i18n::format(hits ? tr(Str::LibSeveralMatch) : tr(Str::LibNoExactMatch), name.c_str()),
                    false);
         return publish();
     }
@@ -274,7 +275,7 @@ void back() {
     body["pop_levels"] = std::max(1, g_levels.back().roonLevel - g_levels[g_levels.size() - 2].roonLevel);
     HttpResult r = post(false, body, resp);
     if (r.code != 200) {
-        setMessage("Could not go back: " + errorText(r), true);
+        setMessage(i18n::fmt(Str::LibCannotGoBack, errorText(r).c_str()), true);
         return publish();
     }
     g_levels.pop_back();
@@ -299,7 +300,7 @@ void openActions(int index) {
     LibItem it = g_page->items[index];
     String zone = followedZoneId();
     if (!zone.length()) {
-        setMessage("Choose a zone first (controls bar)", true);
+        setMessage(tr(Str::LibChooseZone), true);
         return publish();
     }
     if (!syncTo()) return publish();
@@ -311,8 +312,8 @@ void openActions(int index) {
         HttpResult r = post(false, body, resp);
         if (r.code == 502) return restart("stale item key");
         if (r.code != 200 || String(resp["action"] | "") != "list") {
-            setMessage(r.code != 200 ? "No actions for \"" + it.title + "\": " + errorText(r)
-                                     : String(resp["message"] | "No actions"),
+            setMessage(r.code != 200 ? i18n::fmt(Str::LibNoActionsFor, it.title.c_str(), errorText(r).c_str())
+                                     : String(resp["message"] | tr(Str::LibNoActions)),
                        r.code != 200);
             return publish();
         }
@@ -323,7 +324,7 @@ void openActions(int index) {
         lbody["count"] = 20;
         r = post(true, lbody, lresp);
         if (r.code != 200) {
-            setMessage("No actions: " + errorText(r), true);
+            setMessage(i18n::fmt(Str::LibNoActionsErr, errorText(r).c_str()), true);
             return publish();
         }
         LibItems actions, lists;
@@ -340,7 +341,7 @@ void openActions(int index) {
         if (lists.size() != 1) break;
         key = lists[0].itemKey;   // one more level
     }
-    setMessage("Roon offers no action for \"" + it.title + "\"", false);
+    setMessage(i18n::fmt(Str::LibNoActionOffered, it.title.c_str()), false);
     publish();
 }
 
@@ -352,7 +353,7 @@ void runAction(int index) {
     g_page->actions.clear();
     g_page->actionsFor = "";
     if (!zone.length()) {
-        setMessage("Choose a zone first (controls bar)", true);
+        setMessage(tr(Str::LibChooseZone), true);
         return publish();
     }
     JsonDocument body(psram()), resp(psram());
@@ -360,9 +361,9 @@ void runAction(int index) {
     body["zone_or_output_id"] = zone;
     HttpResult r = post(false, body, resp);
     if (r.code == 502) return restart("stale action key");
-    if (r.code != 200) setMessage(a.title + " failed: " + errorText(r), true);
+    if (r.code != 200) setMessage(i18n::fmt(Str::CmdFailed, a.title.c_str(), errorText(r).c_str()), true);
     else if (String(resp["action"] | "") == "message" && (resp["is_error"] | false))
-        setMessage(resp["message"] | "Roon refused it", true);
+        setMessage(resp["message"] | tr(Str::LibRefused), true);
     else setMessage(a.title + ": " + what, false);
     publish();
 }
