@@ -7,6 +7,7 @@
 
 #include <cmath>
 
+#include "../net/source_choice.h"
 #include "cover.h"
 
 namespace showcase {
@@ -155,10 +156,19 @@ void fakePortal(net::Snapshot &s) {
     s.apIp = "192.168.4.1";
 }
 
-void fakeSearching(net::Snapshot &s) {
+void fakeSearching(net::Snapshot &s, const String &screen) {
     s.portalActive = false;
+    sourcechoice::Probe probe;
+    probe.companion = screen == "found-companion";
+    char line[160];
+    sourcechoice::describe(sourcechoice::Pick::Looking, probe, false, line, sizeof line);
     s.phase = net::Phase::Discovering;
-    s.status = "Looking for your music server on the network...";
+    s.status = line;
+    if (screen == "pairing") {   // the direct source's line, with an invented server and panel
+        s.phase = net::Phase::Pairing;
+        s.status = "Found the music server \"Living Room\". One step left: in its Settings > Extensions, "
+                   "enable \"TFT Panel A1B2\"";
+    }
     s.state = "";
     s.title = s.artist = s.album = s.zoneName = "";
     s.lyricsStatus = net::LyricsStatus::None;

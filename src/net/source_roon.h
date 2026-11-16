@@ -24,6 +24,10 @@ class DirectSource : public Source {
     void reset() override;
     void pump() override;
 
+    // For the automatic choice (source_choice.h): a server answered, and giving up on it.
+    bool serverFound() const;
+    void stop();
+
     // Nothing is polled: the server pushes, and pump() publishes what arrives.
     bool zonesDue(uint32_t) const override { return false; }
     bool refreshZones() override { return true; }

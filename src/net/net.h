@@ -27,6 +27,7 @@ enum class Phase : uint8_t {
     WifiFailed,       // credentials stored but the network refuses / is absent
     Discovering,      // looking for a companion on the LAN (mDNS)
     CompanionError,   // companion found or configured but not answering correctly
+    Pairing,          // music server found, waiting for someone to enable the panel there
     Idle,             // connected, nothing playing in the followed zone
     Playing,          // a track is loaded (playing or paused)
 };
@@ -115,6 +116,7 @@ struct Snapshot {
 
     String staIp;
     String companion;         // base URL in use, empty if none yet
+    String sourceNote;        // what the automatic choice found; empty when chosen by hand
 
     // Last Wi-Fi scan (setup portal, on-screen Wi-Fi setup). `networksSerial` changes with it.
     std::shared_ptr<const std::vector<WifiNet>> networks;
