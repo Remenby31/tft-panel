@@ -38,7 +38,11 @@ constexpr bool OTA_DOWNLOAD_FIRST = true;
 // Music library browsing (search, browse, play) from the panel.
 constexpr bool HAS_LIBRARY = true;
 // The play queue of the followed zone (companion source): see it, play from any item.
-constexpr bool HAS_QUEUE = true;
+#define BOARD_HAS_QUEUE 1   // also for #if: what the CrowPanel never compiles
+constexpr bool HAS_QUEUE = BOARD_HAS_QUEUE;
+// Zone grouping from the zone picker (companion source).
+#define BOARD_HAS_GROUPING 1
+constexpr bool HAS_GROUPING = BOARD_HAS_GROUPING;
 
 // ---- Panel supply: raised before anything else touches the display ----
 constexpr int PANEL_POWER_GPIO_1 = 4;     // LCM 1.8 V
