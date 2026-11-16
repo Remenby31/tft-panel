@@ -122,6 +122,7 @@ net::Snapshot make(int32_t positionMs) {
     }
     s.zones = zones;
     s.zonesSerial = 1;
+    s.viaCompanion = true;
     if (!g_cover.big) {
         const int n = net::COVER_BIG_PX;
         uint8_t *rgb = (uint8_t *)heap_caps_malloc((size_t)n * n * 3, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);

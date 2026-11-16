@@ -921,6 +921,7 @@ bool probeSources(uint32_t now) {
     // A source that already says more (waiting for its approval, an error) keeps its line.
     update([&](Snapshot &s) {
         s.sourceNote = line;
+        s.viaCompanion = g_source == &g_companion;
         if (s.phase == Phase::Discovering) s.status = line;
     });
     return true;
@@ -934,6 +935,7 @@ void begin() {
     if (pick == sourcechoice::Pick::Direct) g_source = &g_direct;
 #endif
     Serial.printf("[net] source: %s\n", g_probing ? "auto, looking for both" : g_source->name());
+    g_snap.viaCompanion = !g_probing && g_source == &g_companion;   // no other task reads it yet
     g_coverQueue = xQueueCreate(1, sizeof(CoverRequest));
     xTaskCreatePinnedToCore(coverTask, "cover", 8192, nullptr, 1, nullptr, 0);
     ota::begin();

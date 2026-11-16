@@ -94,7 +94,7 @@ lv_obj_t *g_setup = nullptr, *g_qrWifi = nullptr, *g_qrUrl = nullptr, *g_setupTe
 // Controls bar (shown on a tap, hides itself) and zone picker
 constexpr uint32_t CONTROLS_HIDE_MS = 6000;
 constexpr uint32_t COMMAND_ERROR_MS = 5000;
-lv_obj_t *g_controls = nullptr, *g_btnZone = nullptr, *g_zoneBtnLabel = nullptr;
+lv_obj_t *g_controls = nullptr, *g_btnZone = nullptr, *g_zoneBtnLabel = nullptr, *g_btnQueue = nullptr;
 lv_obj_t *g_btnPrev = nullptr, *g_btnPlay = nullptr, *g_btnNext = nullptr, *g_playIcon = nullptr;
 lv_obj_t *g_btnVolDown = nullptr, *g_btnVolUp = nullptr, *g_volLabel = nullptr;
 lv_obj_t *g_picker = nullptr, *g_pickerList = nullptr;
@@ -479,7 +479,7 @@ void fillPicker() {
         setText(lv_obj_get_child(g, 0), text);
         lv_obj_add_event_cb(g, join ? onGroup : onUngroup, LV_EVENT_CLICKED, (void *)(intptr_t)(g_pickerIds.size() - 1));
     };
-    bool grouping = board::HAS_GROUPING && settings::source() == settings::SourceKind::Companion;
+    bool grouping = board::HAS_GROUPING && g_s.viaCompanion;
     add("", "Follow the playing zone (auto)", !g_s.zonePinned);
     if (!g_s.zones) return;
     for (const net::ZoneInfo &z : *g_s.zones) {
@@ -542,26 +542,18 @@ void buildControls() {
             showControls(false);
             libui::open();
         });
-    bool queue = board::HAS_QUEUE && settings::source() == settings::SourceKind::Companion;
-    if (queue)   // what plays next (the companion's queue)
-        roundButton(g_controls, LV_SYMBOL_AUDIO, nullptr, [](lv_event_t *) {
+    if (board::HAS_QUEUE) {   // what plays next: shown once the source in use is the companion
+        g_btnQueue = roundButton(g_controls, LV_SYMBOL_AUDIO, nullptr, [](lv_event_t *) {
             showControls(false);
             queueui::open();
         });
+        setHidden(g_btnQueue, true);
+    }
     roundButton(g_controls, LV_SYMBOL_SETTINGS, nullptr, [](lv_event_t *) {
         showControls(false);
         settingsui::open();
         settingsui::refresh(g_s, g_ota);
     });
-    if (queue) {   // nine controls: a little narrower each, so the gaps stay those of eight
-        for (uint32_t i = 0; i < lv_obj_get_child_count(g_controls); i++) {
-            lv_obj_t *c = lv_obj_get_child(g_controls, i);
-            if (c != g_btnZone && c != g_volLabel) lv_obj_set_size(c, S(70), S(70));
-        }
-        lv_obj_set_width(g_btnZone, X(130));
-        lv_obj_set_width(g_zoneBtnLabel, X(104));
-        lv_obj_set_width(g_volLabel, X(70));
-    }
     setHidden(g_controls, true);
 
     // Zone picker: full-screen list.
@@ -1436,7 +1428,23 @@ void applyCover(bool track) {
     placeTrackText(thumb);
 }
 
+// With the queue button the bar holds nine controls: a little narrower each, so the gaps stay
+// those of eight. Follows the source in use, which an automatic choice only knows after a while.
+void fitQueueButton() {
+    if (!board::HAS_QUEUE || isHidden(g_btnQueue) != g_s.viaCompanion) return;
+    bool nine = g_s.viaCompanion;
+    setHidden(g_btnQueue, !nine);
+    for (uint32_t i = 0; i < lv_obj_get_child_count(g_controls); i++) {
+        lv_obj_t *c = lv_obj_get_child(g_controls, i);
+        if (c != g_btnZone && c != g_volLabel) lv_obj_set_size(c, S(nine ? 70 : 76), S(nine ? 70 : 76));
+    }
+    lv_obj_set_width(g_btnZone, X(nine ? 130 : 150));
+    lv_obj_set_width(g_zoneBtnLabel, X(nine ? 104 : 124));
+    lv_obj_set_width(g_volLabel, X(nine ? 70 : 80));
+}
+
 void applySnapshot() {
+    fitQueueButton();
     // Setup overlay
     bool setup = g_s.portalActive;
     if (setup) applyCover(false);
