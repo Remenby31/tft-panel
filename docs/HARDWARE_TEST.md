@@ -118,14 +118,14 @@ are enough.
 ### French interface
 
 P4 boards (Waveshare 7B, VIEWE). The CrowPanel's firmware is English only (`-DI18N_NO_FR`, flash).
-The simulator has shown every screen in French at both sizes; what is left is the restart, NVS,
+The simulator has shown every screen in French at 1024x600; what is left is the restart, NVS,
 the pages on a phone and the texts that only real Wi-Fi, a real server and a real update produce.
 
 1. Flash this build over a panel already in use. Expect it to come back in English, as before.
 2. Settings → *Language* → *Français*. Expect a box titled `Passer en français ?` with
    `Redémarrer` and `Annuler`. *Annuler*: the list shows *English* again and nothing restarts.
 3. Again, *Redémarrer*. Expect the panel back in French: settings rows, clock date
-   (`samedi 7 novembre` style), weather words, the status line while it looks for the music.
+   (`Samedi 7 novembre`, `Samedi 1er novembre`), weather words, and the queue screen.
 4. Type `restart` on the console. The panel stays French (NVS). `status` lines stay English.
 5. From a phone, open the panel's page. Expect it in French with a *Langue* list. Save a field:
    the answer is in French. Choose *English* and save. Expect `Saved` in English and a restart
@@ -138,6 +138,8 @@ the pages on a phone and the texts that only real Wi-Fi, a real server and a rea
 9. CrowPanel: Settings has no *Language* row, the page has no language list, and `lang fr`
    answers `[cmd] this board's firmware is English only`.
 
+The status line while the panel looks for the music, and error details from a server
+(lyrics, update, images), may still be English: note which.
 Report anything cut off, overlapping or left in English, with a `screenshot` (`backdrop off` first).
 
 ### Signed updates
