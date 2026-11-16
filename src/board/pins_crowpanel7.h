@@ -23,6 +23,8 @@ constexpr uint8_t DEFAULT_WARMTH = 75;
 constexpr bool OTA_DOWNLOAD_FIRST = false;
 // Music library browsing (search, browse, play on the followed zone).
 constexpr bool HAS_LIBRARY = true;
+// The play queue: none here, the firmware slot is full (P4 boards only).
+constexpr bool HAS_QUEUE = false;
 
 // ---- RGB LCD (800x480, RGB565, EK9716BD3 + EK73002ACGB) ----
 constexpr int LCD_H_RES = 800;
