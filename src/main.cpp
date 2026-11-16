@@ -221,8 +221,8 @@ void handleCommand(String line) {
         }
     } else if (cmd == "lang" && arg.length()) {
         i18n::Lang l;
-        if (!i18n::parse(arg.c_str(), l)) Serial.println("[cmd] lang en|fr");
-        else if ((int)l >= i18n::LANG_COUNT) Serial.println("[cmd] this board's firmware is English only");
+        if (i18n::LANG_COUNT < 2) Serial.println("[cmd] this board's firmware is English only");
+        else if (!i18n::parse(arg.c_str(), l)) Serial.println("[cmd] lang en|fr");
         else if (l == i18n::lang()) Serial.printf("[cmd] already %s\n", i18n::code(l));
         else {
             settings::setLang((uint8_t)l);
@@ -362,7 +362,7 @@ void setup() {
 
     if (!fonts::begin()) Serial.println("[tft-panel] ERROR: TTF fonts unavailable, accents will be missing");
     settings::begin();
-    i18n::setLang((i18n::Lang)settings::lang());   // before anything draws or serves a page
+    if (i18n::LANG_COUNT > 1) i18n::setLang((i18n::Lang)settings::lang());   // before anything draws or serves a page
     net::begin();
     board::setWarmth(settings::warmth());   // white balance before the first frame
     ui::show();

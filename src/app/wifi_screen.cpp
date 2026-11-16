@@ -143,7 +143,7 @@ void fillList() {
                                ((cur ? String(LV_SYMBOL_OK "  ") : String()) + w.ssid).c_str());
         lv_obj_set_flex_grow(name, 1);
         lv_label_set_long_mode(name, LV_LABEL_LONG_MODE_DOTS);
-        label(b, fonts::ui16, COL_DIM, (strength(w.rssi) + "  -  " + tr(w.open ? Str::WifiOpen : Str::WifiSecured)).c_str());
+        label(b, fonts::ui16, COL_DIM, (strength(w.rssi) + "  -  " + (w.open ? tr(Str::WifiOpen) : tr(Str::WifiSecured))).c_str());
         lv_obj_add_event_cb(b, onPick, LV_EVENT_CLICKED, (void *)(intptr_t)i);
     }
 }
@@ -210,7 +210,7 @@ void buildPassword() {
     lv_obj_t *show = textButton(g_passPage, tr(Str::ShowPassword), 0x232326, [](lv_event_t *) {
         bool hidden = lv_textarea_get_password_mode(g_ta);
         lv_textarea_set_password_mode(g_ta, !hidden);
-        lv_label_set_text(g_showLabel, tr(hidden ? Str::HidePassword : Str::ShowPassword));
+        lv_label_set_text(g_showLabel, (hidden ? tr(Str::HidePassword) : tr(Str::ShowPassword)));
     }, &g_showLabel);
     lv_obj_set_pos(show, X(548), Y(62));
     lv_obj_t *back = textButton(g_passPage, tr(Str::Back), 0x232326, [](lv_event_t *) { showPage(g_listPage); });

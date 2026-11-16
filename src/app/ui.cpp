@@ -847,7 +847,7 @@ void syncVolumePopup() {
     bool muted = false;
     for (const net::OutputInfo &x : g_s.outputs)
         if (x.volumeType.length() && x.muted) muted = true;
-    setText(g_muteLabel, (String(muted ? LV_SYMBOL_VOLUME_MAX "  " : LV_SYMBOL_MUTE "  ") + tr(muted ? Str::Unmute : Str::Mute)).c_str());
+    setText(g_muteLabel, (String(muted ? LV_SYMBOL_VOLUME_MAX "  " : LV_SYMBOL_MUTE "  ") + (muted ? tr(Str::Unmute) : tr(Str::Mute))).c_str());
     setHidden(g_volSlider, !o);
     setText(g_volTitle, o ? (String(tr(Str::Volume)) + "  -  " + o->name).c_str() : tr(Str::VolumeButtonsOnly));
     if (!o) {
@@ -939,7 +939,7 @@ void showOffset() {
     int32_t v = effectiveOffset();
     char buf[40];
     if (v == 0) snprintf(buf, sizeof buf, "%s", tr(Str::InSync));
-    else snprintf(buf, sizeof buf, tr(v > 0 ? Str::OffsetLater : Str::OffsetEarlier), fabsf(v / 1000.0f));
+    else snprintf(buf, sizeof buf, (v > 0 ? tr(Str::OffsetLater) : tr(Str::OffsetEarlier)), fabsf(v / 1000.0f));
     if (i18n::lang() == i18n::Lang::Fr)   // 0,25 s: a decimal comma
         for (char *c = buf; *c; c++)
             if (*c == '.') *c = ',';

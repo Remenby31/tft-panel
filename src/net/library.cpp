@@ -151,12 +151,12 @@ void openRoot(const String &hier, const String &query) {
     if (zone.length()) body["zone_or_output_id"] = zone;
     HttpResult r = post(false, body, resp);
     if (r.code != 200) {
-        setMessage(i18n::fmt(hier == "search" ? Str::LibSearchFailed : Str::LibCannotOpenLibrary, errorText(r).c_str()), true);
+        setMessage(i18n::format(hier == "search" ? tr(Str::LibSearchFailed) : tr(Str::LibCannotOpenLibrary), errorText(r).c_str()), true);
     } else {
         g_roon = resp["list"]["level"] | 0;
         String title = hier == "search" ? i18n::fmt(Str::LibResultsFor, query.c_str()) : String(resp["list"]["title"] | tr(Str::LibLibrary));
         g_levels.push_back({title, g_roon, 0});
-        if (loadTop(0) && g_page->items.empty()) setMessage(tr(hier == "search" ? Str::LibNothingFound : Str::LibEmpty), false);
+        if (loadTop(0) && g_page->items.empty()) setMessage((hier == "search" ? tr(Str::LibNothingFound) : tr(Str::LibEmpty)), false);
     }
     g_page->loading = false;
     publish();
@@ -246,7 +246,7 @@ void find(bool album, const String &name, const String &artist) {
     for (size_t i = 0; i < g_page->items.size(); i++)
         if (g_page->items[i].hint == "list" && sameText(g_page->items[i].title, what)) cat = (int)i;
     if (cat < 0) {
-        setMessage(tr(album ? Str::LibNoAlbums : Str::LibNoArtists), false);
+        setMessage((album ? tr(Str::LibNoAlbums) : tr(Str::LibNoArtists)), false);
         return publish();
     }
     drill(cat);
@@ -261,7 +261,7 @@ void find(bool album, const String &name, const String &artist) {
     }
     Serial.printf("[lib] find %s \"%s\": %d exact match(es)\n", album ? "album" : "artist", name.c_str(), hits);
     if (hits != 1) {
-        setMessage(i18n::fmt(hits ? Str::LibSeveralMatch : Str::LibNoExactMatch, name.c_str()),
+        setMessage(i18n::format(hits ? tr(Str::LibSeveralMatch) : tr(Str::LibNoExactMatch), name.c_str()),
                    false);
         return publish();
     }

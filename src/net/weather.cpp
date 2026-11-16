@@ -152,31 +152,29 @@ void reset() {
 
 const char *describe(uint8_t c, i18n::Lang lang) {
     // WMO 4677, as Open-Meteo uses it, in the words a clock face needs.
-    Str id;
     switch (c) {
-        case 0: id = Str::WxClear; break;
-        case 1: id = Str::WxMainlyClear; break;
-        case 2: id = Str::WxPartlyCloudy; break;
-        case 3: id = Str::WxOvercast; break;
-        case 45: case 48: id = Str::WxFog; break;
-        case 51: case 53: case 55: id = Str::WxDrizzle; break;
-        case 56: case 57: id = Str::WxFreezingDrizzle; break;
-        case 61: id = Str::WxLightRain; break;
-        case 63: id = Str::WxRain; break;
-        case 65: id = Str::WxHeavyRain; break;
-        case 66: case 67: id = Str::WxFreezingRain; break;
-        case 71: id = Str::WxLightSnow; break;
-        case 73: id = Str::WxSnow; break;
-        case 75: id = Str::WxHeavySnow; break;
-        case 77: id = Str::WxSnowGrains; break;
-        case 80: case 81: id = Str::WxShowers; break;
-        case 82: id = Str::WxHeavyShowers; break;
-        case 85: case 86: id = Str::WxSnowShowers; break;
-        case 95: id = Str::WxThunderstorm; break;
-        case 96: case 99: id = Str::WxThunderstormWithHail; break;
+        case 0: return i18n::tr(Str::WxClear, lang);
+        case 1: return i18n::tr(Str::WxMainlyClear, lang);
+        case 2: return i18n::tr(Str::WxPartlyCloudy, lang);
+        case 3: return i18n::tr(Str::WxOvercast, lang);
+        case 45: case 48: return i18n::tr(Str::WxFog, lang);
+        case 51: case 53: case 55: return i18n::tr(Str::WxDrizzle, lang);
+        case 56: case 57: return i18n::tr(Str::WxFreezingDrizzle, lang);
+        case 61: return i18n::tr(Str::WxLightRain, lang);
+        case 63: return i18n::tr(Str::WxRain, lang);
+        case 65: return i18n::tr(Str::WxHeavyRain, lang);
+        case 66: case 67: return i18n::tr(Str::WxFreezingRain, lang);
+        case 71: return i18n::tr(Str::WxLightSnow, lang);
+        case 73: return i18n::tr(Str::WxSnow, lang);
+        case 75: return i18n::tr(Str::WxHeavySnow, lang);
+        case 77: return i18n::tr(Str::WxSnowGrains, lang);
+        case 80: case 81: return i18n::tr(Str::WxShowers, lang);
+        case 82: return i18n::tr(Str::WxHeavyShowers, lang);
+        case 85: case 86: return i18n::tr(Str::WxSnowShowers, lang);
+        case 95: return i18n::tr(Str::WxThunderstorm, lang);
+        case 96: case 99: return i18n::tr(Str::WxThunderstormWithHail, lang);
         default: return "";
     }
-    return i18n::tr(id, lang);
 }
 
 void tick(uint32_t now) {

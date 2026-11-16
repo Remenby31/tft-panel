@@ -37,7 +37,7 @@ bool g_uploadAllowed = false, g_uploadOk = false, g_uploadWrongCode = false;
 String g_uploadError;
 
 // Text in `%Pg...%` tokens comes from the string table (i18n::fillPage), filled before any value.
-const char SETTINGS_PAGE[] PROGMEM = R"HTML(<!doctype html><html lang="%LANG%"><head><meta charset="utf-8">
+I18N_PAGE(SETTINGS_PAGE, R"HTML(<!doctype html><html lang="%LANG%"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1"><title>%NAME%</title>
 <style>body{font:17px/1.5 system-ui,sans-serif;max-width:560px;margin:32px auto;padding:0 16px;background:#15161a;color:#f6f4ee}
 h1{margin-bottom:2px}.who{color:#8a8b87;font-size:14px;margin-top:0}
@@ -74,9 +74,9 @@ a{color:#6db56d}</style></head><body>
 %FORGET%
 <p><small>%PgFooterUpdate% <a href=/update>/update</a> &middot; %PgFooterSource%
 <a href="https://github.com/r45635/tft-panel">github.com/r45635/tft-panel</a></small></p>
-</body></html>)HTML";
+</body></html>)HTML")
 
-const char PAGE[] PROGMEM = R"HTML(<!doctype html><html lang="%LANG%"><head><meta charset="utf-8">
+I18N_PAGE(PAGE, R"HTML(<!doctype html><html lang="%LANG%"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1"><title>%PgUpTabTitle%</title>
 <style>body{font:17px/1.5 system-ui,sans-serif;max-width:560px;margin:32px auto;padding:0 16px;background:#15161a;color:#f6f4ee}
 input,button{font:inherit;padding:10px;border-radius:8px;border:1px solid #2f3037;background:#202127;color:#f6f4ee}
@@ -102,7 +102,7 @@ const send=g=>{x.open('POST','/update?code='+encodeURIComponent(code.value)+(s?'
 const g=window.sig&&sig.files[0];if(!g){send('');return}
 if(g.size>72){msg.textContent='%PgUpNotSig%';return}
 go.disabled=true;g.arrayBuffer().then(b=>send([...new Uint8Array(b)].map(v=>v.toString(16).padStart(2,'0')).join('')))}
-</script></body></html>)HTML";
+</script></body></html>)HTML")
 
 // The code lives on the panel's screen; it is also printed here, because a USB cable already
 // gives this console `token` and `erase-all` — and it is how you read the code screen-off.
@@ -269,8 +269,8 @@ void handleUpload() {
             return;
         }
         if (signature::enforced() && !signature::verifyRelease(g_upDigest, g_upSig, g_upSigLen)) {
-            refuse(tr(g_upSigLen ? Str::WebSigMismatch : Str::WebSigMissing),
-                   tr(g_upSigLen ? Str::WebSigMismatchScreen : Str::WebSigMissingScreen));
+            refuse((g_upSigLen ? tr(Str::WebSigMismatch) : tr(Str::WebSigMissing)),
+                   (g_upSigLen ? tr(Str::WebSigMismatchScreen) : tr(Str::WebSigMissingScreen)));
             if (g_image) dropImage();
             else Update.abort();
             return;
@@ -426,8 +426,8 @@ void handleSettingsSave() {
                                   : arg("source") == "direct" ? settings::SourceKind::Direct
                                                               : settings::SourceKind::Companion;
     i18n::Lang lang = i18n::lang();
-    if (g_server->hasArg("lang")) i18n::parse(arg("lang").c_str(), lang);
-    bool langChanged = lang != i18n::lang() && (int)lang < i18n::LANG_COUNT;
+    if (i18n::LANG_COUNT > 1 && g_server->hasArg("lang")) i18n::parse(arg("lang").c_str(), lang);
+    bool langChanged = i18n::LANG_COUNT > 1 && lang != i18n::lang();
     bool newSource = wanted != settings::source() || companion != was.companionUrl;
     bool restart = newSource || langChanged;
     // The answer names what moved, so a typo in a field you did not mean to touch shows up.
@@ -466,7 +466,7 @@ void handleSettingsSave() {
                        String("<!doctype html><meta charset=utf-8><body style=\"font:17px system-ui;background:#15161a;"
                               "color:#f6f4ee;max-width:560px;margin:32px auto;padding:0 16px\">") +
                            "<h1>" + tr(Str::WebSaved) + "</h1><p>" + esc(changed) + ".</p><p>" +
-                           tr(newSource ? Str::WebRestartSource : Str::LanguageText) + "</p>");
+                           (newSource ? tr(Str::WebRestartSource) : tr(Str::LanguageText)) + "</p>");
         delay(300);
         board::restart();
         return;

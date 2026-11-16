@@ -6,29 +6,45 @@
 #include <string.h>
 
 namespace i18n {
+namespace detail {
+
+String format(const char *f, ...) {
+    va_list ap, again;
+    va_start(ap, f);
+    va_copy(again, ap);
+    int n = vsnprintf(nullptr, 0, f, ap);
+    va_end(ap);
+    String out;
+    if (n > 0) {
+        char *buf = (char *)malloc(n + 1);
+        if (buf) {
+            vsnprintf(buf, n + 1, f, again);
+            out = String(buf);
+            free(buf);
+        }
+    }
+    va_end(again);
+    return out;
+}
+
+String nthOf(const char *p, int n) {
+    for (; n > 0 && p; n--) {
+        p = strchr(p, '\n');
+        if (p) p++;
+    }
+    if (!p || n < 0) return String();
+    const char *end = strchr(p, '\n');
+    return end ? String(p).substring(0, end - p) : String(p);
+}
+
+}  // namespace detail
+
+#ifndef I18N_NO_FR
 namespace {
 
-#ifdef I18N_NO_FR
-#define ROW(en, fr) {en},
-#else
-#define ROW(en, fr) {en, fr},
-#endif
-
-const char *const TABLE[(int)S::Count][LANG_COUNT] = {
-#define X(id, en, fr) ROW(en, fr)
-#define P(id, en, fr) ROW(en, fr)
-#include "i18n_strings.inc"
-#undef X
-#undef P
-};
-
-struct PageToken {
-    S id;
-    const char *token;
-};
-const PageToken PAGE[] = {
-#define X(id, en, fr)
-#define P(id, en, fr) {S::id, "%" #id "%"},
+const char *const FR[] = {
+#define X(id, en, fr) fr,
+#define P(id, en, fr) fr,
 #include "i18n_strings.inc"
 #undef X
 #undef P
@@ -38,8 +54,20 @@ volatile Lang g_lang = Lang::En;
 
 }  // namespace
 
-void setLang(Lang l) { g_lang = (int)l < LANG_COUNT ? l : Lang::En; }
+void setLang(Lang l) { g_lang = l == Lang::Fr ? Lang::Fr : Lang::En; }
 Lang lang() { return g_lang; }
+
+const char *tr(S id, Lang l) {
+    if ((int)id >= (int)S::Count) return "";
+    return l == Lang::Fr ? FR[(int)id] : detail::EN[(int)id];
+}
+
+const char *tr(S id) { return tr(id, g_lang); }
+
+void fillPage(String &html) {
+    for (const detail::PageRow &r : detail::PAGE_ROWS) html.replace(r.token, tr(r.id));
+}
+#endif
 
 const char *code(Lang l) { return l == Lang::Fr ? "fr" : "en"; }
 
@@ -50,52 +78,11 @@ bool parse(const char *c, Lang &out) {
     return true;
 }
 
-const char *tr(S id, Lang l) {
-    if ((int)id >= (int)S::Count) return "";
-    return TABLE[(int)id][(int)l < LANG_COUNT ? (int)l : 0];
-}
-
-const char *tr(S id) { return tr(id, g_lang); }
-
-String fmt(S id, ...) {
-    va_list ap, again;
-    va_start(ap, id);
-    va_copy(again, ap);
-    int n = vsnprintf(nullptr, 0, tr(id), ap);
-    va_end(ap);
-    String out;
-    if (n > 0) {
-        char *buf = (char *)malloc(n + 1);
-        if (buf) {
-            vsnprintf(buf, n + 1, tr(id), again);
-            out = String(buf);
-            free(buf);
-        }
-    }
-    va_end(again);
-    return out;
-}
-
-String nth(S id, int n) {
-    const char *p = tr(id);
-    for (; n > 0 && p; n--) {
-        p = strchr(p, '\n');
-        if (p) p++;
-    }
-    if (!p || n < 0) return String();
-    const char *end = strchr(p, '\n');
-    return end ? String(p).substring(0, end - p) : String(p);
-}
-
-void fillPage(String &html) {
-    for (const PageToken &t : PAGE) html.replace(t.token, tr(t.id));
-}
-
 const char *raw(int id, Lang l) { return tr((S)id, l); }
 
 const char *pageName(int id) {
-    for (const PageToken &t : PAGE)
-        if ((int)t.id == id) return t.token;
+    for (const detail::PageRow &r : detail::PAGE_ROWS)
+        if ((int)r.id == id) return r.token;
     return nullptr;
 }
 

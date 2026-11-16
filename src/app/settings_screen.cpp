@@ -206,8 +206,8 @@ void showLyricsSource() {
 void confirmSource(settings::SourceKind kind) {
     bool direct = kind == settings::SourceKind::Direct;
     lv_obj_t *mb = lv_msgbox_create(nullptr);
-    lv_msgbox_add_title(mb, tr(direct ? Str::SourceDirectTitle : Str::SourceCompanionTitle));
-    lv_msgbox_add_text(mb, tr(direct ? Str::SourceDirectText : Str::SourceCompanionText));
+    lv_msgbox_add_title(mb, (direct ? tr(Str::SourceDirectTitle) : tr(Str::SourceCompanionTitle)));
+    lv_msgbox_add_text(mb, (direct ? tr(Str::SourceDirectText) : tr(Str::SourceCompanionText)));
     lv_obj_t *yes = lv_msgbox_add_footer_button(mb, tr(Str::Restart));
     lv_obj_t *no = lv_msgbox_add_footer_button(mb, tr(Str::Cancel));
     lv_obj_set_width(mb, X(600));

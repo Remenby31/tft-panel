@@ -278,7 +278,7 @@ void CompanionSource::command(const Command &c) {
             body["output_id"] = o.id;
             body["how"] = c.direction ? "mute" : "unmute";
             HttpResult r = request("/api/roon/mute", &body, resp, 4000);
-            if (r.code != 200) commandFailed(String(tr(c.direction ? Str::Mute : Str::Unmute)) + " " + o.name, r);
+            if (r.code != 200) commandFailed(String((c.direction ? tr(Str::Mute) : tr(Str::Unmute))) + " " + o.name, r);
         }
     } else if (c.type == CmdType::Offset) {
         String title, artist, album;
