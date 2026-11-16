@@ -134,7 +134,7 @@ struct Snapshot {
     String state;             // "playing" | "paused" | "loading" | "stopped"
     String title, artist, album;
     uint32_t durationMs = 0;
-    bool canPlay = false, canPause = false, canNext = false, canPrevious = false;
+    bool canPlay = false, canPause = false, canNext = false, canPrevious = false, canSeek = false;
     std::vector<OutputInfo> outputs;                    // of the followed zone
     std::shared_ptr<const std::vector<ZoneInfo>> zones;  // every zone, refreshed every 5 s
     uint32_t zonesSerial = 0;
@@ -193,6 +193,7 @@ void volumeSet(float value);         // absolute, on the zone's first output wit
 void mute(bool on);                  // every output of the zone
 // Saves the current track's lyrics offset in the companion (> 0 = lyrics later).
 void setOffset(int32_t ms);
+void seek(int32_t ms);   // absolute position in the followed zone; the clock shows it at once
 
 // Library (HAS_LIBRARY boards): Open/Close (thumbnails only load while open), Search `text`,
 // Browse (Roon's root), Drill/Actions/Action on item `index`, Back, More (next page), CloseActions.
