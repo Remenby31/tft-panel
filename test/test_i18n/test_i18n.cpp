@@ -48,7 +48,7 @@ void test_every_string_has_french_with_the_same_arguments_and_items() {
         for (const char *s : SAME) same |= !strcmp(en, s);
         TEST_ASSERT_TRUE_MESSAGE(same == !strcmp(en, fr), what);
         TEST_ASSERT_NULL_MESSAGE(strchr(fr, '\''), what);
-        for (const char *bad : {" ?", " !", " :", " ;", " »", "« "}) TEST_ASSERT_NULL_MESSAGE(strstr(fr, bad), what);
+        for (const char *bad : {" ?", " !", " :", " ;", " »", "« ", " %%"}) TEST_ASSERT_NULL_MESSAGE(strstr(fr, bad), what);
     }
 }
 
@@ -58,7 +58,7 @@ void test_the_chosen_language_fills_screens_and_pages() {
     i18n::setLang(Lang::Fr);
     TEST_ASSERT_EQUAL_STRING("Réglages", tr(i18n::S::Settings));
     TEST_ASSERT_EQUAL_STRING("Installer v1.2.0", i18n::fmt(i18n::S::FwInstall, "v1.2.0").c_str());
-    TEST_ASSERT_EQUAL_STRING("samedi", tr(i18n::S::DaySaturday));
+    TEST_ASSERT_EQUAL_STRING("Samedi", tr(i18n::S::DaySaturday));
     String page = "<button>%PgSave%</button>";
     i18n::fillPage(page);
     TEST_ASSERT_EQUAL_STRING("<button>Enregistrer</button>", page.c_str());

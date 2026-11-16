@@ -355,10 +355,12 @@ void sendSettings(const String &message, bool error = false, bool keepTyped = fa
     h.replace("%BMSG%", error ? box : String());
     String langRow;
     if (i18n::LANG_COUNT > 1) {
+        i18n::Lang chosen = i18n::lang();   // a refusal shows what was picked, like every field
+        if (keepTyped) i18n::parse(g_server->arg("lang").c_str(), chosen);
         langRow = "<label>" + String(tr(Str::Language)) + "<select name=lang>";
         for (int i = 0; i < i18n::LANG_COUNT; i++) {
             auto l = (i18n::Lang)i;
-            langRow += "<option value=" + String(i18n::code(l)) + (l == i18n::lang() ? " selected>" : ">") +
+            langRow += "<option value=" + String(i18n::code(l)) + (l == chosen ? " selected>" : ">") +
                        (l == i18n::Lang::Fr ? "Français" : "English") + "</option>";
         }
         langRow += "</select></label>";

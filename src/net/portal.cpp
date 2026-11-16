@@ -28,6 +28,7 @@ String esc(const String &s) {
             case '>': o += "&gt;"; break;
             case '"': o += "&quot;"; break;
             case '\'': o += "&#39;"; break;
+            case '%': o += "&#37;"; break;   // never a %SLOT% of the form
             default: o += c;
         }
     }
