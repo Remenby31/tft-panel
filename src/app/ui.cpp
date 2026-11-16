@@ -1428,19 +1428,19 @@ void applyCover(bool track) {
     placeTrackText(thumb);
 }
 
-// With the queue button the bar holds nine controls: a little narrower each, so the gaps stay
-// those of eight. Follows the source in use, which an automatic choice only knows after a while.
+// The queue button adds one control to the bar: each a little narrower, so the gaps stay as they
+// were. Follows the source in use, which an automatic choice only knows after a while.
 void fitQueueButton() {
     if (!board::HAS_QUEUE || isHidden(g_btnQueue) != g_s.viaCompanion) return;
-    bool nine = g_s.viaCompanion;
-    setHidden(g_btnQueue, !nine);
+    bool more = g_s.viaCompanion;
+    setHidden(g_btnQueue, !more);
     for (uint32_t i = 0; i < lv_obj_get_child_count(g_controls); i++) {
         lv_obj_t *c = lv_obj_get_child(g_controls, i);
-        if (c != g_btnZone && c != g_volLabel) lv_obj_set_size(c, S(nine ? 70 : 76), S(nine ? 70 : 76));
+        if (c != g_btnZone && c != g_volLabel) lv_obj_set_size(c, S(more ? 70 : 76), S(more ? 70 : 76));
     }
-    lv_obj_set_width(g_btnZone, X(nine ? 130 : 150));
-    lv_obj_set_width(g_zoneBtnLabel, X(nine ? 104 : 124));
-    lv_obj_set_width(g_volLabel, X(nine ? 70 : 80));
+    lv_obj_set_width(g_btnZone, X(more ? 130 : 150));
+    lv_obj_set_width(g_zoneBtnLabel, X(more ? 104 : 124));
+    lv_obj_set_width(g_volLabel, X(more ? 70 : 80));
 }
 
 void applySnapshot() {

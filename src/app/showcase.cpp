@@ -159,6 +159,7 @@ void fakePortal(net::Snapshot &s) {
 
 void fakeSearching(net::Snapshot &s, const String &screen) {
     s.portalActive = false;
+    s.viaCompanion = false;   // still looking: no source in use yet
     sourcechoice::Probe probe;
     probe.companion = screen == "found-companion";
     char line[160];
