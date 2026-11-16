@@ -53,7 +53,7 @@ String networkList() {
     return h + "</div><p><small>" + String(tr(Str::PortalNotListed)) + "</small></p>";
 }
 
-I18N_PAGE(PAGE_HEAD, R"(<!doctype html><html lang="%LANG%"><head><meta charset="utf-8">
+I18N_PAGE(PAGE_HEAD, R"(<!doctype html><html lang="%PgLang%"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1"><title>%PgPortalTitle%</title>
 <style>body{font:16px system-ui,sans-serif;max-width:28rem;margin:0 auto;padding:1rem;background:#15161a;color:#f6f4ee}
 h1{font-size:1.4rem}label{display:block;margin-top:1rem}input,select{width:100%;box-sizing:border-box;padding:.6rem;
@@ -61,43 +61,48 @@ font-size:1rem;border-radius:.4rem;border:1px solid #2f3037;background:#202127;c
 button{margin-top:1.4rem;width:100%;padding:.8rem;font-size:1.05rem;border:0;border-radius:.4rem;background:#6db56d;color:#15161a}
 small{color:#a9aaa6}a{color:#6db56d}.net{display:flex;justify-content:space-between;box-sizing:border-box;margin:.4rem 0 0;padding:.75rem .9rem;text-align:left;background:#202127;color:#f6f4ee;border:1px solid #2f3037}.net span{color:#a9aaa6;margin-left:1rem;white-space:nowrap;min-width:5.5em;text-align:right}.err{color:#15161a;background:#ffb0a0;padding:.8rem;border-radius:.4rem}</style></head><body>)")
 
+// The form, with the values of the stored settings in its %SLOTS%: filled after the text.
+I18N_PAGE(FORM, R"(<h1>%PgPortalTitle%</h1>%ERROR%%NETWORKS%<form method=post action=/save>
+<label>%PortalWifiNetwork%<input id=ssid name=ssid required maxlength=32 value="%SSID%"></label>
+<label>%PortalWifiPassword%<input id=pass name=pass type=password maxlength=63 placeholder="%PASSHINT%"></label>
+<label>%PgCompanion% <small>%PortalCompanionHint%</small>
+<input name=companion placeholder="http://192.168.1.20:3888" value="%COMPANION%"></label>
+<label>%PgToken% <small>%PortalTokenHint%</small>
+<input name=token type=password placeholder="%TOKENHINT%"></label>
+<label>%PgSource%<select name=source>
+<option value=companion%COMPANIONSEL%>%PgSourceCompanion%</option>
+<option value=direct%DIRECTSEL%>%PgSourceDirect%</option></select></label>
+<label>%PortalLyricsServer% <small>%PortalLyricsHint%</small>
+<input name=lyrics placeholder="http://192.168.1.30:3300" value="%LYRICS%"></label>
+<label>%PgLyricsToken% <small>%PgLyricsTokenHint%</small>
+<input name=lyricstoken type=password placeholder="%LYRICSTOKENHINT%"></label>
+<button>%PortalSave%</button></form>
+<script>function pick(b){ssid.value=b.dataset.s;pass.focus()}</script></body></html>)")
+
 String head() {
     String h = FPSTR(PAGE_HEAD);
     i18n::fillPage(h);
-    h.replace("%LANG%", i18n::code(i18n::lang()));
     return h;
 }
 
 void sendForm(const String &error, const String &typedSsid = String()) {
     settings::Settings s = settings::get();
     if (typedSsid.length()) s.wifiSsid = typedSsid;
-    String h = head();
-    h += "<h1>" + String(tr(Str::PgPortalTitle)) + "</h1>";
-    if (error.length()) h += "<p class=err>" + esc(error) + "</p>";
-    h += networkList();
-    h += "<form method=post action=/save>"
-         "<label>" + String(tr(Str::PortalWifiNetwork)) + "<input id=ssid name=ssid required maxlength=32 value=\"" + esc(s.wifiSsid) + "\"></label>"
-         "<label>" + String(tr(Str::PortalWifiPassword)) + "<input id=pass name=pass type=password maxlength=63 placeholder=\"" +
-         String(s.wifiPass.length() ? String(tr(Str::PortalUnchanged)) : "") + "\"></label>"
-         "<label>" + String(tr(Str::PgCompanion)) + " <small>" + String(tr(Str::PortalCompanionHint)) + "</small>"
-         "<input name=companion placeholder=\"http://192.168.1.20:3888\" value=\"" + esc(s.companionUrl) + "\"></label>"
-         "<label>" + String(tr(Str::PgToken)) + " <small>" + String(tr(Str::PortalTokenHint)) + "</small>"
-         "<input name=token type=password placeholder=\"" +
-         String(s.accessToken.length() ? String(tr(Str::PortalSetUnchanged)) : "") + "\"></label>"
-         "<label>" + String(tr(Str::PgSource)) +
-         "<select name=source>"
-         "<option value=companion" + String(s.source == settings::SourceKind::Companion ? " selected" : "") +
-         ">" + String(tr(Str::PgSourceCompanion)) + "</option>"
-         "<option value=direct" + String(s.source == settings::SourceKind::Direct ? " selected" : "") +
-         ">" + String(tr(Str::PgSourceDirect)) + "</option></select></label>"
-         "<label>" + String(tr(Str::PortalLyricsServer)) + " <small>" + String(tr(Str::PortalLyricsHint)) + "</small>"
-         "<input name=lyrics placeholder=\"http://192.168.1.30:3300\" value=\"" + esc(s.lyricsUrl) + "\"></label>"
-         "<label>" + String(tr(Str::PgLyricsToken)) + " <small>" + String(tr(Str::PgLyricsTokenHint)) + "</small>"
-         "<input name=lyricstoken type=password placeholder=\"" +
-         String(s.lyricsToken.length() ? String(tr(Str::PortalSetUnchanged)) : "") + "\"></label>"
-         "<button>" + String(tr(Str::PortalSave)) + "</button></form>"
-         "<script>function pick(b){ssid.value=b.dataset.s;pass.focus()}</script></body></html>";
-    g_http.send(200, "text/html; charset=utf-8", h);
+    String f = FPSTR(FORM);
+    i18n::fillPage(f);
+    const char *setHint = tr(Str::PortalSetUnchanged);
+    f.replace("%PASSHINT%", s.wifiPass.length() ? tr(Str::PortalUnchanged) : "");
+    f.replace("%TOKENHINT%", s.accessToken.length() ? setHint : "");
+    f.replace("%LYRICSTOKENHINT%", s.lyricsToken.length() ? setHint : "");
+    f.replace("%COMPANIONSEL%", s.source == settings::SourceKind::Companion ? " selected" : "");
+    f.replace("%DIRECTSEL%", s.source == settings::SourceKind::Direct ? " selected" : "");
+    f.replace("%ERROR%", error.length() ? "<p class=err>" + esc(error) + "</p>" : String());
+    // Typed values, then the neighbours' network names, last: a slot name in them stays as it is.
+    f.replace("%LYRICS%", esc(s.lyricsUrl));
+    f.replace("%COMPANION%", esc(s.companionUrl));
+    f.replace("%SSID%", esc(s.wifiSsid));
+    f.replace("%NETWORKS%", networkList());
+    g_http.send(200, "text/html; charset=utf-8", head() + f);
 }
 
 void handleSave() {

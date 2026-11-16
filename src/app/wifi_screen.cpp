@@ -85,14 +85,14 @@ void showPage(lv_obj_t *p) {
     for (lv_obj_t *o : {g_listPage, g_passPage, g_savedPage}) lv_obj_set_hidden(o, o != p);
 }
 
-String strength(int8_t rssi) {
-    return i18n::nth(Str::SignalWords, rssi > -55 ? 0 : rssi > -67 ? 1 : rssi > -78 ? 2 : 3);
+const char *strength(int8_t rssi) {
+    return rssi > -55 ? tr(Str::SignalExcellent) : rssi > -67 ? tr(Str::SignalGood) : rssi > -78 ? tr(Str::SignalFair) : tr(Str::SignalWeak);
 }
 
 void save(const String &ssid, const String &pass) {
     settings::setWifi(ssid, pass);
     Serial.printf("[wifi] saved from the screen for ssid \"%s\", restarting\n", ssid.c_str());
-    lv_label_set_text(g_savedText, i18n::fmt(Str::WifiSaved, ssid.c_str()).c_str());
+    lv_label_set_text_fmt(g_savedText, tr(Str::WifiSaved), ssid.c_str());
     showPage(g_savedPage);
     lv_timer_create([](lv_timer_t *) { board::restart(); }, 1500, nullptr);
 }
@@ -114,7 +114,7 @@ void onPick(lv_event_t *e) {
         save(g_chosen, "");
         return;
     }
-    lv_label_set_text(g_passTitle, i18n::fmt(Str::PasswordFor, g_chosen.c_str()).c_str());
+    lv_label_set_text_fmt(g_passTitle, tr(Str::PasswordFor), g_chosen.c_str());
     lv_textarea_set_text(g_ta, "");
     lv_textarea_set_password_mode(g_ta, true);
     lv_label_set_text(g_showLabel, tr(Str::ShowPassword));
@@ -143,7 +143,7 @@ void fillList() {
                                ((cur ? String(LV_SYMBOL_OK "  ") : String()) + w.ssid).c_str());
         lv_obj_set_flex_grow(name, 1);
         lv_label_set_long_mode(name, LV_LABEL_LONG_MODE_DOTS);
-        label(b, fonts::ui16, COL_DIM, (strength(w.rssi) + "  -  " + (w.open ? tr(Str::WifiOpen) : tr(Str::WifiSecured))).c_str());
+        label(b, fonts::ui16, COL_DIM, (String(strength(w.rssi)) + "  -  " + (w.open ? tr(Str::WifiOpen) : tr(Str::WifiSecured))).c_str());
         lv_obj_add_event_cb(b, onPick, LV_EVENT_CLICKED, (void *)(intptr_t)i);
     }
 }
@@ -291,7 +291,7 @@ void showcase(bool password) {
     showPage(g_listPage);
     if (password) {
         g_chosen = g_nets[0].ssid;
-        lv_label_set_text(g_passTitle, i18n::fmt(Str::PasswordFor, g_chosen.c_str()).c_str());
+        lv_label_set_text_fmt(g_passTitle, tr(Str::PasswordFor), g_chosen.c_str());
         lv_textarea_set_text(g_ta, "autumn2026");
         lv_textarea_set_password_mode(g_ta, false);
         lv_label_set_text(g_showLabel, tr(Str::HidePassword));

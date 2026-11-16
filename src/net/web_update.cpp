@@ -37,7 +37,7 @@ bool g_uploadAllowed = false, g_uploadOk = false, g_uploadWrongCode = false;
 String g_uploadError;
 
 // Text in `%Pg...%` tokens comes from the string table (i18n::fillPage), filled before any value.
-I18N_PAGE(SETTINGS_PAGE, R"HTML(<!doctype html><html lang="%LANG%"><head><meta charset="utf-8">
+I18N_PAGE(SETTINGS_PAGE, R"HTML(<!doctype html><html lang="%PgLang%"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1"><title>%NAME%</title>
 <style>body{font:17px/1.5 system-ui,sans-serif;max-width:560px;margin:32px auto;padding:0 16px;background:#15161a;color:#f6f4ee}
 h1{margin-bottom:2px}.who{color:#8a8b87;font-size:14px;margin-top:0}
@@ -76,7 +76,13 @@ a{color:#6db56d}</style></head><body>
 <a href="https://github.com/r45635/tft-panel">github.com/r45635/tft-panel</a></small></p>
 </body></html>)HTML")
 
-I18N_PAGE(PAGE, R"HTML(<!doctype html><html lang="%LANG%"><head><meta charset="utf-8">
+// The code row, or what replaces it once this browser is trusted.
+I18N_PAGE(CODE_ROW, "<label>%WebCodeLabel%<input name=code inputmode=numeric maxlength=6 required "
+                    "autocomplete=off placeholder=\"%WebCodeDigits%\"></label>")
+I18N_PAGE(REMEMBERED_ROW, "<p class=found>%WebRemembered%</p>")
+I18N_PAGE(FORGET_FORM, "<form class=forget method=post action=/forget><button>%WebForgetBrowser%</button></form>")
+
+I18N_PAGE(PAGE, R"HTML(<!doctype html><html lang="%PgLang%"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1"><title>%PgUpTabTitle%</title>
 <style>body{font:17px/1.5 system-ui,sans-serif;max-width:560px;margin:32px auto;padding:0 16px;background:#15161a;color:#f6f4ee}
 input,button{font:inherit;padding:10px;border-radius:8px;border:1px solid #2f3037;background:#202127;color:#f6f4ee}
@@ -334,8 +340,9 @@ void sendSettings(const String &message, bool error = false, bool keepTyped = fa
         return keepTyped ? g_server->arg(name) : stored;
     };
     String h = FPSTR(SETTINGS_PAGE);
+    h.replace("%CODEROW%", trusted ? REMEMBERED_ROW : CODE_ROW);
+    h.replace("%FORGET%", trusted ? FORGET_FORM : "");
     i18n::fillPage(h);
-    h.replace("%LANG%", i18n::code(i18n::lang()));
     h.replace("%NAME%", esc(net::displayName()));
     // Escaped part by part: the separator is markup, not text.
     h.replace("%WHO%", esc(board::BOARD_NAME) + " &middot; " + esc(net::macAddress()) + " &middot; " +
@@ -346,21 +353,13 @@ void sendSettings(const String &message, bool error = false, bool keepTyped = fa
     h.replace("%MSG%", box);
     // A refusal is repeated beside the button: the top of the form is scrolled away by then.
     h.replace("%BMSG%", error ? box : String());
-    h.replace("%CODEROW%",
-              trusted ? "<p class=found>" + String(tr(Str::WebRemembered)) + "</p>"
-                      : "<label>" + String(tr(Str::WebCodeLabel)) + "<input name=code "
-                        "inputmode=numeric maxlength=6 required autocomplete=off "
-                        "placeholder=\"" + tr(Str::WebCodeDigits) + "\"></label>");
-    h.replace("%FORGET%", trusted ? "<form class=forget method=post action=/forget><button>" +
-                                        String(tr(Str::WebForgetBrowser)) + "</button></form>"
-                                  : String());
     String langRow;
     if (i18n::LANG_COUNT > 1) {
         langRow = "<label>" + String(tr(Str::Language)) + "<select name=lang>";
         for (int i = 0; i < i18n::LANG_COUNT; i++) {
             auto l = (i18n::Lang)i;
             langRow += "<option value=" + String(i18n::code(l)) + (l == i18n::lang() ? " selected>" : ">") +
-                       i18n::nth(Str::LanguageChoices, i) + "</option>";
+                       (l == i18n::Lang::Fr ? "Français" : "English") + "</option>";
         }
         langRow += "</select></label>";
     }
@@ -432,21 +431,20 @@ void handleSettingsSave() {
     bool restart = newSource || langChanged;
     // The answer names what moved, so a typo in a field you did not mean to touch shows up.
     String changed;
-    auto note = [&changed](const String &what) {
+    auto note = [&changed](const char *what) {
         if (changed.length()) changed += ", ";
         changed += what;
     };
     // The answer is in the language just chosen, which is the one the panel restarts in.
     if (langChanged) i18n::setLang(lang);
-    auto changedName = [](int n) { return i18n::nth(Str::WebChangedNames, n); };
-    if (wanted != was.source) note(changedName(0));
-    if (companion != was.companionUrl) note(changedName(1));
-    if (arg("token").length()) note(changedName(2));
-    if (lyrics != was.lyricsUrl) note(changedName(3));
-    if (arg("lyricstoken").length()) note(changedName(4));
-    if (weather != was.weatherPlace) note(changedName(5));
-    if (news != was.newsUrl) note(changedName(6));
-    if (langChanged) note(changedName(7));
+    if (wanted != was.source) note(tr(Str::ChangedSource));
+    if (companion != was.companionUrl) note(tr(Str::ChangedCompanion));
+    if (arg("token").length()) note(tr(Str::ChangedToken));
+    if (lyrics != was.lyricsUrl) note(tr(Str::ChangedLyrics));
+    if (arg("lyricstoken").length()) note(tr(Str::ChangedLyricsToken));
+    if (weather != was.weatherPlace) note(tr(Str::ChangedWeather));
+    if (news != was.newsUrl) note(tr(Str::ChangedNews));
+    if (langChanged) note(tr(Str::ChangedLanguage));
     settings::setCompanion(companion);
     if (arg("token").length()) settings::setToken(arg("token"));
     settings::setSource(wanted);
@@ -498,7 +496,6 @@ void start() {
         newCode();                                 // shown on the panel, typed in the browser
         String page = FPSTR(PAGE);
         i18n::fillPage(page);
-        page.replace("%LANG%", i18n::code(i18n::lang()));
         page.replace("%VERSION%", FW_VERSION);
         page.replace("%ASSET%", board::BOARD_ASSET);
         page.replace("%SIGROW%", signature::enforced()

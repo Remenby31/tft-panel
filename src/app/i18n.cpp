@@ -27,16 +27,6 @@ String format(const char *f, ...) {
     return out;
 }
 
-String nthOf(const char *p, int n) {
-    for (; n > 0 && p; n--) {
-        p = strchr(p, '\n');
-        if (p) p++;
-    }
-    if (!p || n < 0) return String();
-    const char *end = strchr(p, '\n');
-    return end ? String(p).substring(0, end - p) : String(p);
-}
-
 }  // namespace detail
 
 #ifndef I18N_NO_FR

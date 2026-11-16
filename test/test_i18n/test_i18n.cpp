@@ -30,7 +30,8 @@ static int lines(const char *s) {
 }
 
 // Identical in both languages on purpose.
-static const char *const SAME[] = {"English\nFrançais", "Zone", "QR code", "Volume", "Instrumental", "Signature"};
+static const char *const SAME[] = {"Zone",    "QR code", "Volume",  "Instrumental", "Signature",
+                                   "Cyan",    "Magenta", "Olive",   "Excellent"};
 
 void test_every_string_has_french_with_the_same_arguments_and_items() {
     for (int id = 0; id < (int)i18n::S::Count; id++) {
@@ -41,7 +42,7 @@ void test_every_string_has_french_with_the_same_arguments_and_items() {
         // A wrong argument list reads the stack: a crash in one language only. Page rows are not
         // printf formats (their %VERSION% is a template token).
         if (!i18n::pageName(id)) TEST_ASSERT_TRUE_MESSAGE(conversions(en) == conversions(fr), what);
-        // Lists (days, time zones, dropdown choices) are picked by position.
+        // Dropdown choices (time zones, sleep delays) are picked by position.
         TEST_ASSERT_EQUAL_INT_MESSAGE(lines(en), lines(fr), what);
         bool same = false;
         for (const char *s : SAME) same |= !strcmp(en, s);
@@ -57,8 +58,7 @@ void test_the_chosen_language_fills_screens_and_pages() {
     i18n::setLang(Lang::Fr);
     TEST_ASSERT_EQUAL_STRING("Réglages", tr(i18n::S::Settings));
     TEST_ASSERT_EQUAL_STRING("Installer v1.2.0", i18n::fmt(i18n::S::FwInstall, "v1.2.0").c_str());
-    TEST_ASSERT_EQUAL_STRING("samedi", i18n::nth(i18n::S::Days, 6).c_str());
-    TEST_ASSERT_EQUAL_STRING("", i18n::nth(i18n::S::Days, 7).c_str());
+    TEST_ASSERT_EQUAL_STRING("samedi", tr(i18n::S::DaySaturday));
     String page = "<button>%PgSave%</button>";
     i18n::fillPage(page);
     TEST_ASSERT_EQUAL_STRING("<button>Enregistrer</button>", page.c_str());

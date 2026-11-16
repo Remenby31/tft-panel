@@ -41,7 +41,6 @@ inline constexpr const char *EN[] = {
 #undef P
 };
 String format(const char *f, ...);
-String nthOf(const char *list, int n);
 }  // namespace detail
 using detail::format;   // printf with a format chosen at run time: format(c ? tr(A) : tr(B), ...)
 
@@ -69,8 +68,6 @@ template <class... A>
 inline __attribute__((always_inline)) String fmt(S id, A... args) {
     return detail::format(tr(id), args...);
 }
-// Item `n` of a '\n'-separated list (day and month names), empty when out of range.
-inline __attribute__((always_inline)) String nth(S id, int n) { return detail::nthOf(tr(id), n); }
 
 // For the host test: the raw table.
 const char *raw(int id, Lang l);

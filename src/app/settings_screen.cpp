@@ -352,7 +352,7 @@ void buildRows() {
 
     if (i18n::LANG_COUNT > 1) {
         r = row(tr(Str::Language));
-        g_langDrop = dropdown(r, tr(Str::LanguageChoices), (int)i18n::lang(), [](lv_event_t *) {
+        g_langDrop = dropdown(r, "English\nFrançais", (int)i18n::lang(), [](lv_event_t *) {
             auto to = (i18n::Lang)lv_dropdown_get_selected(g_langDrop);
             if (to != i18n::lang()) confirmLanguage(to);
         });
@@ -363,7 +363,7 @@ void buildRows() {
     button(r, tr(Str::Show), [](lv_event_t *) {
         if (!g_colourTest) buildColourTest();
         lv_slider_set_value(g_ctSlider, settings::warmth(), LV_ANIM_OFF);
-        lv_label_set_text(g_ctValue, i18n::fmt(Str::WarmthValue, (int)settings::warmth()).c_str());
+        lv_label_set_text_fmt(g_ctValue, tr(Str::WarmthValue), (int)settings::warmth());
         lv_obj_set_hidden(g_colourTest, false);
     });
 
@@ -455,13 +455,15 @@ void buildColourTest() {
     lv_obj_set_style_bg_opa(g_colourTest, LV_OPA_COVER, 0);
     lv_obj_set_scrollable(g_colourTest, false);
     lv_obj_set_clickable(g_colourTest, true);
-    patch(g_colourTest, 0, 0, 400, 200, 0xFFFFFF, i18n::nth(Str::ColourNames, 0).c_str());
+    patch(g_colourTest, 0, 0, 400, 200, 0xFFFFFF, tr(Str::ColWhite));
     patch(g_colourTest, 400, 0, 134, 200, 0xC0C0C0, "75 %");
     patch(g_colourTest, 534, 0, 133, 200, 0x808080, "50 %");
     patch(g_colourTest, 667, 0, 133, 200, 0x404040, "25 %");
-    static const uint32_t row2[] = {0xFF0000, 0x00FF00, 0x0000FF, 0xFFFF00, 0x00FFFF, 0xFF00FF, 0xE0AC8A, 0x8A9A5B};
-    for (int i = 0; i < 8; i++)
-        patch(g_colourTest, i * 100, 200, 100, 120, row2[i], i18n::nth(Str::ColourNames, i + 1).c_str());
+    static const struct { uint32_t c; const char *n; } row2[] = {
+        {0xFF0000, tr(Str::ColRed)},  {0x00FF00, tr(Str::ColGreen)},   {0x0000FF, tr(Str::ColBlue)},
+        {0xFFFF00, tr(Str::ColYellow)}, {0x00FFFF, tr(Str::ColCyan)},  {0xFF00FF, tr(Str::ColMagenta)},
+        {0xE0AC8A, tr(Str::ColSkin)}, {0x8A9A5B, tr(Str::ColOlive)}};
+    for (int i = 0; i < 8; i++) patch(g_colourTest, i * 100, 200, 100, 120, row2[i].c, row2[i].n);
     lv_obj_t *grad = patch(g_colourTest, 0, 320, 800, 50, 0x000000, nullptr);
     lv_obj_set_style_bg_grad_color(grad, lv_color_hex(0xFFFFFF), 0);
     lv_obj_set_style_bg_grad_dir(grad, LV_GRAD_DIR_HOR, 0);
@@ -478,7 +480,7 @@ void buildColourTest() {
     lv_obj_add_event_cb(g_ctSlider, [](lv_event_t *) {
         int v = lv_slider_get_value(g_ctSlider);
         board::setWarmth(v);
-        lv_label_set_text(g_ctValue, i18n::fmt(Str::WarmthValue, v).c_str());
+        lv_label_set_text_fmt(g_ctValue, tr(Str::WarmthValue), v);
     }, LV_EVENT_VALUE_CHANGED, nullptr);
     lv_obj_add_event_cb(g_ctSlider, [](lv_event_t *) {
         settings::setWarmth(lv_slider_get_value(g_ctSlider));
@@ -560,7 +562,7 @@ void closePageQr() {
 void showColourTest() {
     if (!g_colourTest) buildColourTest();
     lv_slider_set_value(g_ctSlider, settings::warmth(), LV_ANIM_OFF);
-    lv_label_set_text(g_ctValue, i18n::fmt(Str::WarmthValue, (int)settings::warmth()).c_str());
+    lv_label_set_text_fmt(g_ctValue, tr(Str::WarmthValue), (int)settings::warmth());
     lv_obj_set_hidden(g_colourTest, false);
 }
 

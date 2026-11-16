@@ -458,9 +458,11 @@ void fillPicker() {
     for (const net::ZoneInfo &z : *g_s.zones) {
         // The API's state words, shown in the panel's language when they are known ones.
         static const char *const STATES[] = {"playing", "paused", "stopped", "loading"};
+        static const char *const SHOWN[] = {tr(Str::ZonePlaying), tr(Str::ZonePaused), tr(Str::ZoneStopped),
+                                            tr(Str::ZoneLoading)};
         String state = z.state;
         for (int i = 0; i < 4; i++)
-            if (z.state == STATES[i]) state = i18n::nth(Str::ZoneStates, i);
+            if (z.state == STATES[i]) state = SHOWN[i];
         String t = z.name + "  -  " + state;
         if (z.title.length()) t += "  -  " + z.title + (z.artist.length() ? " (" + z.artist + ")" : "");
         add(z.id, t, g_s.zonePinned && z.id == g_s.zoneId);
@@ -1619,8 +1621,16 @@ void hookTouch() {
 // The clock face's text: the time, the date, the weather and the headlines. Called once a
 // minute while it is on screen, and whenever something it shows has changed.
 String dateText(int wday, int mday, int month) {
+    // Static: the language is fixed from boot, and without French these are plain literals.
+    static const char *const days[] = {tr(Str::DaySunday),   tr(Str::DayMonday), tr(Str::DayTuesday),
+                                       tr(Str::DayWednesday), tr(Str::DayThursday), tr(Str::DayFriday),
+                                       tr(Str::DaySaturday)};
+    static const char *const months[] = {tr(Str::MonthJanuary), tr(Str::MonthFebruary), tr(Str::MonthMarch),
+                                         tr(Str::MonthApril),   tr(Str::MonthMay),      tr(Str::MonthJune),
+                                         tr(Str::MonthJuly),    tr(Str::MonthAugust),   tr(Str::MonthSeptember),
+                                         tr(Str::MonthOctober), tr(Str::MonthNovember), tr(Str::MonthDecember)};
     char buf[48];
-    snprintf(buf, sizeof buf, "%s %d %s", i18n::nth(Str::Days, wday).c_str(), mday, i18n::nth(Str::Months, month).c_str());
+    snprintf(buf, sizeof buf, "%s %d %s", days[wday], mday, months[month]);
     return buf;
 }
 
