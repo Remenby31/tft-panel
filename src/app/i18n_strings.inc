@@ -379,7 +379,7 @@ X(WeatherNoPlace, "No place called \"%s\". Try the town on its own, as in Montre
 X(StWifiChip, "Updating the Wi-Fi chip to %s - about a minute, do not unplug the panel",
   "Mise à jour de la puce Wi-Fi vers %s - environ une minute, ne débranchez pas le panneau")
 X(StWifiChipPct, "Updating the Wi-Fi chip to %s: %d %% - do not unplug the panel",
-  "Mise à jour de la puce Wi-Fi vers %s : %d %% - ne débranchez pas le panneau")
+  "Mise à jour de la puce Wi-Fi vers %s : %d %% - ne débranchez pas le panneau")
 
 // Signed updates (web page)
 X(WebSigLabel, "Signature", "Signature")
