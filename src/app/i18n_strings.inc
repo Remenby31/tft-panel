@@ -431,6 +431,7 @@ X(CmdSeek, "Seek", "Déplacement dans le titre")
 // Zone grouping (zone picker, P4 boards): the button and, in "%s failed", the command
 X(ZoneGroup, "Group", "Grouper")
 X(ZoneUngroup, "Ungroup", "Dégrouper")
+X(ZoneAddTo, "Add to %s", "Ajouter à %s")
 X(ZonesChanged, "the zones changed, try again", "les zones ont changé, réessayez")
 
 // Queue screen (P4 boards)

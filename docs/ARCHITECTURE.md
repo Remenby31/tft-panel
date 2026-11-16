@@ -200,7 +200,7 @@ CrowPanel: its firmware slot is full (`HAS_QUEUE` false compiles it out).
 ### Zone grouping (P4 boards, `HAS_GROUPING`)
 
 In the zone picker, a zone that is a group (more than one output) offers "Ungroup", and any other
-zone but the followed one offers "+ Group": join it to the followed zone. The command carries zone
+zone but the followed one offers "+ Add to <followed zone>": join it to that zone. The command carries zone
 ids only (for a join, the followed zone as the picker showed it, so a zone that starts playing
 meanwhile is not the one grouped); the net task reads the outputs from the zone list as it is when
 the command runs. Roon may refuse an output (another kind of device): the companion's zone list does
