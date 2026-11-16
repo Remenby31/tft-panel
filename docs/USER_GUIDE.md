@@ -176,17 +176,21 @@ play/pause, next, volume − / +, settings.
 
   ![Lyrics timing](images/lyrics-timing.png)
 
-## The play queue
+## The play queue, and grouping zones
 
-On the Waveshare and the VIEWE, with **Music from** set to the companion, the controls bar has a
-**note** button between the library and the settings. It opens the queue of the zone the panel
-follows: the track playing, then **Up next**, in the order Roon has them. Tap a track to play from
-there. The list follows the zone and refreshes by itself every 5 seconds; if the companion does
-not answer, it says so and keeps the list.
+On the Waveshare and the VIEWE, whenever the panel plays through the companion, the controls bar has
+a **note** button between the library and the settings (whatever **Music from** says, **Automatic**
+included). It opens the queue of the zone the panel follows: the track playing, then **Up next**, in
+the order Roon has them. Tap a track to play from there. The list follows the zone and refreshes by
+itself every 5 seconds; if the companion does not answer, it says so and keeps the list.
 
-The CrowPanel has no queue (its flash is full), and the music server source does not give one
-either. In **Automatic** the button stays hidden even when the panel ended up on the companion:
-choose the companion in **Music from** to have it.
+The zone list does the grouping, in the same case. On a zone other than the one the panel follows,
+**+ Add to <the followed zone>** joins it to that zone's group; on a group, **Ungroup** splits it.
+The zone button then shows the group's name once Roon has reported it.
+
+The button and the two actions are hidden when the panel gets its music straight from the music
+server, including when both are found and the companion only gives the lyrics: only the companion
+exposes them. The CrowPanel has neither (its flash is full).
 
 ## Find music
 

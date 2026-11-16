@@ -160,10 +160,12 @@ one firmware, two modes; the README, the site landing and the guide's opening we
 with that, and lyrics became a section. What is still missing to be a credible remote:
 
 - [x] The queue, read and play-from-here (2026-11-16): the controls bar opens the zone's queue, a tap
-      plays from that track. P4 boards, companion source only (the companion already exposes it,
-      `tft-core-client` does not, so none in direct mode). Still open: reorder, clear
+      plays from that track. P4 boards, whenever the panel plays through the companion, Auto included (the
+      companion already exposes it, `tft-core-client` does not, so none in direct mode). Still open: reorder, clear
 - [ ] Maintainer's check of the queue on a board (`docs/HARDWARE_TEST.md`, *Queue and zone grouping*)
-- [ ] Zone grouping / ungrouping (the protocol has it, neither client uses it yet)
+- [x] Zone grouping (2026-11-16): the zone picker's *Add to <followed zone>* and *Ungroup*. P4 boards,
+      through the companion only (`POST /api/roon/group`, `/ungroup`; none in direct mode)
+- [ ] Maintainer's check of grouping on a board (`docs/HARDWARE_TEST.md`, *Queue and zone grouping*)
 - [x] Scrub on the progress bar (2026-11-16): tap or drag, on both views and all three boards;
       companion `POST /api/roon/seek`, direct `seek()`
 - [ ] Maintainer's check of the seek on a board (`docs/HARDWARE_TEST.md`)

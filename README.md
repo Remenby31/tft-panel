@@ -26,7 +26,7 @@ your own network.
 - Everything that has to be typed is on the panel's own page, not in a config file.
 - Updates arrive over the air and roll back by themselves if one fails to start.
 - English and French on the two ESP32-P4 screens (the CrowPanel stays English: its flash is full).
-- On the ESP32-P4 screens, the play queue too: see what is next and start from any track.
+- On the ESP32-P4 screens, through the companion: the play queue (see what is next, start from any track) and zone grouping.
 - MIT licence ([details](#licence)).
 
 *Roon is a trademark of Roon Labs. TFT Panel is an independent project, not affiliated with Roon Labs, Elecrow, Waveshare or VIEWE.*
