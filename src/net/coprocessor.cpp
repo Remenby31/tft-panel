@@ -1,5 +1,7 @@
 #include "coprocessor.h"
 
+#include "../app/i18n.h"
+
 #include <sdkconfig.h>
 
 #if CONFIG_ESP_HOSTED_ENABLED && defined(BOARD_WAVESHARE_P4_7B)
@@ -55,7 +57,7 @@ bool updateIfNeeded(const std::function<void(const String &)> &status) {
 
     Serial.printf("[c6] updating the Wi-Fi chip from %u.%u.%u to %s (%u bytes)\n", (unsigned)sM, (unsigned)sm,
                   (unsigned)sp, imageVersion, (unsigned)size);
-    status(String("Updating the Wi-Fi chip to ") + imageVersion + " - about a minute, do not unplug the panel");
+    status(i18n::fmt(Str::StWifiChip, imageVersion));
     if (!hostedBeginUpdate()) {
         Serial.println("[c6] ERROR: the Wi-Fi chip refused the update");
         return false;
@@ -74,7 +76,7 @@ bool updateIfNeeded(const std::function<void(const String &)> &status) {
         if (pct / 10 != lastPct / 10) {
             lastPct = pct;
             Serial.printf("[c6] %d %%\n", pct);
-            status(String("Updating the Wi-Fi chip to ") + imageVersion + ": " + pct + " % - do not unplug the panel");
+            status(i18n::fmt(Str::StWifiChipPct, imageVersion, pct));
         }
     }
     if (!hostedEndUpdate() || !hostedActivateUpdate()) {

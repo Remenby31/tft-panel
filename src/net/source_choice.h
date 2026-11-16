@@ -1,11 +1,14 @@
 // Which source a panel uses when nobody chose one: it looks for both and takes what it finds.
 //
-// Pure and header-only, so the host tests (test/test_source_choice) call it as net.cpp does.
+// Header-only, its words from the string table, so the host tests (test/test_source_choice) call it
+// as net.cpp does.
 #pragma once
 
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+
+#include "../app/i18n.h"
 
 namespace settings {
 
@@ -152,23 +155,21 @@ inline void describe(const Chooser &c, const Seen &seen, bool companionLyrics, c
     switch (c.active()) {
         case Active::Looking:
             if (seen.companion)
-                snprintf(out, size, "Found a TextFromTrack companion. Checking for a music server too...");
+                snprintf(out, size, "%s", tr(Str::AutoFoundCompanionLooking));
             else
-                snprintf(out, size, "Looking for your music server, or a TextFromTrack companion, on this Wi-Fi...");
+                snprintf(out, size, "%s", tr(Str::AutoLooking));
             break;
         case Active::Companion:
             if (c.awaitingApproval())
-                snprintf(out, size, "Playing through the TextFromTrack companion. To play straight from your "
-                                    "music server, enable \"%s\" in its Settings > Extensions.", panelName);
+                snprintf(out, size, tr(Str::AutoCompanionEnable), panelName);
             else
-                snprintf(out, size, "Found a TextFromTrack companion: music and lyrics come from it.");
+                snprintf(out, size, "%s", tr(Str::AutoCompanion));
             break;
         case Active::Direct:
             if (companionLyrics)
-                snprintf(out, size, "Found your music server and a TextFromTrack companion: music from the "
-                                    "server, lyrics from the companion.");
+                snprintf(out, size, "%s", tr(Str::AutoDirectWithLyrics));
             else
-                snprintf(out, size, "Found your music server: music comes from it directly.");
+                snprintf(out, size, "%s", tr(Str::AutoDirect));
             break;
     }
 }

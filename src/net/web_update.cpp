@@ -14,6 +14,7 @@
 #include <esp_heap_caps.h>
 #include <esp_ota_ops.h>
 
+#include "../app/i18n.h"
 #include "../board/board.h"
 #include "../board/board_pins.h"
 #include "../version.h"
@@ -31,10 +32,11 @@ WebServer *g_server = nullptr;
 volatile uint32_t g_code = 0;
 volatile bool g_shots = false;
 uint32_t g_codeAt = 0;
-bool g_uploadAllowed = false, g_uploadOk = false;
+bool g_uploadAllowed = false, g_uploadOk = false, g_uploadWrongCode = false;
 String g_uploadError;
 
-const char SETTINGS_PAGE[] PROGMEM = R"HTML(<!doctype html><html lang="en"><head><meta charset="utf-8">
+// Text in `%Pg...%` tokens comes from the string table (i18n::fillPage), filled before any value.
+I18N_PAGE(SETTINGS_PAGE, R"HTML(<!doctype html><html lang="%PgLang%"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1"><title>%NAME%</title>
 <style>body{font:17px/1.5 system-ui,sans-serif;max-width:560px;margin:32px auto;padding:0 16px;background:#15161a;color:#f6f4ee}
 h1{margin-bottom:2px}.who{color:#8a8b87;font-size:14px;margin-top:0}
@@ -52,57 +54,58 @@ a{color:#6db56d}</style></head><body>
 %MSG%
 <form method=post action=/settings>
 %CODEROW%
-<label>Where the music information comes from
-<select name=source><option value=auto%ASEL%>Whatever the panel finds on the network</option>
-<option value=companion%CSEL%>The TextFromTrack companion</option>
-<option value=direct%DSEL%>The music server, directly</option></select></label>%SNOTE%
-<label>Companion address <small>(empty = found on the network)</small>
+<label>%PgSource%
+<select name=source><option value=auto%ASEL%>%PgSourceAuto%</option>
+<option value=companion%CSEL%>%PgSourceCompanion%</option>
+<option value=direct%DSEL%>%PgSourceDirect%</option></select></label>%SNOTE%
+<label>%PgCompanion% <small>%PgCompanionHint%</small>
 <input name=companion placeholder="http://192.168.1.20:3888" value="%COMPANION%"></label>
-<label>Companion access token <small>(only if it has one; empty leaves it unchanged)</small>
+<label>%PgToken% <small>%PgTokenHint%</small>
 <input name=token type=password autocomplete=off></label>
-<label>Lyrics <small>(empty = a companion on the network, <code>none</code> = no lyrics,
- or the address of an LRCLIB-compatible server)</small>
+<label>%PgLyrics% <small>%PgLyricsHint%</small>
 <input name=lyrics placeholder="http://192.168.1.30:3300" value="%LYRICS%"></label>
-<label>Lyrics server token <small>(only if it asks for one)</small>
+<label>%PgLyricsToken% <small>%PgLyricsTokenHint%</small>
 <input name=lyricstoken type=password autocomplete=off></label>
-<label>Weather town <small>(add a region or country if the name is shared:
- <code>Montreal, Canada</code>, <code>Paris, Texas</code>, <code>Lyon, France</code>)</small>
+<label>%PgWeather% <small>%PgWeatherHint%</small>
 <input name=weather placeholder="Montreal" value="%WEATHER%"></label>%WNOTE%
-<label>News feed <small>(RSS or Atom, slid under the clock; empty = none)</small>
+<label>%PgNews% <small>%PgNewsHint%</small>
 <input name=news placeholder="https://example.com/rss" value="%NEWS%"></label>%NNOTE%
-%BMSG%<button>Save</button></form>
+%LANGROW%%BMSG%<button>%PgSave%</button></form>
 %FORGET%
-<p><small>Firmware update: <a href=/update>/update</a> &middot; open source (MIT):
+<p><small>%PgFooterUpdate% <a href=/update>/update</a> &middot; %PgFooterSource%
 <a href="https://github.com/r45635/tft-panel">github.com/r45635/tft-panel</a></small></p>
-</body></html>)HTML";
+</body></html>)HTML")
 
-const char PAGE[] PROGMEM = R"HTML(<!doctype html><html lang="en"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1"><title>%NAME% update</title>
+// The code row, or what replaces it once this browser is trusted.
+I18N_PAGE(CODE_ROW, "<label>%WebCodeLabel%<input name=code inputmode=numeric maxlength=6 required "
+                    "autocomplete=off placeholder=\"%WebCodeDigits%\"></label>")
+I18N_PAGE(REMEMBERED_ROW, "<p class=found>%WebRemembered%</p>")
+I18N_PAGE(FORGET_FORM, "<form class=forget method=post action=/forget><button>%WebForgetBrowser%</button></form>")
+
+I18N_PAGE(PAGE, R"HTML(<!doctype html><html lang="%PgLang%"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1"><title>%PgUpTabTitle%</title>
 <style>body{font:17px/1.5 system-ui,sans-serif;max-width:560px;margin:32px auto;padding:0 16px;background:#15161a;color:#f6f4ee}
 input,button{font:inherit;padding:10px;border-radius:8px;border:1px solid #2f3037;background:#202127;color:#f6f4ee}
 button{background:#6db56d;color:#15161a;border:0;padding:10px 24px}#msg{margin-top:16px;color:#a9aaa6}
 a{color:#6db56d}h1{margin-bottom:2px}.who{color:#8a8b87;font-size:14px;margin-top:0}</style></head><body>
-<h1>Update %NAME%</h1><p class=who>%WHO%</p><p>Running <b>%VERSION%</b>. Choose a firmware file (<code>tft-panel-vX.Y.Z.bin</code>)
-and type the code shown on the panel's screen.</p>
-<p><input id="code" inputmode="numeric" maxlength="6" placeholder="6-digit code" autocomplete="off"></p>
+<h1>%PgUpTitle%</h1><p class=who>%WHO%</p><p>%PgUpIntro%</p>
+<p><input id="code" inputmode="numeric" maxlength="6" placeholder="%PgUpCode%" autocomplete="off"></p>
 <p><input id="file" type="file" accept=".bin"></p>
-<p><input id="sha" maxlength="64" autocomplete="off" placeholder="sha256 from the release (optional)" style="width:100%;max-width:34em">
-<br><small>Paste the line from <code>%ASSET%-vX.Y.Z.sha256</code> and the panel refuses the file if it does not match.
-The panel checks the image itself either way, and goes back to this version if the new one does not start.</small></p>
-<p><button id="go">Upload and install</button></p><div id="msg"></div>
-<p><small>The firmware files and their sha256 are on the releases page,
+<p><input id="sha" maxlength="64" autocomplete="off" placeholder="%PgUpSha%" style="width:100%;max-width:34em">
+<br><small>%PgUpShaHint%</small></p>
+<p><button id="go">%PgUpGo%</button></p><div id="msg"></div>
+<p><small>%PgUpReleases%
 <a href="https://github.com/r45635/tft-panel/releases">github.com/r45635/tft-panel/releases</a>.
-This panel takes <code>%ASSET%-vX.Y.Z.bin</code> &mdash; the name matters: two different screens
-can share the same chip.</small></p>
+%PgUpAsset%</small></p>
 <script>
-go.onclick=()=>{const f=file.files[0];if(!f||code.value.length!=6){msg.textContent='Pick a file and type the code.';return}
+go.onclick=()=>{const f=file.files[0];if(!f||code.value.length!=6){msg.textContent='%PgUpPick%';return}
 const fd=new FormData();fd.append('firmware',f);const x=new XMLHttpRequest();
-x.upload.onprogress=e=>{msg.textContent='Uploading '+Math.round(100*e.loaded/e.total)+' %'};
-x.onload=()=>{msg.textContent=x.responseText};x.onerror=()=>{msg.textContent='Upload failed (connection lost).'};
+x.upload.onprogress=e=>{msg.textContent='%PgUpUploading% '+Math.round(100*e.loaded/e.total)+' %'};
+x.onload=()=>{msg.textContent=x.responseText};x.onerror=()=>{msg.textContent='%PgUpLost%'};
 const s=(sha.value.trim().split(/\s+/)[0]||'').toLowerCase();
-if(s&&!/^[0-9a-f]{64}$/.test(s)){msg.textContent='That does not look like a sha256: 64 hex characters.';return}
+if(s&&!/^[0-9a-f]{64}$/.test(s)){msg.textContent='%PgUpNotSha%';return}
 x.open('POST','/update?code='+encodeURIComponent(code.value)+(s?'&sha='+s:''));x.send(fd);go.disabled=true}
-</script></body></html>)HTML";
+</script></body></html>)HTML")
 
 // The code lives on the panel's screen; it is also printed here, because a USB cable already
 // gives this console `token` and `erase-all` — and it is how you read the code screen-off.
@@ -202,6 +205,7 @@ void handleUpload() {
     HTTPUpload &up = g_server->upload();
     if (up.status == UPLOAD_FILE_START) {
         g_uploadOk = false;
+        g_uploadWrongCode = false;
         g_uploadError = "";
         dropImage();
         g_uploadAllowed = codeValid(g_server->arg("code"));
@@ -211,7 +215,8 @@ void handleUpload() {
             // the same six digits for the whole five minutes. The message already says to reopen
             // the page, which is what now gets a fresh code.
             g_code = 0;
-            g_uploadError = "Wrong or expired code: open this page again to get a new one on the panel.";
+            g_uploadWrongCode = true;
+            g_uploadError = tr(Str::WebWrongCode);
             return;
         }
         Serial.printf("[web] firmware upload started: %s\n", up.filename.c_str());
@@ -230,9 +235,9 @@ void handleUpload() {
             const esp_partition_t *slot = esp_ota_get_next_update_partition(nullptr);
             g_imageCap = slot ? slot->size : 0;
             g_image = g_imageCap ? (uint8_t *)heap_caps_malloc(g_imageCap, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT) : nullptr;
-            if (!g_image) refuse("Not enough memory to receive the firmware.");
+            if (!g_image) refuse(tr(Str::WebNoMemory));
         } else if (!Update.begin(UPDATE_SIZE_UNKNOWN, U_FLASH)) {
-            refuse(String("Cannot start the update: ") + Update.errorString());
+            refuse(i18n::fmt(Str::WebCannotStart, Update.errorString()));
         }
     } else if (up.status == UPLOAD_FILE_WRITE && g_uploadAllowed) {
         if (g_upShaOn) {
@@ -242,14 +247,14 @@ void handleUpload() {
         }
         if (g_image) {
             if (g_imageLen + up.currentSize > g_imageCap) {
-                refuse("File too large for a firmware slot.");
+                refuse(tr(Str::WebTooLarge));
                 dropImage();
             } else {
                 memcpy(g_image + g_imageLen, up.buf, up.currentSize);
                 g_imageLen += up.currentSize;
             }
         } else if (Update.write(up.buf, up.currentSize) != up.currentSize) {
-            refuse(String("Write failed: ") + Update.errorString());
+            refuse(i18n::fmt(Str::WebWriteFailed, Update.errorString()));
             Update.abort();
         }
     } else if (up.status == UPLOAD_FILE_END && g_uploadAllowed) {
@@ -258,9 +263,7 @@ void handleUpload() {
         if (g_upWant.length() && g_upWant != g_upGot) {
             // Refused before a single byte is committed: a digest that does not match is either
             // the wrong file or a damaged transfer, and neither should reach the flash.
-            refuse("Checksum does not match: nothing installed. The panel received sha256 " +
-                       g_upGot + ", you asked for " + g_upWant + ".",
-                   "That file is not the one you asked for: nothing installed.");
+            refuse(i18n::fmt(Str::WebChecksum, g_upGot.c_str(), g_upWant.c_str()), tr(Str::WebChecksumScreen));
             if (g_image) dropImage();
             else Update.abort();
             return;
@@ -269,33 +272,31 @@ void handleUpload() {
         if (g_image) {
             String err;
             if (ota::writeImage(g_image, g_imageLen, err, ota::uploadWriting)) g_uploadOk = true;
-            else refuse("Not a valid firmware image: " + err);
+            else refuse(i18n::fmt(Str::WebNotImage, err.c_str()));
             dropImage();
         } else if (Update.end(true)) {
             g_uploadOk = true;
         } else {
-            refuse(String("Not a valid firmware image: ") + Update.errorString());
+            refuse(i18n::fmt(Str::WebNotImage, Update.errorString()));
         }
     } else if (up.status == UPLOAD_FILE_ABORTED && g_uploadAllowed) {
         shaFinish();
         if (g_image) dropImage();
         else Update.abort();
-        refuse("Upload interrupted, nothing installed.");
+        refuse(tr(Str::WebInterrupted));
     }
 }
 
 void handleUploadDone() {
     if (g_uploadOk) {
         g_code = 0;
-        g_server->send(200, "text/plain",
-                       "Installed (sha256 " + g_upGot + "). The panel restarts now; it goes back "
-                       "to the previous version by itself if this one does not start properly.");
+        g_server->send(200, "text/plain; charset=utf-8", i18n::fmt(Str::WebInstalled, g_upGot.c_str()));
         Serial.println("[web] firmware uploaded and verified, restarting");
         delay(1000);
         board::restart();
     }
-    g_server->send(g_uploadError.startsWith("Wrong") ? 403 : 400, "text/plain",
-                   g_uploadError.length() ? g_uploadError : String("No firmware received."));
+    g_server->send(g_uploadWrongCode ? 403 : 400, "text/plain; charset=utf-8",
+                   g_uploadError.length() ? g_uploadError : String(tr(Str::WebNoFirmware)));
     Serial.printf("[web] upload refused: %s\n", g_uploadError.c_str());
 }
 
@@ -326,6 +327,9 @@ void sendSettings(const String &message, bool error = false, bool keepTyped = fa
         return keepTyped ? g_server->arg(name) : stored;
     };
     String h = FPSTR(SETTINGS_PAGE);
+    h.replace("%CODEROW%", trusted ? REMEMBERED_ROW : CODE_ROW);
+    h.replace("%FORGET%", trusted ? FORGET_FORM : "");
+    i18n::fillPage(h);
     h.replace("%NAME%", esc(net::displayName()));
     // Escaped part by part: the separator is markup, not text.
     h.replace("%WHO%", esc(board::BOARD_NAME) + " &middot; " + esc(net::macAddress()) + " &middot; " +
@@ -336,14 +340,19 @@ void sendSettings(const String &message, bool error = false, bool keepTyped = fa
     h.replace("%MSG%", box);
     // A refusal is repeated beside the button: the top of the form is scrolled away by then.
     h.replace("%BMSG%", error ? box : String());
-    h.replace("%CODEROW%",
-              trusted ? String("<p class=found>This browser is remembered, so no code is needed.</p>")
-                      : String("<label>Code shown on this panel's screen<input name=code "
-                               "inputmode=numeric maxlength=6 required autocomplete=off "
-                               "placeholder=\"6 digits\"></label>"));
-    h.replace("%FORGET%", trusted ? String("<form class=forget method=post action=/forget>"
-                                           "<button>Forget this browser</button></form>")
-                                  : String());
+    String langRow;
+    if (i18n::LANG_COUNT > 1) {
+        i18n::Lang chosen = i18n::lang();   // a refusal shows what was picked, like every field
+        if (keepTyped) i18n::parse(g_server->arg("lang").c_str(), chosen);
+        langRow = "<label>" + String(tr(Str::Language)) + "<select name=lang>";
+        for (int i = 0; i < i18n::LANG_COUNT; i++) {
+            auto l = (i18n::Lang)i;
+            langRow += "<option value=" + String(i18n::code(l)) + (l == chosen ? " selected>" : ">") +
+                       (l == i18n::Lang::Fr ? "Français" : "English") + "</option>";
+        }
+        langRow += "</select></label>";
+    }
+    h.replace("%LANGROW%", langRow);
     settings::SourceKind shown = keepTyped ? sourcechoice::parse(g_server->arg("source").c_str()) : st.source;
     h.replace("%COMPANION%", esc(val("companion", st.companionUrl)));
     h.replace("%ASEL%", shown == settings::SourceKind::Auto ? " selected" : "");
@@ -356,13 +365,14 @@ void sendSettings(const String &message, bool error = false, bool keepTyped = fa
     net::weather::Now w = net::snapshot().weather;
     String note;
     if (w.problem.length()) note = "<p class=warn>" + esc(w.problem) + "</p>";
-    else if (w.located.length()) note = "<p class=found>Showing " + esc(w.located) + "</p>";
+    else if (w.located.length()) note = "<p class=found>" + esc(i18n::fmt(Str::WebShowing, w.located.c_str())) + "</p>";
     h.replace("%WNOTE%", note);
     h.replace("%NEWS%", esc(val("news", st.newsUrl)));
     String nnote;
     net::Snapshot snap = net::snapshot();   // a copy, like the weather note above
     if (snap.newsProblem.length()) nnote = "<p class=warn>" + esc(snap.newsProblem) + "</p>";
-    else if (snap.news.length()) nnote = "<p class=found>Showing " + esc(snap.news.substring(0, 60)) + "...</p>";
+    else if (snap.news.length())
+        nnote = "<p class=found>" + esc(i18n::fmt(Str::WebShowing, (snap.news.substring(0, 60) + "...").c_str())) + "</p>";
     h.replace("%NNOTE%", nnote);
     g_server->send(200, "text/html; charset=utf-8", h);
 }
@@ -372,9 +382,7 @@ void handleSettingsSave() {
     bool trusted = trustedBrowser();
     if (!trusted) {
         if (!codeValid(g_server->arg("code"))) {
-            sendSettings("That code is wrong or has expired. Nothing was saved. The panel's screen "
-                         "shows a new code; what you typed is still here.",
-                         true, true);
+            sendSettings(tr(Str::WebCodeRefused), true, true);
             return;
         }
         trustThisBrowser();         // typed once, not asked again on this browser
@@ -390,35 +398,42 @@ void handleSettingsSave() {
     String companion = arg("companion", was.companionUrl), lyrics = arg("lyrics", was.lyricsUrl),
            weather = arg("weather", was.weatherPlace), news = arg("news", was.newsUrl);
     if (companion.length() && !companion.startsWith("http://")) {
-        sendSettings("Nothing was saved. The companion address starts with http://", true, true);
+        sendSettings(tr(Str::WebBadCompanion), true, true);
         return;
     }
     if (lyrics.length() && lyrics != "none" && !lyrics.startsWith("http")) {
-        sendSettings("Nothing was saved. The lyrics server starts with http:// or https://, or is the word none.", true, true);
+        sendSettings(tr(Str::WebBadLyrics), true, true);
         return;
     }
     if (news.length() && !news.startsWith("http")) {
-        sendSettings("Nothing was saved. The news feed starts with http:// or https://", true, true);
+        sendSettings(tr(Str::WebBadNews), true, true);
         return;
     }
     while (companion.endsWith("/")) companion.remove(companion.length() - 1);
     while (lyrics.endsWith("/")) lyrics.remove(lyrics.length() - 1);
 
     settings::SourceKind wanted = !g_server->hasArg("source") ? was.source : sourcechoice::parse(arg("source").c_str());
-    bool restart = wanted != settings::source() || companion != was.companionUrl;
+    i18n::Lang lang = i18n::lang();
+    if (i18n::LANG_COUNT > 1 && g_server->hasArg("lang")) i18n::parse(arg("lang").c_str(), lang);
+    bool langChanged = i18n::LANG_COUNT > 1 && lang != i18n::lang();
+    bool newSource = wanted != settings::source() || companion != was.companionUrl;
+    bool restart = newSource || langChanged;
     // The answer names what moved, so a typo in a field you did not mean to touch shows up.
     String changed;
     auto note = [&changed](const char *what) {
         if (changed.length()) changed += ", ";
         changed += what;
     };
-    if (wanted != was.source) note("music source");
-    if (companion != was.companionUrl) note("companion address");
-    if (arg("token").length()) note("companion token");
-    if (lyrics != was.lyricsUrl) note("lyrics");
-    if (arg("lyricstoken").length()) note("lyrics token");
-    if (weather != was.weatherPlace) note("weather town");
-    if (news != was.newsUrl) note("news feed");
+    // The answer is in the language just chosen, which is the one the panel restarts in.
+    if (langChanged) i18n::setLang(lang);
+    if (wanted != was.source) note(tr(Str::ChangedSource));
+    if (companion != was.companionUrl) note(tr(Str::ChangedCompanion));
+    if (arg("token").length()) note(tr(Str::ChangedToken));
+    if (lyrics != was.lyricsUrl) note(tr(Str::ChangedLyrics));
+    if (arg("lyricstoken").length()) note(tr(Str::ChangedLyricsToken));
+    if (weather != was.weatherPlace) note(tr(Str::ChangedWeather));
+    if (news != was.newsUrl) note(tr(Str::ChangedNews));
+    if (langChanged) note(tr(Str::ChangedLanguage));
     settings::setCompanion(companion);
     if (arg("token").length()) settings::setToken(arg("token"));
     settings::setSource(wanted);
@@ -426,6 +441,7 @@ void handleSettingsSave() {
     if (arg("lyricstoken").length()) settings::setLyricsToken(arg("lyricstoken"));
     settings::setWeatherPlace(weather);
     settings::setNewsUrl(news);
+    if (langChanged) settings::setLang((uint8_t)lang);
     net::lyricsrc::forgetDiscovered();
     net::weather::reset();
     net::news::reset();
@@ -436,27 +452,26 @@ void handleSettingsSave() {
         g_server->send(200, "text/html; charset=utf-8",
                        String("<!doctype html><meta charset=utf-8><body style=\"font:17px system-ui;background:#15161a;"
                               "color:#f6f4ee;max-width:560px;margin:32px auto;padding:0 16px\">") +
-                           "<h1>Saved</h1><p>" + esc(changed) +
-                           ".</p><p>The panel restarts to use its new source.</p>");
+                           "<h1>" + tr(Str::WebSaved) + "</h1><p>" + esc(changed) + ".</p><p>" +
+                           (newSource ? tr(Str::WebRestartSource) : tr(Str::LanguageText)) + "</p>");
         delay(300);
         board::restart();
         return;
     }
-    sendSettings(changed.length() ? "Saved: " + changed + "." : "Nothing to change; all the fields "
-                                                                 "already said that.");
+    sendSettings(changed.length() ? i18n::fmt(Str::WebSavedList, changed.c_str()) : String(tr(Str::WebNothingToChange)));
 }
 
 void handleForget() {
     g_trustedNow = false;
     if (!trustedBrowser() && !codeValid(g_server->arg("code"))) {
-        sendSettings("Nothing was forgotten: this browser was not remembered.", true, false);
+        sendSettings(tr(Str::WebNotForgotten), true, false);
         return;
     }
     settings::forgetWebTokens();    // every remembered browser, not only this one
     g_trustedNow = false;
     g_server->sendHeader("Set-Cookie", "tftpanel=; Max-Age=0; Path=/");
     Serial.println("[web] remembered browsers forgotten");
-    sendSettings("Forgotten. The next change asks for the code on the panel's screen.");
+    sendSettings(tr(Str::WebForgotten));
 }
 
 void start() {
@@ -469,13 +484,14 @@ void start() {
     g_server->on("/update", HTTP_GET, []() {
         newCode();                                 // shown on the panel, typed in the browser
         String page = FPSTR(PAGE);
+        i18n::fillPage(page);
         // The same name the panel now prints under its code, so the right six digits go to the
         // right page; the board and MAC say which image this one takes.
         page.replace("%NAME%", esc(net::displayName()));
         page.replace("%WHO%", esc(board::BOARD_NAME) + " &middot; " + esc(net::macAddress()));
         page.replace("%VERSION%", FW_VERSION);
         page.replace("%ASSET%", board::BOARD_ASSET);
-        g_server->send(200, "text/html", page);
+        g_server->send(200, "text/html; charset=utf-8", page);
     });
     g_server->on("/update", HTTP_POST, handleUploadDone, handleUpload);
     g_server->on("/screenshot", HTTP_GET, []() {

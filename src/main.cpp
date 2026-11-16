@@ -7,6 +7,7 @@
 
 #include "app/bringup_screen.h"
 #include "app/fonts.h"
+#include "app/i18n.h"
 #include "app/settings_screen.h"
 #include "app/ui.h"
 #include "version.h"
@@ -52,7 +53,7 @@ void printStatus() {
     if (s.weather.valid || s.weather.problem.length() || s.news.length() || s.newsProblem.length()) {
         Serial.printf("[status] weather %s\n",
                       s.weather.valid ? (s.weather.place + " " + String((int)s.weather.tempC) + " C, " +
-                                         net::weather::describe(s.weather.code) + ", today " +
+                                         net::weather::describe(s.weather.code, i18n::Lang::En) + ", today " +
                                          String((int)s.weather.minC) + " to " + String((int)s.weather.maxC))
                                             .c_str()
                       : s.weather.problem.length() ? s.weather.problem.c_str()
@@ -124,7 +125,7 @@ void help() {
     Serial.println("[cmd] status | portal | wifi <ssid> [password] | forget-wifi | companion <http://host:port>|auto");
     Serial.println("[cmd] source auto|companion|direct | server <host:port>|auto | lyrics auto|<url>|none | lyrics-token <t>|none | forget-pairing");
     Serial.println("[cmd] weather <town>|none | news <rss url>|none");
-    Serial.println("[cmd] token <token>|none | zone <zone_id>|auto | lead <ms> | backdrop on|off | scroll on|off | sleep <min>|off | view lyrics|cover|clock | ota check|install | settings [close|qr] | tz <POSIX TZ>|default | warmth <0-100> | colours | backlight <0-100> | demo [off|pos <ms>|manual on|off|slide <%>] | show <screen>|none | shots on|off | screenshot | lib ... | touchdiag | erase-all | bringup | restart");
+    Serial.println("[cmd] token <token>|none | zone <zone_id>|auto | lead <ms> | backdrop on|off | scroll on|off | sleep <min>|off | view lyrics|cover|clock | ota check|install | settings [close|qr] | tz <POSIX TZ>|default | lang en|fr | warmth <0-100> | colours | backlight <0-100> | demo [off|pos <ms>|manual on|off|slide <%>] | show <screen>|none | shots on|off | screenshot | lib ... | touchdiag | erase-all | bringup | restart");
 }
 
 // Development console on the USB serial port (115200).
@@ -218,6 +219,17 @@ void handleCommand(String line) {
         } else {
             settingsui::open();
             settingsui::refresh(net::snapshot(), ota::status());
+        }
+    } else if (cmd == "lang" && arg.length()) {
+        i18n::Lang l;
+        if (i18n::LANG_COUNT < 2) Serial.println("[cmd] this board's firmware is English only");
+        else if (!i18n::parse(arg.c_str(), l)) Serial.println("[cmd] lang en|fr");
+        else if (l == i18n::lang()) Serial.printf("[cmd] already %s\n", i18n::code(l));
+        else {
+            settings::setLang((uint8_t)l);
+            Serial.printf("[cmd] language %s, restarting\n", i18n::code(l));
+            delay(100);
+            board::restart();
         }
     } else if (cmd == "tz" && arg.length()) {
         settings::setTz(arg == "default" ? "" : arg);
@@ -343,6 +355,7 @@ void setup() {
 
     if (!fonts::begin()) Serial.println("[tft-panel] ERROR: TTF fonts unavailable, accents will be missing");
     settings::begin();
+    if (i18n::LANG_COUNT > 1) i18n::setLang((i18n::Lang)settings::lang());   // before anything draws or serves a page
     net::begin();
     board::setWarmth(settings::warmth());   // white balance before the first frame
     ui::show();

@@ -62,6 +62,8 @@ void setWarmth(uint8_t percent) { g.warmth = percent; }
 uint8_t warmth() { return g.warmth; }
 void setTz(const String &tz) { g.tz = tz; }
 String tz() { return g.tz.length() ? g.tz : String(DEFAULT_TZ); }
+void setLang(uint8_t lang) { g.lang = lang; }
+uint8_t lang() { return g.lang; }
 void forgetWifi() { setWifi(String(), String()); }
 void eraseAll() { g = capturePanel(); }
 }  // namespace settings
@@ -95,7 +97,7 @@ void seek(int32_t) {}
 void library(LibOp, int, const String &) {}
 
 namespace weather {
-const char *describe(uint8_t) { return "Clear"; }
+const char *describe(uint8_t, i18n::Lang lang) { return i18n::tr(Str::WxClear, lang); }
 }
 namespace lyricsrc {
 void forgetDiscovered() {}

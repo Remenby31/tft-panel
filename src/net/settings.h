@@ -35,6 +35,7 @@ struct Settings {
     bool clock = true;     // big clock on the dimmed screen when nothing plays
     uint8_t warmth = board::DEFAULT_WARMTH;   // colour warmth 0..100 %, against a bluish panel white
     String tz;             // POSIX TZ string; empty = DEFAULT_TZ
+    uint8_t lang = 0;      // i18n::Lang, read once at boot: 0 = English
 };
 
 // US Eastern by default; changed on the settings screen (console: tz <POSIX TZ>).
@@ -77,6 +78,8 @@ void setWarmth(uint8_t percent);
 uint8_t warmth();
 void setTz(const String &tz);
 String tz();                   // never empty: DEFAULT_TZ when unset
+void setLang(uint8_t lang);    // takes effect at the next boot
+uint8_t lang();
 void forgetWifi();
 void eraseAll();
 

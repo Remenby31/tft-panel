@@ -83,6 +83,16 @@ source only discovers a server, reads it, and calls the `publish*` functions of 
 It also builds the cover URLs, because the cover task runs on another core and must never read a
 source's address while the net task changes it.
 
+**Languages.** Every word the screens and the panel's pages show is an id in one table,
+`src/app/i18n_strings.inc`, with its English and its French. `X()` rows are for the screens,
+`P()` rows fill the `%Id%` tokens of the page templates. The language is read from NVS once at boot,
+so changing it restarts the panel instead of rebuilding screens. Logs and the console stay English.
+`-DI18N_NO_FR` (CrowPanel, short of flash) builds without French and without the table: `tr()` is
+`constexpr`, so each call folds to its English literal, and `I18N_PAGE` fills a page template at
+compile time. That holds only for a constant id. Write `c ? tr(A) : tr(B)`, not `tr(c ? A : B)`,
+which brings the whole English table back into flash.
+`test/test_i18n` checks that every row has its French, with the same printf arguments and list items.
+
 **Which source.** Chosen by hand (page, settings screen, console `source`), it is fixed. `auto`,
 the default on a new panel, asks both all along and `sourcechoice::Chooser` (`source_choice.h`)
 decides: a companion plays at once; a music server that has accepted the panel takes over (lyrics

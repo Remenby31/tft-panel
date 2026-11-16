@@ -15,6 +15,7 @@
 
 #include "net.h"
 #include "net_internal.h"
+#include "../app/i18n.h"
 
 namespace net {
 

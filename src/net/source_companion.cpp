@@ -1,5 +1,7 @@
 #include "source_companion.h"
 
+#include "../app/i18n.h"
+
 #include <ESPmDNS.h>
 #include <HTTPClient.h>
 #include <WiFi.h>
@@ -71,9 +73,9 @@ HttpResult CompanionSource::request(const String &path, const JsonDocument *body
 void CompanionSource::reportFailure(const char *what, const HttpResult &r) {
     consecutiveFails_++;
     String msg;
-    if (r.code == 401) msg = "Companion needs its access token (set it in the setup portal)";
-    else if (r.code == 503) msg = "Companion: Roon Core not connected";
-    else msg = String("Companion ") + what + " failed: " + r.message;
+    if (r.code == 401) msg = tr(Str::StCompanionToken);
+    else if (r.code == 503) msg = tr(Str::StCompanionNoCore);
+    else msg = i18n::fmt(Str::StCompanionFailed, what, r.message.c_str());
     setPhase(Phase::CompanionError, msg);
     if (fromMdns_ && consecutiveFails_ >= FAILS_BEFORE_REDISCOVERY) {
         Serial.printf("[net] dropping %s after %d failures, rediscovering\n", baseUrl_.c_str(), consecutiveFails_);
@@ -102,14 +104,14 @@ bool CompanionSource::connect(uint32_t now) {
         fromMdns_ = false;
     } else {
         ensureMdns();
-        setPhase(Phase::Discovering, "Looking for the TextFromTrack companion on the network...");
+        setPhase(Phase::Discovering, tr(Str::StLookingCompanion));
         String host;
         baseUrl_ = mdnsServiceUrl("textfromtrack", "tcp", &host);
         if (baseUrl_.length()) {
             fromMdns_ = true;
             Serial.printf("[net] companion \"%s\" at %s\n", host.c_str(), baseUrl_.c_str());
         } else {
-            setPhase(Phase::Discovering, "No companion found on the network yet (is it running?)");
+            setPhase(Phase::Discovering, tr(Str::StNoCompanion));
             return false;
         }
     }
@@ -137,7 +139,7 @@ bool CompanionSource::refreshZones() {
                          z["now_playing_title"] | "", z["now_playing_artist"] | ""});
     if (!publishZones(list)) {
         consecutiveFails_ = 0;
-        setPhase(Phase::Idle, "The companion sees no Roon zone");
+        setPhase(Phase::Idle, tr(Str::StCompanionNoZone));
         return false;
     }
     return true;
@@ -252,13 +254,13 @@ void CompanionSource::command(const Command &c) {
         body["zone_id"] = zoneId;   // always: never act on the companion's global active zone
         HttpResult r = request("/api/roon/control", &body, resp, 4000);
         if (r.code == 200) Serial.printf("[net] control %s ok\n", c.arg);
-        else commandFailed(String("Control ") + c.arg, r);
+        else commandFailed(i18n::fmt(Str::CmdControl, c.arg), r);
     } else if (c.type == CmdType::Seek) {
         body["zone_id"] = zoneId;
         body["how"] = "absolute";
         body["seconds"] = (int32_t)(c.value / 1000);
         HttpResult r = request("/api/roon/seek", &body, resp, 4000);
-        if (r.code != 200) commandFailed("Seek", r);
+        if (r.code != 200) commandFailed(tr(Str::CmdSeek), r);
     } else if (c.type == CmdType::VolumeSet) {
         for (const OutputInfo &o : outputs) {
             if (o.volumeType != "number" && o.volumeType != "db") continue;
@@ -266,7 +268,7 @@ void CompanionSource::command(const Command &c) {
             body["how"] = "absolute";
             body["value"] = c.value;
             HttpResult r = request("/api/roon/volume", &body, resp, 4000);
-            if (r.code != 200) commandFailed("Volume " + o.name, r);
+            if (r.code != 200) commandFailed(String(tr(Str::Volume)) + " " + o.name, r);
             break;   // the slider follows the first output with an absolute volume
         }
     } else if (c.type == CmdType::Mute) {
@@ -276,7 +278,7 @@ void CompanionSource::command(const Command &c) {
             body["output_id"] = o.id;
             body["how"] = c.direction ? "mute" : "unmute";
             HttpResult r = request("/api/roon/mute", &body, resp, 4000);
-            if (r.code != 200) commandFailed(String(c.direction ? "Mute " : "Unmute ") + o.name, r);
+            if (r.code != 200) commandFailed(String((c.direction ? tr(Str::Mute) : tr(Str::Unmute))) + " " + o.name, r);
         }
     } else if (c.type == CmdType::Offset) {
         String title, artist, album;
@@ -288,7 +290,7 @@ void CompanionSource::command(const Command &c) {
         body["offset_ms"] = (int32_t)c.value;
         HttpResult r = request("/api/lyrics/offset", &body, resp, 4000);
         if (r.code != 200) {
-            commandFailed("Lyrics offset", r);
+            commandFailed(tr(Str::CmdLyricsOffset), r);
             return;
         }
         int32_t saved = resp["offset_ms"] | (int32_t)c.value;
@@ -304,13 +306,13 @@ void CompanionSource::command(const Command &c) {
             body["how"] = "relative_step";
             body["value"] = c.direction;
             HttpResult r = request("/api/roon/volume", &body, resp, 4000);
-            if (r.code != 200) commandFailed("Volume " + o.name, r);
+            if (r.code != 200) commandFailed(String(tr(Str::Volume)) + " " + o.name, r);
             sent++;
         }
         if (!sent) {
             HttpResult r;
-            r.message = "this zone has no volume control";
-            commandFailed("Volume", r);
+            r.message = tr(Str::NoVolumeControl);
+            commandFailed(tr(Str::Volume), r);
         }
     }
     lastNowPlayingAt_ = 0;   // show the effect right away
