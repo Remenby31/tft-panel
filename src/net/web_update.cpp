@@ -56,8 +56,9 @@ a{color:#6db56d}</style></head><body>
 <form method=post action=/settings>
 %CODEROW%
 <label>%PgSource%
-<select name=source><option value=companion%CSEL%>%PgSourceCompanion%</option>
-<option value=direct%DSEL%>%PgSourceDirect%</option></select></label>
+<select name=source><option value=auto%ASEL%>%PgSourceAuto%</option>
+<option value=companion%CSEL%>%PgSourceCompanion%</option>
+<option value=direct%DSEL%>%PgSourceDirect%</option></select></label>%SNOTE%
 <label>%PgCompanion% <small>%PgCompanionHint%</small>
 <input name=companion placeholder="http://192.168.1.20:3888" value="%COMPANION%"></label>
 <label>%PgToken% <small>%PgTokenHint%</small>
@@ -366,11 +367,13 @@ void sendSettings(const String &message, bool error = false, bool keepTyped = fa
         langRow += "</select></label>";
     }
     h.replace("%LANGROW%", langRow);
-    bool direct = (keepTyped ? g_server->arg("source") == "direct"
-                             : st.source == settings::SourceKind::Direct);
+    settings::SourceKind shown = keepTyped ? sourcechoice::parse(g_server->arg("source").c_str()) : st.source;
     h.replace("%COMPANION%", esc(val("companion", st.companionUrl)));
-    h.replace("%CSEL%", direct ? "" : " selected");
-    h.replace("%DSEL%", direct ? " selected" : "");
+    h.replace("%ASEL%", shown == settings::SourceKind::Auto ? " selected" : "");
+    h.replace("%CSEL%", shown == settings::SourceKind::Companion ? " selected" : "");
+    h.replace("%DSEL%", shown == settings::SourceKind::Direct ? " selected" : "");
+    String found = st.source == settings::SourceKind::Auto ? net::snapshot().sourceNote : String();
+    h.replace("%SNOTE%", found.length() ? "<p class=found>" + esc(found) + "</p>" : String());
     h.replace("%LYRICS%", esc(val("lyrics", st.lyricsUrl)));
     h.replace("%WEATHER%", esc(val("weather", st.weatherPlace)));
     net::weather::Now w = net::snapshot().weather;
@@ -423,9 +426,7 @@ void handleSettingsSave() {
     while (companion.endsWith("/")) companion.remove(companion.length() - 1);
     while (lyrics.endsWith("/")) lyrics.remove(lyrics.length() - 1);
 
-    settings::SourceKind wanted = !g_server->hasArg("source") ? was.source
-                                  : arg("source") == "direct" ? settings::SourceKind::Direct
-                                                              : settings::SourceKind::Companion;
+    settings::SourceKind wanted = !g_server->hasArg("source") ? was.source : sourcechoice::parse(arg("source").c_str());
     i18n::Lang lang = i18n::lang();
     if (i18n::LANG_COUNT > 1 && g_server->hasArg("lang")) i18n::parse(arg("lang").c_str(), lang);
     bool langChanged = i18n::LANG_COUNT > 1 && lang != i18n::lang();

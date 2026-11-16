@@ -191,6 +191,21 @@ void showPageQrBox() {
 
 lv_obj_t *g_sourceDrop = nullptr;
 lv_obj_t *g_langDrop = nullptr;
+lv_obj_t *g_sourceSub = nullptr;
+
+// The source list's order on screen.
+constexpr settings::SourceKind SOURCE_ROWS[] = {settings::SourceKind::Auto, settings::SourceKind::Companion,
+                                                settings::SourceKind::Direct};
+int sourceRow(settings::SourceKind k) {
+    for (int i = 0; i < 3; i++)
+        if (SOURCE_ROWS[i] == k) return i;
+    return 0;
+}
+
+String sourceText(settings::SourceKind k, const String &found) {
+    if (k == settings::SourceKind::Auto) return found.length() ? found : String(tr(Str::SourceAutoSub));
+    return tr(Str::MusicFromSub);
+}
 lv_obj_t *g_lyricsDrop = nullptr;
 lv_obj_t *g_lyricsSub = nullptr;
 
@@ -204,10 +219,14 @@ void showLyricsSource() {
 
 // A source owns its connection to its server, so swapping one for the other is a restart.
 void confirmSource(settings::SourceKind kind) {
-    bool direct = kind == settings::SourceKind::Direct;
+    bool direct = kind == settings::SourceKind::Direct, automatic = kind == settings::SourceKind::Auto;
     lv_obj_t *mb = lv_msgbox_create(nullptr);
-    lv_msgbox_add_title(mb, (direct ? tr(Str::SourceDirectTitle) : tr(Str::SourceCompanionTitle)));
-    lv_msgbox_add_text(mb, (direct ? tr(Str::SourceDirectText) : tr(Str::SourceCompanionText)));
+    lv_msgbox_add_title(mb, automatic ? tr(Str::SourceAutoTitle)
+                            : direct  ? tr(Str::SourceDirectTitle)
+                                      : tr(Str::SourceCompanionTitle));
+    lv_msgbox_add_text(mb, automatic ? tr(Str::SourceAutoText)
+                           : direct  ? tr(Str::SourceDirectText)
+                                     : tr(Str::SourceCompanionText));
     lv_obj_t *yes = lv_msgbox_add_footer_button(mb, tr(Str::Restart));
     lv_obj_t *no = lv_msgbox_add_footer_button(mb, tr(Str::Cancel));
     lv_obj_set_width(mb, X(600));
@@ -222,9 +241,7 @@ void confirmSource(settings::SourceKind kind) {
     lv_obj_add_event_cb(no, [](lv_event_t *e) {
         lv_msgbox_close((lv_obj_t *)lv_event_get_user_data(e));
         // Put the list back on what is actually in use.
-        if (g_sourceDrop)
-            lv_dropdown_set_selected(g_sourceDrop,
-                                     settings::source() == settings::SourceKind::Direct ? 1 : 0);
+        if (g_sourceDrop) lv_dropdown_set_selected(g_sourceDrop, sourceRow(settings::source()));
     }, LV_EVENT_CLICKED, mb);
 }
 
@@ -369,12 +386,10 @@ void buildRows() {
 
     // Where the music information comes from, and where the lyrics come from. Both are shown
     // whatever the board, because a panel has to be usable with no console attached.
-    r = row(tr(Str::MusicFrom), nullptr, &sub);
-    lv_label_set_text(sub, tr(Str::MusicFromSub));
-    g_sourceDrop = dropdown(r, tr(Str::SourceChoices),
-                            settings::source() == settings::SourceKind::Direct ? 1 : 0, [](lv_event_t *) {
-        settings::SourceKind chosen = lv_dropdown_get_selected(g_sourceDrop) == 1 ? settings::SourceKind::Direct
-                                                                                  : settings::SourceKind::Companion;
+    r = row(tr(Str::MusicFrom), nullptr, &g_sourceSub);
+    setText(g_sourceSub, sourceText(settings::source(), net::snapshot().sourceNote));
+    g_sourceDrop = dropdown(r, tr(Str::SourceChoices), sourceRow(settings::source()), [](lv_event_t *) {
+        settings::SourceKind chosen = SOURCE_ROWS[lv_dropdown_get_selected(g_sourceDrop)];
         if (chosen == settings::source()) return;
         confirmSource(chosen);
     });
@@ -585,6 +600,7 @@ void refresh(const net::Snapshot &s, const ota::Status &o) {
         case ota::State::Failed: status = i18n::fmt(Str::FwFailed, o.error.c_str()); break;
     }
     setText(g_fwStatus, status);
+    if (g_sourceSub) setText(g_sourceSub, sourceText(st.source, s.sourceNote));
     setText(g_fwButtonLabel, g_updateAvailable ? i18n::fmt(Str::FwInstall, o.latest.c_str()) : String(tr(Str::CheckNow)));
     char ram[24];
     snprintf(ram, sizeof ram, "%u KB", (unsigned)(heap_caps_get_free_size(MALLOC_CAP_INTERNAL) / 1024));

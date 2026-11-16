@@ -118,7 +118,8 @@ it does, and it is nothing to worry about for the first few seconds:
 
 ![Looking for your music server](images/searching.png)
 
-It finds the companion by itself. Only 2.4 GHz networks
+It finds the music server, or the companion, by itself: with both on the network, music comes from
+the server and lyrics from the companion; **Settings > Music from** says what it found. Only 2.4 GHz networks
 work (most routers offer both). To move the panel to another network later: **Settings > Wi-Fi >
 Change...**. If the companion is
 on another network segment, its address (and its access token, if you set one) can be typed on
@@ -283,7 +284,8 @@ flash until the new one has proved it starts.
 |---|---|
 | The setup QR codes come back | The panel cannot join your Wi-Fi for a minute: check the password, or that the network is 2.4 GHz. |
 | "Looking for the TextFromTrack companion" | Start the companion on its computer; same network as the panel. If it runs on a laptop with a dock or a second network adapter, give the panel its address on the panel's page instead: a machine can announce an address that is not reachable from the panel. |
-| "Enable TFT Panel in Roon" | Direct mode: open Roon → Settings → Extensions and enable it once. |
+| "Looking for your music server, or a TextFromTrack companion" | A new panel uses whichever answers: the music server itself, or the companion. Check that one of them runs on the same network as the panel. |
+| "One step left: in its Settings > Extensions, enable TFT Panel" | The panel found the music server: open Roon → Settings → Extensions and enable it once. |
 | The weather shows the wrong town | On the panel's page, add a region or country after the name (`Paris, Texas`). |
 | The page says the code is wrong | The code on the screen changes every five minutes; read the new one. |
 | "No lyrics found for this track" | The lyrics server found none; the cover view shows instead. |

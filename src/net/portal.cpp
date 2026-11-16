@@ -71,6 +71,7 @@ I18N_PAGE(FORM, R"(<h1>%PgPortalTitle%</h1>%ERROR%%NETWORKS%<form method=post ac
 <label>%PgToken% <small>%PortalTokenHint%</small>
 <input name=token type=password placeholder="%TOKENHINT%"></label>
 <label>%PgSource%<select name=source>
+<option value=auto%AUTOSEL%>%PgSourceAuto%</option>
 <option value=companion%COMPANIONSEL%>%PgSourceCompanion%</option>
 <option value=direct%DIRECTSEL%>%PgSourceDirect%</option></select></label>
 <label>%PortalLyricsServer% <small>%PortalLyricsHint%</small>
@@ -95,6 +96,7 @@ void sendForm(const String &error, const String &typedSsid = String()) {
     f.replace("%PASSHINT%", s.wifiPass.length() ? tr(Str::PortalUnchanged) : "");
     f.replace("%TOKENHINT%", s.accessToken.length() ? setHint : "");
     f.replace("%LYRICSTOKENHINT%", s.lyricsToken.length() ? setHint : "");
+    f.replace("%AUTOSEL%", s.source == settings::SourceKind::Auto ? " selected" : "");
     f.replace("%COMPANIONSEL%", s.source == settings::SourceKind::Companion ? " selected" : "");
     f.replace("%DIRECTSEL%", s.source == settings::SourceKind::Direct ? " selected" : "");
     f.replace("%ERROR%", error.length() ? "<p class=err>" + esc(error) + "</p>" : String());
@@ -141,8 +143,7 @@ void handleSave() {
     settings::setWifi(ssid, pass);
     settings::setCompanion(companion);
     if (token.length()) settings::setToken(token);
-    if (source.length()) settings::setSource(source == "direct" ? settings::SourceKind::Direct
-                                                                : settings::SourceKind::Companion);
+    if (source.length()) settings::setSource(sourcechoice::parse(source.c_str()));
     settings::setLyricsUrl(lyrics);
     if (lyricsToken.length()) settings::setLyricsToken(lyricsToken == "none" ? "" : lyricsToken);
 

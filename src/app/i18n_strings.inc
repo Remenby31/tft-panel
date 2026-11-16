@@ -78,8 +78,8 @@ X(MusicFromSub,
   "itself, with nothing in between.",
   "Le compagnon lit vos propres fichiers et classe ce qu’il trouve. En direct, le panneau parle au "
   "serveur de musique lui-même, sans intermédiaire.")
-X(SourceChoices, "TextFromTrack companion\nThe music server, directly",
-  "Le compagnon\nLe serveur, en direct")
+X(SourceChoices, "Whatever it finds\nTextFromTrack companion\nThe music server, directly",
+  "Ce qu’il trouve\nLe compagnon\nLe serveur, en direct")
 X(Lyrics, "Lyrics", "Paroles")
 X(LyricsChoices, "A companion on the network\nNo lyrics", "Compagnon sur le réseau\nPas de paroles")
 X(Zone, "Zone", "Zone")
@@ -442,10 +442,48 @@ X(QueueNoSource, "no queue with this source", "pas de file d’attente avec cett
 // Direct source (no companion)
 X(StLookingServer, "Looking for the music server on the network...", "Recherche du serveur de musique sur le réseau…")
 X(StConnectingTo, "Connecting to %s", "Connexion à %s")
-X(StEnableExtension, "Enable \"%s\" in the music server's extension settings",
-  "Activez « %s » dans les réglages d’extensions du serveur de musique")
 X(StPairedWith, "Paired with %s", "Associé à %s")
 X(StServerError, "Music server: %s", "Serveur de musique : %s")
 X(StConnectionLost, "connection lost", "connexion perdue")
 X(StServerNoZone, "The music server has no zone", "Le serveur de musique n’a aucune zone")
 X(NoVolumeControl, "this zone has no volume control", "cette zone n’a pas de réglage du volume")
+
+// First run: the source the panel picks by itself (source_choice.h), and the pairing step
+X(SourceAutoTitle, "Find it by itself?", "Chercher tout seul ?")
+X(SourceAutoText,
+  "The panel restarts and looks for both. A music server is used for the music, and a companion, if "
+  "there is one, for the lyrics.",
+  "Le panneau redémarre et cherche les deux. Le serveur de musique fournit la musique, et un compagnon, "
+  "s’il y en a un, les paroles.")
+X(SourceAutoSub, "Looks for a music server and a TextFromTrack companion at every start.",
+  "Cherche un serveur de musique et un compagnon TextFromTrack à chaque démarrage.")
+P(PgSourceAuto, "Whatever the panel finds on the network", "Ce que le panneau trouve sur le réseau")
+X(AutoLooking, "Looking for your music server, or a TextFromTrack companion, on this Wi-Fi...",
+  "Recherche de votre serveur de musique, ou d’un compagnon TextFromTrack, sur ce Wi-Fi…")
+X(AutoFoundCompanionLooking, "Found a TextFromTrack companion. Checking for a music server too...",
+  "Compagnon TextFromTrack trouvé. Recherche d’un serveur de musique aussi…")
+X(AutoCompanion, "Found a TextFromTrack companion: music and lyrics come from it.",
+  "Compagnon TextFromTrack trouvé : la musique et les paroles viennent de lui.")
+X(AutoDirectWithLyrics,
+  "Found your music server and a TextFromTrack companion: music from the server, lyrics from the companion.",
+  "Serveur de musique et compagnon TextFromTrack trouvés : la musique vient du serveur, les paroles du "
+  "compagnon.")
+X(AutoDirect, "Found your music server: music comes from it directly.",
+  "Serveur de musique trouvé : la musique vient directement de lui.")
+X(StPairingNamed, "Found the music server \"%s\". One step left: in its Settings > Extensions, enable \"%s\"",
+  "Serveur de musique « %s » trouvé. Dernière étape : dans ses Paramètres > Extensions, activez « %s »")
+X(StPairing, "Found the music server. One step left: in its Settings > Extensions, enable \"%s\"",
+  "Serveur de musique trouvé. Dernière étape : dans ses Paramètres > Extensions, activez « %s »")
+
+// Status line (net.cpp)
+X(StPlaying, "Playing", "Lecture")
+X(StPaused, "Paused", "En pause")
+X(StNothingPlayingIn, "Nothing playing in %s", "Rien en lecture dans %s")
+X(StWifiNotSetUp, "Wi-Fi not set up: join the panel's network to configure it",
+  "Wi-Fi non configuré : rejoignez le réseau du panneau pour le configurer")
+X(StJoiningWifi, "Joining Wi-Fi \"%s\"...", "Connexion au Wi-Fi « %s »…")
+X(StCannotJoin, "Cannot join \"%s\": %s - retrying", "Impossible de rejoindre « %s » : %s - nouvel essai")
+X(WifiReasonNotFound, "network not found", "réseau introuvable")
+X(WifiReasonPassword, "wrong password?", "mot de passe erroné ?")
+X(WifiReasonRefused, "association refused", "association refusée")
+X(WifiReasonTimeout, "timeout", "délai dépassé")

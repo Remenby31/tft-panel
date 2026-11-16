@@ -101,6 +101,20 @@ bool DirectSource::connect(uint32_t) {
 
 void DirectSource::pump() { g_client.tick(); }
 
+bool DirectSource::serverFound() const {
+    switch (g_client.state()) {
+        case tftcore::State::Connecting:
+        case tftcore::State::Registering:
+        case tftcore::State::NeedsApproval:
+        case tftcore::State::Paired:
+            return true;
+        default:
+            return false;
+    }
+}
+
+void DirectSource::stop() { g_client.disconnect(); }
+
 void DirectSource::zoneSelectionChanged() {
     // The zone list is already here: re-pick from it at once instead of waiting for a push.
     tftcore::ZoneDelta delta;
@@ -120,7 +134,9 @@ void DirectSource::onState(void *, tftcore::State state, const char *detail) {
             setPhase(Phase::Discovering, i18n::fmt(Str::StConnectingTo, g_client.serverName()));
             break;
         case tftcore::State::NeedsApproval:
-            setPhase(Phase::CompanionError, i18n::fmt(Str::StEnableExtension, g_displayName.c_str()));
+            setPhase(Phase::Pairing, *g_client.serverName()
+                                         ? i18n::fmt(Str::StPairingNamed, g_client.serverName(), g_displayName.c_str())
+                                         : i18n::fmt(Str::StPairing, g_displayName.c_str()));
             break;
         case tftcore::State::Paired: {
             char url[80];

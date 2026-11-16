@@ -94,6 +94,12 @@ compile time. That holds only for a constant id. Write `c ? tr(A) : tr(B)`, not 
 which brings the whole English table back into flash.
 `test/test_i18n` checks that every row has its French, with the same printf arguments and list items.
 
+**Which source.** Chosen once per start. By hand (page, settings screen, console `source`) it is
+kept; `auto`, the default on a new panel, looks for both until `source_choice.h` picks: a music
+server means direct (lyrics then come from a companion through the lyrics setting's default),
+a companion alone is taken after a 12 s wait for a server. A panel updated from a release
+without `auto` has its companion written down on first start, so an update never moves it.
+
 **Boards.** `board.h` is the only interface the rest of the firmware sees; each board compiles
 its own file, chosen by the environment's `-DBOARD_…` flag: `board_crowpanel7.cpp` (ESP32-S3, RGB
 panel fed from bounce buffers, frozen update screen) and `board_p4_mipi.cpp` (ESP32-P4, MIPI-DSI,

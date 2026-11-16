@@ -4,12 +4,9 @@
 #include <Arduino.h>
 
 #include "../board/board_pins.h"
+#include "source_choice.h"   // SourceKind
 
 namespace settings {
-
-// Where the panel gets what it shows. The companion is the recommended path and the only one
-// with lyrics; Direct talks to the music server itself, for people who will not run it.
-enum class SourceKind : uint8_t { Companion = 0, Direct = 1 };
 
 struct Settings {
     String wifiSsid;
@@ -17,7 +14,7 @@ struct Settings {
     String companionUrl;   // "http://host:port"; empty = discover via mDNS
     String accessToken;    // companion ACCESS_TOKEN; empty = none
     String zoneId;         // pinned zone; empty = follow the playing zone
-    SourceKind source = SourceKind::Companion;
+    SourceKind source = SourceKind::Auto;
     String serverHost;     // direct mode: "host:port" to skip discovery; empty = find it
     String serverId;       // direct mode: the server this pairing belongs to
     String serverToken;    // direct mode: the pairing token, so it is asked for only once

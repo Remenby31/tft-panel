@@ -38,8 +38,9 @@ void printStatus() {
     Serial.printf("[status] wifi ssid=\"%s\" ip=%s dns=%s,%s portal=%d ap=\"%s\"\n", st.wifiSsid.c_str(), s.staIp.c_str(),
                   WiFi.dnsIP(0).toString().c_str(), WiFi.dnsIP(1).toString().c_str(), s.portalActive, s.apSsid.c_str());
     Serial.printf("[status] source=%s server=%s (%s) token=%s\n",
-                  settings::source() == settings::SourceKind::Direct ? "direct" : "companion",
+                  sourcechoice::name(settings::source()),
                   s.companion.c_str(), st.companionUrl.length() ? "manual" : "mDNS", st.accessToken.length() ? "set" : "none");
+    if (s.sourceNote.length()) Serial.printf("[status] auto: %s\n", s.sourceNote.c_str());
     // The id as well as the name: `zone <id>` is the only way to pin one without the touch
     // screen, and nothing else prints it.
     Serial.printf("[status] zone=\"%s\" (%s) %s state=%s track=\"%s - %s\" pos=%d/%u ms\n", s.zoneName.c_str(),
@@ -122,7 +123,7 @@ void screenshot() {
 
 void help() {
     Serial.println("[cmd] status | portal | wifi <ssid> [password] | forget-wifi | companion <http://host:port>|auto");
-    Serial.println("[cmd] source companion|direct | server <host:port>|auto | lyrics auto|<url>|none | lyrics-token <t>|none | forget-pairing");
+    Serial.println("[cmd] source auto|companion|direct | server <host:port>|auto | lyrics auto|<url>|none | lyrics-token <t>|none | forget-pairing");
     Serial.println("[cmd] weather <town>|none | news <rss url>|none");
     Serial.println("[cmd] token <token>|none | zone <zone_id>|auto | lead <ms> | backdrop on|off | scroll on|off | sleep <min>|off | view lyrics|cover|clock | ota check|install | settings [close|qr] | tz <POSIX TZ>|default | lang en|fr | warmth <0-100> | colours | flush cpu|dma|dma2 | backlight <0-100> | demo [off|pos <ms>|manual on|off|slide <%>] | show <screen>|none | shots on|off | screenshot | lib ... | touchdiag | erase-all | bringup | restart");
 }
@@ -149,9 +150,9 @@ void handleCommand(String line) {
         net::reconnect();
         Serial.println("[cmd] Wi-Fi forgotten");
     } else if (cmd == "source" && arg.length()) {
-        bool direct = arg == "direct" || arg == "roon";
-        settings::setSource(direct ? settings::SourceKind::Direct : settings::SourceKind::Companion);
-        Serial.printf("[cmd] source = %s, restarting\n", direct ? "direct" : "companion");
+        settings::SourceKind kind = sourcechoice::parse(arg.c_str());
+        settings::setSource(kind);
+        Serial.printf("[cmd] source = %s, restarting\n", sourcechoice::name(kind));
         delay(300);
         board::restart();
     } else if (cmd == "server" && arg.length()) {
