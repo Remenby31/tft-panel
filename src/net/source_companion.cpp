@@ -206,6 +206,7 @@ void CompanionSource::pollNowPlaying() {
     n.canPause = np["is_pause_allowed"] | false;
     n.canNext = np["is_next_allowed"] | false;
     n.canPrevious = np["is_previous_allowed"] | false;
+    n.canSeek = np["is_seek_allowed"] | false;
     publishNowPlaying(std::move(n));
 }
 
@@ -257,6 +258,12 @@ void CompanionSource::command(const Command &c) {
         HttpResult r = request("/api/roon/control", &body, resp, 4000);
         if (r.code == 200) Serial.printf("[net] control %s ok\n", c.arg);
         else commandFailed(String("Control ") + c.arg, r);
+    } else if (c.type == CmdType::Seek) {
+        body["zone_id"] = zoneId;
+        body["how"] = "absolute";
+        body["seconds"] = (int32_t)(c.value / 1000);
+        HttpResult r = request("/api/roon/seek", &body, resp, 4000);
+        if (r.code != 200) commandFailed("Seek", r);
     } else if (c.type == CmdType::VolumeSet) {
         for (const OutputInfo &o : outputs) {
             if (o.volumeType != "number" && o.volumeType != "db") continue;

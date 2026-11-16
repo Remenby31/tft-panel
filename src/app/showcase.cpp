@@ -97,7 +97,7 @@ net::Snapshot make(int32_t positionMs) {
     s.artist = "The Demo Lights";
     s.album = "Night Drive";
     s.durationMs = 234000;
-    s.canPlay = s.canPause = s.canNext = s.canPrevious = true;
+    s.canPlay = s.canPause = s.canNext = s.canPrevious = s.canSeek = true;
     net::OutputInfo o;
     o.id = "out-living";
     o.name = "Living Room";

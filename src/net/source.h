@@ -18,7 +18,7 @@
 
 namespace net {
 
-enum class CmdType : uint8_t { Control, Volume, Zone, VolumeSet, Mute, Offset, Library, Queue, Group };
+enum class CmdType : uint8_t { Control, Volume, Zone, VolumeSet, Mute, Offset, Library, Seek, Queue, Group };
 
 // A user action, queued from the UI so a tap never blocks it.
 struct Command {
@@ -40,7 +40,7 @@ struct NowPlaying {
     // How far past `seekMs` the true position can be at `sampleAtMs`: a whole second when the
     // position was asked for, nothing when the server pushed it as the second ticked over.
     int32_t quantumMs = 1000;
-    bool canPlay = false, canPause = false, canNext = false, canPrevious = false;
+    bool canPlay = false, canPause = false, canNext = false, canPrevious = false, canSeek = false;
     std::vector<OutputInfo> outputs;
 };
 
