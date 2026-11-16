@@ -39,8 +39,10 @@ void begin() {
     g_s.companionUrl = read("companion");
     g_s.accessToken = read("token");
     g_s.zoneId = read("zone");
-    g_s.source = g_prefs.isKey("source") && g_prefs.getUChar("source", 0) == 1 ? SourceKind::Direct
-                                                                               : SourceKind::Companion;
+    bool sourceStored = g_prefs.isKey("source");
+    g_s.source = sourcechoice::fromStored(sourceStored, sourceStored ? g_prefs.getUChar("source", 0) : 0,
+                                          g_s.wifiSsid.length() > 0);
+    if (!sourceStored) g_prefs.putUChar("source", (uint8_t)g_s.source);
     g_s.serverHost = read("srv_host");
     g_s.serverId = read("srv_id");
     g_s.serverToken = read("srv_token");
@@ -326,6 +328,7 @@ void eraseAll() {
     g_prefs.begin(NS, false);
     g_prefs.clear();
     g_prefs.putString("ap_pass", apPass);
+    g_prefs.putUChar("source", (uint8_t)SourceKind::Auto);   // a reset panel is a new one
     g_prefs.end();
     xSemaphoreTake(g_lock, portMAX_DELAY);
     g_s = Settings();

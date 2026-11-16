@@ -196,6 +196,23 @@ void showPageQrBox() {
 }
 
 lv_obj_t *g_sourceDrop = nullptr;
+lv_obj_t *g_sourceSub = nullptr;
+
+// The source list's order on screen.
+constexpr settings::SourceKind SOURCE_ROWS[] = {settings::SourceKind::Auto, settings::SourceKind::Companion,
+                                                settings::SourceKind::Direct};
+int sourceRow(settings::SourceKind k) {
+    for (int i = 0; i < 3; i++)
+        if (SOURCE_ROWS[i] == k) return i;
+    return 0;
+}
+
+String sourceText(settings::SourceKind k, const String &found) {
+    if (k == settings::SourceKind::Auto)
+        return found.length() ? found : String("Looks for a music server and a TextFromTrack companion at every start.");
+    return "The companion reads your own files and ranks what it finds. Direct talks to the music server "
+           "itself, with nothing in between.";
+}
 lv_obj_t *g_lyricsDrop = nullptr;
 lv_obj_t *g_lyricsSub = nullptr;
 
@@ -209,15 +226,17 @@ void showLyricsSource() {
 
 // A source owns its connection to its server, so swapping one for the other is a restart.
 void confirmSource(settings::SourceKind kind) {
-    bool direct = kind == settings::SourceKind::Direct;
+    bool direct = kind == settings::SourceKind::Direct, automatic = kind == settings::SourceKind::Auto;
     lv_obj_t *mb = lv_msgbox_create(nullptr);
-    lv_msgbox_add_title(mb, direct ? "Talk to the music server?" : "Use the companion?");
-    lv_msgbox_add_text(mb, direct ? "The panel restarts, finds the server itself and asks you to "
-                                    "enable it there once. Lyrics then come from wherever the "
-                                    "Lyrics setting points."
-                                  : "The panel restarts and looks for the TextFromTrack companion "
-                                    "on the network, which is the only source that reads the "
-                                    "lyrics already in your own files.");
+    lv_msgbox_add_title(mb, automatic ? "Find it by itself?" : direct ? "Talk to the music server?" : "Use the companion?");
+    lv_msgbox_add_text(mb, automatic ? "The panel restarts and looks for both. A music server is used for the "
+                                       "music, and a companion, if there is one, for the lyrics."
+                           : direct ? "The panel restarts, finds the server itself and asks you to "
+                                      "enable it there once. Lyrics then come from wherever the "
+                                      "Lyrics setting points."
+                                    : "The panel restarts and looks for the TextFromTrack companion "
+                                      "on the network, which is the only source that reads the "
+                                      "lyrics already in your own files.");
     lv_obj_t *yes = lv_msgbox_add_footer_button(mb, "Restart");
     lv_obj_t *no = lv_msgbox_add_footer_button(mb, "Cancel");
     lv_obj_set_width(mb, X(600));
@@ -232,9 +251,7 @@ void confirmSource(settings::SourceKind kind) {
     lv_obj_add_event_cb(no, [](lv_event_t *e) {
         lv_msgbox_close((lv_obj_t *)lv_event_get_user_data(e));
         // Put the list back on what is actually in use.
-        if (g_sourceDrop)
-            lv_dropdown_set_selected(g_sourceDrop,
-                                     settings::source() == settings::SourceKind::Direct ? 1 : 0);
+        if (g_sourceDrop) lv_dropdown_set_selected(g_sourceDrop, sourceRow(settings::source()));
     }, LV_EVENT_CLICKED, mb);
 }
 
@@ -350,13 +367,11 @@ void buildRows() {
 
     // Where the music information comes from, and where the lyrics come from. Both are shown
     // whatever the board, because a panel has to be usable with no console attached.
-    r = row("Music from", nullptr, &sub);
-    lv_label_set_text(sub, "The companion reads your own files and ranks what it finds. Direct "
-                           "talks to the music server itself, with nothing in between.");
-    g_sourceDrop = dropdown(r, "TextFromTrack companion\nThe music server, directly",
-                            settings::source() == settings::SourceKind::Direct ? 1 : 0, [](lv_event_t *) {
-        settings::SourceKind chosen = lv_dropdown_get_selected(g_sourceDrop) == 1 ? settings::SourceKind::Direct
-                                                                                  : settings::SourceKind::Companion;
+    r = row("Music from", nullptr, &g_sourceSub);
+    setText(g_sourceSub, sourceText(settings::source(), net::snapshot().sourceNote));
+    g_sourceDrop = dropdown(r, "Whatever it finds\nTextFromTrack companion\nThe music server, directly",
+                            sourceRow(settings::source()), [](lv_event_t *) {
+        settings::SourceKind chosen = SOURCE_ROWS[lv_dropdown_get_selected(g_sourceDrop)];
         if (chosen == settings::source()) return;
         confirmSource(chosen);
     });
@@ -564,6 +579,7 @@ void refresh(const net::Snapshot &s, const ota::Status &o) {
         case ota::State::Failed: status = "Last attempt failed: " + o.error; break;
     }
     setText(g_fwStatus, status);
+    if (g_sourceSub) setText(g_sourceSub, sourceText(st.source, s.sourceNote));
     setText(g_fwButtonLabel, g_updateAvailable ? "Install " + o.latest : String("Check now"));
     char ram[24];
     snprintf(ram, sizeof ram, "%u KB", (unsigned)(heap_caps_get_free_size(MALLOC_CAP_INTERNAL) / 1024));
