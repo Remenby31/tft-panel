@@ -1,5 +1,6 @@
 #include "showcase.h"
 
+#include "../board/board_pins.h"
 #include "../layout.h"
 
 #include <esp_heap_caps.h>
@@ -108,11 +109,16 @@ net::Snapshot make(int32_t positionMs) {
     o.step = 1;
     s.outputs.push_back(o);
     auto zones = std::make_shared<std::vector<net::ZoneInfo>>();
-    zones->push_back({"zone-living", "Living Room", "playing", "Neon Autumn", "The Demo Lights", {"out-living"}});
-    zones->push_back({"zone-kitchen", "Kitchen + Dining Room", "paused", "Morning Coffee", "Sunday Club",
-                      {"out-kitchen", "out-dining"}});
-    zones->push_back({"zone-office", "Office", "stopped", "", "", {"out-office"}});
-    zones->push_back({"zone-garden", "Garden", "stopped", "", "", {"out-garden"}});
+    zones->push_back({"zone-living", "Living Room", "playing", "Neon Autumn", "The Demo Lights"});
+    zones->push_back({"zone-kitchen", "Kitchen + Dining Room", "paused", "Morning Coffee", "Sunday Club"});
+    zones->push_back({"zone-office", "Office", "stopped", "", ""});
+    zones->push_back({"zone-garden", "Garden", "stopped", "", ""});
+    if (board::HAS_GROUPING) {   // Kitchen is a group of two outputs: the picker offers "Ungroup"
+        const char *outputs[][2] = {{"out-living"}, {"out-kitchen", "out-dining"}, {"out-office"}, {"out-garden"}};
+        for (size_t i = 0; i < zones->size(); i++)
+            for (const char *o : outputs[i])
+                if (o) (*zones)[i].outputIds.push_back(o);
+    }
     s.zones = zones;
     s.zonesSerial = 1;
     if (!g_cover.big) {
