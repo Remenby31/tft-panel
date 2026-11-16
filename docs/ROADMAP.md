@@ -171,8 +171,8 @@ with that, and lyrics became a section. What is still missing to be a credible r
 - [x] First run should not ask "companion or direct": the panel can look for both and say what it
       found, so a newcomer never has to understand the project's history to hear music
       (`source auto`, the default on a new panel; a panel updated from an earlier release keeps the
-      companion it was using); decided 2026-11-16: the music server for playback, the companion for
-      lyrics when both answer
+      companion it was using)); with both answering, the music server plays and the companion
+      gives the lyrics
 - [ ] Maintainer's check of the first run on a new panel (`docs/HARDWARE_TEST.md`)
 
 🪤 None of this fits the CrowPanel: it is at 95.4 % of its OTA slot, 91 KiB left. These are P4
