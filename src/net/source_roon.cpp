@@ -7,6 +7,7 @@
 #include <tftcore/arduino_io.h>
 
 #include "../app/cover.h"
+#include "../app/i18n.h"
 #include "lyrics_source.h"
 #include "settings.h"
 #include "version.h"
@@ -112,25 +113,25 @@ void DirectSource::zoneSelectionChanged() {
 void DirectSource::onState(void *, tftcore::State state, const char *detail) {
     switch (state) {
         case tftcore::State::Discovering:
-            setPhase(Phase::Discovering, "Looking for the music server on the network...");
+            setPhase(Phase::Discovering, tr(Str::StLookingServer));
             break;
         case tftcore::State::Connecting:
         case tftcore::State::Registering:
-            setPhase(Phase::Discovering, String("Connecting to ") + g_client.serverName());
+            setPhase(Phase::Discovering, i18n::fmt(Str::StConnectingTo, g_client.serverName()));
             break;
         case tftcore::State::NeedsApproval:
-            setPhase(Phase::CompanionError,
-                     "Enable \"" + g_displayName + "\" in the music server's extension settings");
+            setPhase(Phase::CompanionError, i18n::fmt(Str::StEnableExtension, g_displayName.c_str()));
             break;
         case tftcore::State::Paired: {
             char url[80];
             snprintf(url, sizeof url, "http://%s:%u", g_client.serverHost(), (unsigned)g_client.serverHttpPort());
             publishServer(url);
-            setPhase(Phase::Idle, String("Paired with ") + g_client.serverName());
+            setPhase(Phase::Idle, i18n::fmt(Str::StPairedWith, g_client.serverName()));
             break;
         }
         case tftcore::State::Failed:
-            setPhase(Phase::CompanionError, String("Music server: ") + (detail && *detail ? detail : "connection lost"));
+            setPhase(Phase::CompanionError,
+                     i18n::fmt(Str::StServerError, detail && *detail ? detail : tr(Str::StConnectionLost)));
             break;
         default:
             break;
@@ -154,7 +155,7 @@ void DirectSource::publishEverything(const tftcore::ZoneList &zones, const tftco
                              z.nowPlaying.present ? z.nowPlaying.title.c_str() : "",
                              z.nowPlaying.present ? z.nowPlaying.artist.c_str() : ""});
         if (!publishZones(list)) {
-            setPhase(Phase::Idle, "The music server has no zone");
+            setPhase(Phase::Idle, tr(Str::StServerNoZone));
             return;
         }
         if (!healthy_) {   // Wi-Fi up, paired, and a zone list in hand: this image works
@@ -226,7 +227,7 @@ void DirectSource::command(const Command &c) {
     std::vector<OutputInfo> outputs = followedOutputs();
     if (!ready() || !zoneId.length()) return;
 
-    auto report = [&](const char *what, const tftcore::Client::Reply &r) {
+    auto report = [&](const String &what, const tftcore::Client::Reply &r) {
         if (r.ok) return;
         HttpResult res;
         res.code = -1;
@@ -237,19 +238,19 @@ void DirectSource::command(const Command &c) {
     if (c.type == CmdType::Control) {
         tftcore::Client::Reply r = g_client.control(zoneId.c_str(), c.arg);
         if (r.ok) Serial.printf("[net] control %s ok\n", c.arg);
-        else report((String("Control ") + c.arg).c_str(), r);
+        else report(i18n::fmt(Str::CmdControl, c.arg), r);
     } else if (c.type == CmdType::Seek) {
-        report("Seek", g_client.seek(zoneId.c_str(), "absolute", (int32_t)(c.value / 1000)));
+        report(tr(Str::CmdSeek), g_client.seek(zoneId.c_str(), "absolute", (int32_t)(c.value / 1000)));
     } else if (c.type == CmdType::VolumeSet) {
         for (const OutputInfo &o : outputs) {
             if (o.volumeType != "number" && o.volumeType != "db") continue;
-            report(("Volume " + o.name).c_str(), g_client.changeVolume(o.id.c_str(), "absolute", c.value));
+            report(String(tr(Str::Volume)) + " " + o.name, g_client.changeVolume(o.id.c_str(), "absolute", c.value));
             break;   // the slider follows the first output with an absolute volume
         }
     } else if (c.type == CmdType::Mute) {
         for (const OutputInfo &o : outputs) {
             if (!o.volumeType.length()) continue;
-            report((String(c.direction ? "Mute " : "Unmute ") + o.name).c_str(),
+            report(String(c.direction ? tr(Str::Mute) : tr(Str::Unmute)) + " " + o.name,
                    g_client.mute(o.id.c_str(), c.direction != 0));
         }
     } else if (c.type == CmdType::Offset) {
@@ -259,15 +260,15 @@ void DirectSource::command(const Command &c) {
         int sent = 0;
         for (const OutputInfo &o : outputs) {
             if (!o.volumeType.length()) continue;
-            report(("Volume " + o.name).c_str(),
+            report(String(tr(Str::Volume)) + " " + o.name,
                    g_client.changeVolume(o.id.c_str(), "relative_step", (float)c.direction));
             sent++;
         }
         if (!sent) {
             HttpResult r;
             r.code = -1;
-            r.message = "this zone has no volume control";
-            commandFailed("Volume", r);
+            r.message = tr(Str::NoVolumeControl);
+            commandFailed(tr(Str::Volume), r);
         }
     }
 }

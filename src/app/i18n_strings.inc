@@ -438,3 +438,14 @@ X(QueueCannotLoad, "Could not load the queue: %s", "Impossible de charger la fil
 X(QueuePlaying, "Playing %s", "Lecture de %s")
 X(QueueCannotPlay, "Could not play from here: %s", "Impossible de lire à partir d’ici : %s")
 X(QueueNoSource, "no queue with this source", "pas de file d’attente avec cette source")
+
+// Direct source (no companion)
+X(StLookingServer, "Looking for the music server on the network...", "Recherche du serveur de musique sur le réseau…")
+X(StConnectingTo, "Connecting to %s", "Connexion à %s")
+X(StEnableExtension, "Enable \"%s\" in the music server's extension settings",
+  "Activez « %s » dans les réglages d’extensions du serveur de musique")
+X(StPairedWith, "Paired with %s", "Associé à %s")
+X(StServerError, "Music server: %s", "Serveur de musique : %s")
+X(StConnectionLost, "connection lost", "connexion perdue")
+X(StServerNoZone, "The music server has no zone", "Le serveur de musique n’a aucune zone")
+X(NoVolumeControl, "this zone has no volume control", "cette zone n’a pas de réglage du volume")

@@ -312,7 +312,7 @@ void CompanionSource::command(const Command &c) {
         }
         if (!sent) {
             HttpResult r;
-            r.message = "this zone has no volume control";
+            r.message = tr(Str::NoVolumeControl);
             commandFailed(tr(Str::Volume), r);
         }
     }
