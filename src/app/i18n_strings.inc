@@ -428,6 +428,11 @@ X(LibChooseZone, "Choose a zone first (controls bar)", "Choisissez d’abord une
 X(CmdLyricsOffset, "Lyrics offset", "Décalage des paroles")
 P(PgUpTabTitle, "TFT Panel update", "Mise à jour de TFT Panel")
 X(CmdSeek, "Seek", "Déplacement dans le titre")
+// Zone grouping (zone picker, P4 boards): the button and, in "%s failed", the command
+X(ZoneGroup, "Group", "Grouper")
+X(ZoneUngroup, "Ungroup", "Dégrouper")
+X(ZoneAddTo, "Add to %s", "Ajouter à %s")
+X(ZonesChanged, "the zones changed, try again", "les zones ont changé, réessayez")
 
 // Queue screen (P4 boards)
 X(QueueTitle, "Queue", "File d’attente")

@@ -36,6 +36,9 @@ enum class LyricsStatus : uint8_t { None, Loading, Found, NotFound, Instrumental
 
 struct ZoneInfo {
     String id, name, state, title, artist;
+#if BOARD_HAS_GROUPING   // not even the field elsewhere: the CrowPanel's firmware slot is full
+    std::vector<String> outputIds;   // more than one = a group (companion source only)
+#endif
 };
 
 struct OutputInfo {
@@ -116,6 +119,9 @@ struct Snapshot {
     String staIp;
     String companion;         // base URL in use, empty if none yet
     String sourceNote;        // what the automatic choice found; empty when chosen by hand
+#if BOARD_HAS_QUEUE || BOARD_HAS_GROUPING
+    bool viaCompanion = false;   // the source in use is the companion: queue and zone grouping
+#endif
 
     // Last Wi-Fi scan (setup portal, on-screen Wi-Fi setup). `networksSerial` changes with it.
     std::shared_ptr<const std::vector<WifiNet>> networks;
@@ -196,6 +202,10 @@ void mute(bool on);                  // every output of the zone
 // Saves the current track's lyrics offset in the companion (> 0 = lyrics later).
 void setOffset(int32_t ms);
 void seek(int32_t ms);   // absolute position in the followed zone; the clock shows it at once
+// Zone grouping (HAS_GROUPING boards, companion source): adds zone `zoneId` to `hostId` (the
+// followed zone, as the picker showed it), or with an empty `hostId` splits group `zoneId` back into
+// its zones. The outputs are read from the zone list when the command runs.
+void groupZone(const String &zoneId, const String &hostId = String());
 
 // Library (HAS_LIBRARY boards): Open/Close (thumbnails only load while open), Search `text`,
 // Browse (Roon's root), Drill/Actions/Action on item `index`, Back, More (next page), CloseActions.
