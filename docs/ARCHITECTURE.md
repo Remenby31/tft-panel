@@ -86,7 +86,10 @@ source's address while the net task changes it.
 `src/app/i18n_strings.inc`, with its English and its French. `X()` rows are for the screens,
 `P()` rows fill the `%Id%` tokens of the page templates. The language is read from NVS once at boot,
 so changing it restarts the panel instead of rebuilding screens. Logs and the console stay English.
-`-DI18N_NO_FR` builds the table with English only (CrowPanel, short of flash).
+`-DI18N_NO_FR` (CrowPanel, short of flash) builds without French and without the table: `tr()` is
+`constexpr`, so each call folds to its English literal, and `I18N_PAGE` fills a page template at
+compile time. That holds only for a constant id. Write `c ? tr(A) : tr(B)`, not `tr(c ? A : B)`,
+which brings the whole English table back into flash.
 `test/test_i18n` checks that every row has its French, with the same printf arguments and list items.
 
 **Boards.** `board.h` is the only interface the rest of the firmware sees; each board compiles
