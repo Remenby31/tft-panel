@@ -64,9 +64,18 @@ void test_the_chosen_language_fills_screens_and_pages() {
     TEST_ASSERT_EQUAL_STRING("<button>Enregistrer</button>", page.c_str());
 }
 
+// What the English-only build (I18N_PAGE) does to a template, at compile time.
+void test_the_english_only_build_fills_a_template_at_compile_time() {
+    static constexpr char tpl[] = "<html lang=\"%PgLang%\">%NAME%<button>%PgSave%</button>";
+    constexpr auto filled = i18n::detail::fillEnglish<i18n::detail::filledSize(tpl)>(tpl);
+    TEST_ASSERT_EQUAL_STRING("<html lang=\"en\">%NAME%<button>Save</button>", filled.data());
+    TEST_ASSERT_EQUAL(sizeof "<html lang=\"en\">%NAME%<button>Save</button>", filled.size());
+}
+
 int main() {
     UNITY_BEGIN();
     RUN_TEST(test_every_string_has_french_with_the_same_arguments_and_items);
     RUN_TEST(test_the_chosen_language_fills_screens_and_pages);
+    RUN_TEST(test_the_english_only_build_fills_a_template_at_compile_time);
     return UNITY_END();
 }
