@@ -14,14 +14,17 @@ fw="${1:-}"
 site="$(mktemp -d)"
 trap 'rm -rf "$site"' EXIT
 
+# One manifest per board (manifest-<env>.json): the install page asks which screen is connected,
+# because ESP Web Tools picks by chip family and two of the three boards are ESP32-P4.
 if [[ -n "$fw" ]]; then
-    cp "$fw"/manifest.json "$fw"/*.bin "$site/"
+    cp "$fw"/manifest-*.json "$fw"/*.bin "$site/"
 else
     git fetch -q origin gh-pages
-    git archive origin/gh-pages manifest.json $(git ls-tree --name-only origin/gh-pages | grep '\.bin$') |
-        tar -x -C "$site"
+    git archive origin/gh-pages $(git ls-tree --name-only origin/gh-pages |
+        grep -E '^manifest-.*\.json$|\.bin$') | tar -x -C "$site"
 fi
-version=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1]))['version'])" "$site/manifest.json")
+first=$(ls "$site"/manifest-*.json | head -1)
+version=$(python3 -c "import json,sys; print(json.load(open(sys.argv[1]))['version'])" "$first")
 
 sed "s/{{VERSION}}/$version/g" tools/site/install.html > "$site/install.html"
 sed "s/{{VERSION}}/$version/g" tools/site/index.html > "$site/index.html"

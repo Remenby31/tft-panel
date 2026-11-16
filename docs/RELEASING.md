@@ -24,11 +24,8 @@ tag. It then:
 3. pushes the tag and creates the GitHub release with these assets;
 4. publishes the website with `tools/site.sh` (landing page, user guide rendered from
    `docs/USER_GUIDE.md`, installer page): an orphan `gh-pages` commit with the HTML,
-   `manifest.json` (one build per chip family: ESP Web Tools picks the one matching the chip on
-   the port — which is why the VIEWE, an ESP32-P4 like the Waveshare, ships its release files but is
-   left out of the manifest: a second entry for that chip would give one of the two screens the
-   other's image. The board list's last column says which boards the installer carries), and per
-   board its bootloader, partition table, `boot_app0` and app — latest version only,
+   one `manifest-<env>.json` **per board** and, per board, its bootloader, partition table,
+   `boot_app0` and app — latest version only,
    so binaries never pile up in git. Four parts rather than the merged factory image: the merged
    image fills the NVS area (0x9000) with 0xFF and would wipe a reinstalled panel's Wi-Fi and
    settings (the installer's own "erase" choice still wipes everything for a fresh start).

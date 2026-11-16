@@ -15,9 +15,7 @@ zones and cover are invented.*
 - One of these screens, and a USB-C cable that carries data:
   - **Elecrow CrowPanel ESP32 Display 7.0"** (DIS08070H), board **V3.0**;
   - **Waveshare ESP32-P4-WIFI6-Touch-LCD-7B** (1024×600);
-  - **VIEWE ESP32-P4 7"** (UEP4S070H1024V600C-WB-C, 1024×600) — this one is flashed from a computer
-    the first time, because the web installer cannot yet tell the two ESP32-P4 boards apart. Every
-    release carries its firmware, and it updates over the air afterwards like the others.
+  - **VIEWE ESP32-P4 7"** (UEP4S070H1024V600C-WB-C, 1024×600).
 
   Other screens are not supported, even look-alikes with the same ESP32-P4 chip and the same display
   controller (for example the Guition JC1060P470C): their display needs different settings, and the
@@ -60,12 +58,15 @@ already flashed and the screen stayed black, plug in the USB cable and read the 
 ### Flash it
 
 1. On a computer, open the [web installer](https://r45635.github.io/tft-panel/install.html) in **Chrome or Edge**.
-2. Connect the panel with the USB-C cable — on the Waveshare, the port marked **USB 1.1** — click
-   **Install**, pick the serial port and confirm. The installer recognises the screen and picks its
-   firmware. It takes about 3 minutes on the CrowPanel, about a minute on the Waveshare.
-   - CrowPanel: the port is called *USB Serial*, *CH340* or *usbserial*.
+2. **Say which screen you have.** The page asks, because it only sees the chip and two of the three
+   boards answer to the same one — picking for you would risk leaving a panel dark.
+3. Connect the panel with the USB-C cable — on the Waveshare, the port marked **USB 1.1** — click
+   **Connect** and pick the serial port. The dialog then offers **Install**, and names the screen you
+   chose, so you can check it one last time. It takes about 3 minutes on the CrowPanel, about a
+   minute on the ESP32-P4 boards.
+   - CrowPanel and VIEWE: the port is called *USB Serial*, *CH340* or *usbserial*.
    - Waveshare: *USB JTAG/serial debug unit* or *usbmodem*.
-3. CrowPanel on Windows: if no port shows up, install the
+4. CrowPanel or VIEWE on Windows: if no port shows up, install the
    [CH340 driver](https://www.wch-ic.com/downloads/CH341SER_EXE.html) and plug the panel again.
 
 After this, updates come over Wi-Fi (see [Updates](#updates)).
@@ -227,6 +228,11 @@ share their names, so add what tells yours apart: `Montreal, Canada`, `Paris, Te
 `Lyon, France`. The page says which town it settled on, with its coordinates, and says so plainly
 when it cannot find the one you meant.
 
+The title under the date is the track the panel is following, which may well have finished hours
+ago. So that you can tell one from the other at a glance, **five small bars dance in the top right
+corner while music is playing** and disappear when it stops — the lyrics and cover views have their
+progress bar for that, the clock had nothing.
+
 Give it the address of an **RSS or Atom feed** and the headlines slide under the clock at reading
 pace. Both are typed on the panel's page, below. If nothing slides, the page says why, under the
 field: the feed did not answer, or the address holds a web page rather than a feed.
@@ -255,10 +261,9 @@ The panel looks for a new version every day. When there is one, **Update** appea
 
 Tap it and confirm. The panel downloads the update, **checks its sha256 against the one published
 with the release** and refuses it if a single byte differs, then restarts (about a minute).
-Don't unplug it meanwhile. There is nothing to back up first: the version you are running stays in
-the other half of the flash, which is where the panel returns to by itself if the new one never
-starts properly. If the new version does not start properly, the panel goes back to
-the previous one by itself.
+Don't unplug it meanwhile — the screen says so, and shows how far it has got. There is nothing to
+back up first: the version you are running stays in the other half of the flash, and the panel
+returns to it by itself if the new one never starts properly.
 
 ![Update confirmation](images/update-confirm.png) ![Updating](images/update-progress.png)
 
@@ -273,6 +278,10 @@ Beside the file there is a box for the **sha256** published with each release, i
 `…-vX.Y.Z.sha256` file next to the firmware. Paste it and the panel refuses the upload unless
 every byte matches, naming both digests so you can see which file you actually have. Leave it
 empty and the panel still tells you the digest of what it received, so you can compare afterwards.
+
+The panel shows the same *Updating… do not unplug* picture as it does for an update of its own,
+from the first byte to the last, so you can see it working from across the room. If it refuses the
+file, it says so on its screen too, and goes back to what it was doing.
 
 A wrong code is used up the moment it is refused: read the new one on the screen, or reload the
 page. And whatever happens here, the version you are replacing stays in the other half of the

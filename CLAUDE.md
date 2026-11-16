@@ -40,6 +40,9 @@ leaves EN and IO0 alone and nothing restarts; commands typed on it answer normal
 that reopens after each reset loops forever. VIEWE (CH340 on UART0): opening the port resets it
 (docs/HARDWARE.md); whether `dtr=False, rts=False` spares it as on the CrowPanel is not checked yet,
 so leave its port alone during an update's 3-minute pending-verify window.
+🪤 `pio run -e <other env>` can wipe the whole `.pio/build/` (`project.checksum` is rewritten), so an
+image built a minute earlier is simply gone — and `curl -F firmware=@…` then uploads 0 bytes and says
+nothing useful. Copy the `.bin` somewhere else before building another environment.
 🪤 Building `crowpanel7` after a P4 environment (seen with `waveshare-p4-7b`) redoes the CrowPanel's
 framework rebuild (~2 min) and that first run can fail on a missing `.sconsign312.tmp`: run it again (release.sh retries).
 Changing `PLATFORMIO_BUILD_FLAGS` rebuilds the whole framework (~3 min).
@@ -54,7 +57,10 @@ Serial console (115200, type `help`): `status`, `portal`, `wifi <ssid> [password
 `forget-pairing` (restarts), `weather <town>|none`, `news <rss url>|none`, `zone <id>|auto`, `token`, `lead <ms>`,
 `lib search <text>|browse|find artist|album [name]|open <n>|back|more|actions <n>|show|ui [close]` (`lib action <n>` plays — not while someone listens), `backdrop on|off`, `scroll on|off`, `sleep <min>|off`, `view lyrics|cover|clock`, `ota check|install`, `settings [close|qr]`, `tz <POSIX>|default`, `lang en|fr` (restarts; P4 boards, the CrowPanel is English only), `warmth <0-100>`, `colours`, `flush cpu|dma|dma2` (CrowPanel render A/B, `cpu` at each boot; the next three
 slides log `[ui] scroll:`), `backlight <0-100>`, `forget-wifi`, `erase-all`, `bringup` (colour bars + touch tracker), `restart`,
-`screenshot` → `tools/screenshot.py <log> out.png` (shows lyrics: keep it out of the repo);
+`shots on` then `GET http://<panel>/screenshot` returns the framebuffer over Wi-Fi in ~4 s: 8-byte
+`TFTS` header (magic, uint16 w, uint16 h) then raw RGB565, and it reads `g_fb` itself — the one way to
+tell "drawn wrong" from "displayed wrong". Over serial instead: `screenshot` →
+`tools/screenshot.py <log> out.png` (minutes at 115200). Both show real lyrics: keep them out of the repo;
 `demo` freezes the screen on invented lyrics — use it for layout checks and doc screenshots
 (the real cover thumbnail and backdrop stay on screen: cover art is copyrighted too);
 `demo pos <ms>|manual on|off|slide <%>|off`, `show <screen>|none` and `shots on|off` (`GET /screenshot`
