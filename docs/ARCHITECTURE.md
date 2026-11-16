@@ -184,8 +184,11 @@ CrowPanel: its firmware slot is full (`HAS_QUEUE` false compiles it out).
 ### Zone grouping (P4 boards, `HAS_GROUPING`)
 
 In the zone picker, a zone that is a group (more than one output) offers "Ungroup", and any other
-zone but the followed one offers "+ Group": join it to the followed zone. The command carries a zone
-id only; the net task reads the outputs from the zone list as it is when the command runs
+zone but the followed one offers "+ Group": join it to the followed zone. The command carries zone
+ids only (for a join, the followed zone as the picker showed it, so a zone that starts playing
+meanwhile is not the one grouped); the net task reads the outputs from the zone list as it is when
+the command runs. Roon may refuse an output (another kind of device): the companion's zone list does
+not say which, so the refusal shows as a "Group failed" message
 (`src/net/zone_group.h`, host test `test/test_zone_group`). The followed zone's outputs go first,
 because Roon keeps the first output's queue: what plays goes on in the whole group. Companion
 source only (`Source::groupOutputs`, 501 elsewhere).

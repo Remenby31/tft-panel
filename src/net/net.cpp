@@ -624,23 +624,26 @@ namespace {
 
 // ---- User commands ----
 
-// The outputs come from the zone list as it is now, not as the picker showed it.
-void runGroup(const String &zoneId, bool join) {
+// `zoneId` is the zone to split, or "<host>\n<guest>" to join guest to host: the host the picker
+// showed, not whichever zone is followed by now. The outputs come from the zone list as it is now.
+void runGroup(const String &arg, bool join) {
+    int nl = arg.indexOf('\n');
+    String hostId = join && nl >= 0 ? arg.substring(0, nl) : String();
+    String zoneId = join && nl >= 0 ? arg.substring(nl + 1) : arg;
     xSemaphoreTake(g_lock, portMAX_DELAY);
     auto zones = g_snap.zones;   // keeps the list alive while `host` and `target` point into it
-    String followed = g_snap.zoneId;
     xSemaphoreGive(g_lock);
-    if (!zones) return;
     const ZoneInfo *host = nullptr, *target = nullptr;
-    for (const ZoneInfo &z : *zones) {
-        if (z.id == followed) host = &z;
-        if (z.id == zoneId) target = &z;
-    }
+    if (zones)
+        for (const ZoneInfo &z : *zones) {
+            if (z.id == hostId) host = &z;
+            if (z.id == zoneId) target = &z;
+        }
     std::vector<String> ids;
     if (target) ids = join ? (host ? group::joinOutputs(host->outputIds, target->outputIds) : ids)
                            : group::splitOutputs(target->outputIds);
-    if (ids.empty()) {
-        Serial.printf("[net] %s %s: nothing to do\n", join ? "group" : "ungroup", zoneId.c_str());
+    if (ids.empty()) {   // a zone gone or regrouped since the picker was drawn
+        internal::commandFailed(join ? "Group" : "Ungroup", {0, "", "the zones changed, try again"});
         return;
     }
     HttpResult r = source().groupOutputs(ids, join);
@@ -913,8 +916,9 @@ void setOffset(int32_t ms) { enqueue(CmdType::Offset, nullptr, 0, (float)ms); }
 void library(LibOp op, int index, const String &text) {
     if (board::HAS_LIBRARY) enqueue(CmdType::Library, text.c_str(), (int8_t)op, (float)index);
 }
-void groupZone(const String &zoneId, bool join) {
-    if (board::HAS_GROUPING) enqueue(CmdType::Group, zoneId.c_str(), join ? 1 : 0);
+void groupZone(const String &zoneId, const String &hostId) {
+    bool join = hostId.length() > 0;
+    if (board::HAS_GROUPING) enqueue(CmdType::Group, (join ? hostId + "\n" + zoneId : zoneId).c_str(), join ? 1 : 0);
 }
 void queue(QueueOp op, uint32_t itemId) {   // in the text: a float cannot hold every uint32
     if (board::HAS_QUEUE) enqueue(CmdType::Queue, String(itemId).c_str(), (int8_t)op, 0);

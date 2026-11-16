@@ -194,10 +194,10 @@ void volumeSet(float value);         // absolute, on the zone's first output wit
 void mute(bool on);                  // every output of the zone
 // Saves the current track's lyrics offset in the companion (> 0 = lyrics later).
 void setOffset(int32_t ms);
-// Zone grouping (HAS_GROUPING boards, companion source): `join` adds zone `zoneId` to the followed
-// zone, else splits group `zoneId` back into its zones. The outputs are read from the zone list
-// when the command runs.
-void groupZone(const String &zoneId, bool join);
+// Zone grouping (HAS_GROUPING boards, companion source): adds zone `zoneId` to `hostId` (the
+// followed zone, as the picker showed it), or with an empty `hostId` splits group `zoneId` back into
+// its zones. The outputs are read from the zone list when the command runs.
+void groupZone(const String &zoneId, const String &hostId = String());
 
 // Library (HAS_LIBRARY boards): Open/Close (thumbnails only load while open), Search `text`,
 // Browse (Roon's root), Drill/Actions/Action on item `index`, Back, More (next page), CloseActions.

@@ -154,8 +154,12 @@ Zone grouping, P4 boards, companion source, with two zones free to group (say A 
    group. Report whether the panel still follows the group or fell back to "auto" (the pinned zone
    id may change when Roon makes the group).
 8. Open the picker: the group's row ends with "Ungroup". Tap it. Within ~5 s A and B are two zones
-   again, each listed on its own row; A still plays.
-9. With the companion stopped, tap "+ Group": a "Group failed: ..." message shows for a few
+   again, each listed on its own row; A still plays. Report whether the panel follows A again
+   (pinned) or fell back to "auto": Roon may give the zones new ids.
+9. Group with an output Roon cannot group with A (another kind of device, e.g. AirPlay next to a
+   Roon Ready one): a "Group failed: ..." message, nothing else. The companion's zone list does
+   not say which outputs can be grouped, so the panel offers "+ Group" on every zone.
+10. With the companion stopped, tap "+ Group": a "Group failed: ..." message shows for a few
    seconds; nothing else changes.
 
 ### Render speed: P4 draw unit, S3 DMA flush

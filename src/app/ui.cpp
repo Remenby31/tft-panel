@@ -339,7 +339,7 @@ void onPickZone(lv_event_t *e) {
 // Group / Ungroup on a zone row: the user data is the row's index in g_pickerIds.
 void onGroupZone(lv_event_t *e, bool join) {
     intptr_t i = (intptr_t)lv_event_get_user_data(e);
-    if (live() && i >= 0 && i < (intptr_t)g_pickerIds.size()) net::groupZone(g_pickerIds[i], join);
+    if (live() && i >= 0 && i < (intptr_t)g_pickerIds.size()) net::groupZone(g_pickerIds[i], join ? g_s.zoneId : String());
     closePicker();   // the zone button shows the group's name once the zone list has it
     showControls(false);
 }
@@ -389,7 +389,7 @@ void fillPicker() {
         lv_obj_t *row = add(z.id, t, g_s.zonePinned && z.id == g_s.zoneId);
         if (!grouping) continue;
         if (z.outputIds.size() > 1) groupButton(row, "Ungroup", false);
-        else if (z.id != g_s.zoneId) groupButton(row, LV_SYMBOL_PLUS "  Group", true);
+        else if (g_s.zoneId.length() && z.id != g_s.zoneId) groupButton(row, LV_SYMBOL_PLUS "  Group", true);
     }
 }
 
