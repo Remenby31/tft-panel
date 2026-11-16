@@ -486,7 +486,8 @@ void fillPicker() {
         lv_obj_set_style_pad_hor(g, X(16), 0);
         lv_obj_set_style_pad_ver(g, Y(4), 0);
         lv_obj_t *l = label(g, fonts::ui16, COL_TEXT);
-        lv_obj_set_style_max_width(l, X(240), 0);   // a long zone name ends in "..."
+        lv_obj_set_style_max_width(l, X(240), 0);   // one line: a long zone name ends in "..."
+        lv_obj_set_style_max_height(l, lv_font_get_line_height(fonts::ui16), 0);
         lv_label_set_long_mode(l, LV_LABEL_LONG_MODE_DOTS);
         lv_obj_center(l);
         setText(l, text);
