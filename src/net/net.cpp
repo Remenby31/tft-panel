@@ -630,6 +630,7 @@ namespace {
 
 // ---- User commands ----
 
+#if BOARD_HAS_GROUPING
 // `zoneId` is the zone to split, or "<host>\n<guest>" to join guest to host: the host the picker
 // showed, not whichever zone is followed by now. The outputs come from the zone list as it is now.
 void runGroup(const String &arg, bool join) {
@@ -655,6 +656,7 @@ void runGroup(const String &arg, bool join) {
     HttpResult r = source().groupOutputs(ids, join);
     if (r.code != 200) internal::commandFailed(join ? "Group" : "Ungroup", r);
 }
+#endif
 
 // A queued user action: the library, the queue and the zone choice are the panel's own business,
 // everything else is the source's.
@@ -667,10 +669,12 @@ void handleCommand(const Command &c) {
         if (board::HAS_QUEUE) q::run((QueueOp)c.direction, (uint32_t)strtoul(c.arg, nullptr, 10));
         return;
     }
+#if BOARD_HAS_GROUPING
     if (c.type == CmdType::Group) {
-        if (board::HAS_GROUPING) runGroup(String(c.arg), c.direction > 0);
+        runGroup(String(c.arg), c.direction > 0);
         return;
     }
+#endif
     if (c.type == CmdType::Zone) {
         settings::setZone(String(c.arg));
         Serial.printf("[net] zone %s\n", c.arg[0] ? c.arg : "auto (follow the playing zone)");
@@ -921,7 +925,9 @@ bool probeSources(uint32_t now) {
     // A source that already says more (waiting for its approval, an error) keeps its line.
     update([&](Snapshot &s) {
         s.sourceNote = line;
+#if BOARD_HAS_QUEUE || BOARD_HAS_GROUPING
         s.viaCompanion = g_source == &g_companion;
+#endif
         if (s.phase == Phase::Discovering) s.status = line;
     });
     return true;
@@ -935,7 +941,9 @@ void begin() {
     if (pick == sourcechoice::Pick::Direct) g_source = &g_direct;
 #endif
     Serial.printf("[net] source: %s\n", g_probing ? "auto, looking for both" : g_source->name());
+#if BOARD_HAS_QUEUE || BOARD_HAS_GROUPING
     g_snap.viaCompanion = !g_probing && g_source == &g_companion;   // no other task reads it yet
+#endif
     g_coverQueue = xQueueCreate(1, sizeof(CoverRequest));
     xTaskCreatePinnedToCore(coverTask, "cover", 8192, nullptr, 1, nullptr, 0);
     ota::begin();
@@ -988,10 +996,12 @@ void seek(int32_t ms) { enqueue(CmdType::Seek, nullptr, 0, (float)ms); }
 void library(LibOp op, int index, const String &text) {
     if (board::HAS_LIBRARY) enqueue(CmdType::Library, text.c_str(), (int8_t)op, (float)index);
 }
+#if BOARD_HAS_GROUPING
 void groupZone(const String &zoneId, const String &hostId) {
     bool join = hostId.length() > 0;
-    if (board::HAS_GROUPING) enqueue(CmdType::Group, (join ? hostId + "\n" + zoneId : zoneId).c_str(), join ? 1 : 0);
+    enqueue(CmdType::Group, (join ? hostId + "\n" + zoneId : zoneId).c_str(), join ? 1 : 0);
 }
+#endif
 void queue(QueueOp op, uint32_t itemId) {   // in the text: a float cannot hold every uint32
     if (board::HAS_QUEUE) enqueue(CmdType::Queue, String(itemId).c_str(), (int8_t)op, 0);
 }

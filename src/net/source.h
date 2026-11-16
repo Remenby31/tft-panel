@@ -98,12 +98,14 @@ class Source {
         return {501, "", "no queue with this source"};
     }
 
-    // --- Zone grouping (HAS_GROUPING boards) ---
+#if BOARD_HAS_GROUPING
+    // --- Zone grouping ---
     // Groups the outputs (the first one's queue plays on), or ungroups them.
     virtual internal::HttpResult groupOutputs(const std::vector<String> &outputIds, bool group) {
         (void)outputIds, (void)group;
         return {501, "", "no grouping with this source"};
     }
+#endif
 
     // Full URL of a cover at `px` pixels, empty when there is nothing to fetch. Built on the net
     // task and passed to the cover task, which must never read a source's mutable state.

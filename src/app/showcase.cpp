@@ -111,18 +111,23 @@ net::Snapshot make(int32_t positionMs) {
     s.outputs.push_back(o);
     auto zones = std::make_shared<std::vector<net::ZoneInfo>>();
     zones->push_back({"zone-living", "Living Room", "playing", "Neon Autumn", "The Demo Lights"});
-    zones->push_back({"zone-kitchen", "Kitchen + Dining Room", "paused", "Morning Coffee", "Sunday Club"});
+    zones->push_back({"zone-kitchen", "Kitchen", "paused", "Morning Coffee", "Sunday Club"});
     zones->push_back({"zone-office", "Office", "stopped", "", ""});
     zones->push_back({"zone-garden", "Garden", "stopped", "", ""});
-    if (board::HAS_GROUPING) {   // Kitchen is a group of two outputs: the picker offers "Ungroup"
+#if BOARD_HAS_GROUPING
+    {   // Kitchen is a group of two outputs: the picker offers "Ungroup"
+        (*zones)[1].name = "Kitchen + Dining Room";
         const char *outputs[][2] = {{"out-living"}, {"out-kitchen", "out-dining"}, {"out-office"}, {"out-garden"}};
         for (size_t i = 0; i < zones->size(); i++)
             for (const char *o : outputs[i])
                 if (o) (*zones)[i].outputIds.push_back(o);
     }
+#endif
     s.zones = zones;
     s.zonesSerial = 1;
+#if BOARD_HAS_QUEUE || BOARD_HAS_GROUPING
     s.viaCompanion = true;
+#endif
     if (!g_cover.big) {
         const int n = net::COVER_BIG_PX;
         uint8_t *rgb = (uint8_t *)heap_caps_malloc((size_t)n * n * 3, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
@@ -159,7 +164,9 @@ void fakePortal(net::Snapshot &s) {
 
 void fakeSearching(net::Snapshot &s, const String &screen) {
     s.portalActive = false;
+#if BOARD_HAS_QUEUE || BOARD_HAS_GROUPING
     s.viaCompanion = false;   // still looking: no source in use yet
+#endif
     sourcechoice::Probe probe;
     probe.companion = screen == "found-companion";
     char line[160];

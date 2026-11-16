@@ -28,7 +28,9 @@ class CompanionSource : public Source {
     internal::HttpResult browseLoad(JsonDocument &body, JsonDocument &resp) override;
     internal::HttpResult queue(const String &zoneId, JsonDocument &resp) override;
     internal::HttpResult playFromHere(const String &zoneId, uint32_t queueItemId) override;
+#if BOARD_HAS_GROUPING
     internal::HttpResult groupOutputs(const std::vector<String> &outputIds, bool group) override;
+#endif
     String imageUrl(const String &imageKey, int px) const override;
 
   private:

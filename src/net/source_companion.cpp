@@ -136,9 +136,9 @@ bool CompanionSource::refreshZones() {
     for (JsonObjectConst z : doc["zones"].as<JsonArrayConst>()) {
         list->push_back({z["zone_id"] | "", z["display_name"] | "", z["state"] | "",
                          z["now_playing_title"] | "", z["now_playing_artist"] | ""});
-        if (board::HAS_GROUPING)
-            for (JsonObjectConst o : z["outputs"].as<JsonArrayConst>())
-                list->back().outputIds.push_back(o["output_id"] | "");
+#if BOARD_HAS_GROUPING
+        for (JsonObjectConst o : z["outputs"].as<JsonArrayConst>()) list->back().outputIds.push_back(o["output_id"] | "");
+#endif
     }
     if (!publishZones(list)) {
         consecutiveFails_ = 0;
@@ -348,14 +348,15 @@ HttpResult CompanionSource::playFromHere(const String &zoneId, uint32_t queueIte
     return r;
 }
 
+#if BOARD_HAS_GROUPING
 HttpResult CompanionSource::groupOutputs(const std::vector<String> &outputIds, bool group) {
-    if constexpr (!board::HAS_GROUPING) return Source::groupOutputs(outputIds, group);
     JsonDocument body, resp;
     for (const String &id : outputIds) body["output_ids"].add(id);
     HttpResult r = request(group ? "/api/roon/group" : "/api/roon/ungroup", &body, resp, 5000);
     if (r.code == 200) lastZonesAt_ = 0;   // the zone list changes: read it again now
     return r;
 }
+#endif
 
 String CompanionSource::imageUrl(const String &imageKey, int px) const {
     if (!imageKey.length() || !baseUrl_.length()) return String();

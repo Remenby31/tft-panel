@@ -36,7 +36,9 @@ enum class LyricsStatus : uint8_t { None, Loading, Found, NotFound, Instrumental
 
 struct ZoneInfo {
     String id, name, state, title, artist;
+#if BOARD_HAS_GROUPING   // not even the field elsewhere: the CrowPanel's firmware slot is full
     std::vector<String> outputIds;   // more than one = a group (companion source only)
+#endif
 };
 
 struct OutputInfo {
@@ -117,7 +119,9 @@ struct Snapshot {
     String staIp;
     String companion;         // base URL in use, empty if none yet
     String sourceNote;        // what the automatic choice found; empty when chosen by hand
+#if BOARD_HAS_QUEUE || BOARD_HAS_GROUPING
     bool viaCompanion = false;   // the source in use is the companion: queue and zone grouping
+#endif
 
     // Last Wi-Fi scan (setup portal, on-screen Wi-Fi setup). `networksSerial` changes with it.
     std::shared_ptr<const std::vector<WifiNet>> networks;
