@@ -83,13 +83,13 @@ Details, pin maps and pitfalls: [docs/HARDWARE.md](docs/HARDWARE.md).
 **Before the first flash, save what is on the board.** Whatever it came with is overwritten and
 cannot be downloaded again: `tools/backup-firmware.py --port /dev/cu.usbserial-XXXX` copies the
 whole flash, writes its `sha256`, and reads the flash back to check the copy against the board —
-and tells you plainly if the copy is not good. It also names the board, which is the one thing the
-browser installer cannot do for the two ESP32-P4 screens.
+and tells you plainly if the copy is not good. It also names the board, which tells the two
+ESP32-P4 screens apart if you are not sure which one you hold.
 
 **First time — from your browser, no tools to install.** Open the
 [web installer](https://r45635.github.io/tft-panel/install.html) in Chrome or Edge on a computer, connect the
-panel's USB-C port (on the Waveshare, the one marked *USB 1.1*), click *Install* and pick the serial
-port; the installer picks the firmware for the screen it finds. On Windows the CrowPanel may need the
+panel's USB-C port (on the Waveshare, the one marked *USB 1.1*), choose your screen, click *Install* and pick the serial
+port. On Windows the CrowPanel may need the
 [CH340 driver](https://www.wch-ic.com/downloads/CH341SER_EXE.html).
 
 **After that — over the air.** The panel checks for new releases by itself; when one is out, *Update*

@@ -50,8 +50,8 @@ the settings too — a restored panel rejoins your Wi-Fi and finds its music ser
 set up again, because the copy holds the panel's whole memory. Which is also why the file deserves
 the same care as a password, and should never be attached to a bug report.
 
-It is also the only thing that tells the two ESP32-P4 boards apart before you flash them — the
-browser installer sees one chip for both, and the wrong image leaves the screen dark. If you
+It also tells the two ESP32-P4 boards apart before you flash them: the browser installer sees one
+chip for both and asks you which you have, and the wrong image leaves the screen dark. If you
 already flashed and the screen stayed black, plug in the USB cable and read the serial console
 (`pio device monitor`): the firmware says **WRONG BOARD** and names the image you need.
 
