@@ -12,8 +12,8 @@ TFT Panel is open firmware for 7" ESP32 touch screens — the **Elecrow CrowPane
 **Waveshare ESP32-P4 7B** and the **VIEWE ESP32-P4 7"** (see [Hardware](#hardware)). Give it your
 Wi-Fi and it finds your music server by itself. Then it is a remote you never have to unlock: the
 cover and the title of what is playing, the lyrics in time with the song, play/pause, skip, a
-volume slider and the choice of zone under your finger, and your whole library to search and start
-from the screen. When the music stops it becomes a clock, with the weather and the day's headlines
+volume slider and the choice of zone under your finger, a progress bar you touch to jump in the
+song, and your whole library to search and start from the screen. When the music stops it becomes a clock, with the weather and the day's headlines
 if you want them.
 
 No computer left running, no app to launch, no account, no cloud. It talks only to machines on
@@ -25,6 +25,8 @@ your own network.
 - Three 7" boards, one firmware, flashed from your browser ([Install](#install)).
 - Everything that has to be typed is on the panel's own page, not in a config file.
 - Updates arrive over the air and roll back by themselves if one fails to start.
+- English and French on the two ESP32-P4 screens (the CrowPanel stays English: its flash is full).
+- On the ESP32-P4 screens, the play queue too: see what is next and start from any track.
 - MIT licence ([details](#licence)).
 
 *Roon is a trademark of Roon Labs. TFT Panel is an independent project, not affiliated with Roon Labs, Elecrow, Waveshare or VIEWE.*
@@ -98,6 +100,10 @@ version you are running stays in the other half of the flash, and the panel retu
 if the new one never starts properly. A firmware uploaded by hand from the panel's own page can
 carry that same sha256, and is refused if it does not match.
 
+Updates can also be **signed**. The check is built in but dormant: it switches on when the
+maintainer compiles his public key in (`tools/signing-key.sh`, [Releasing](docs/RELEASING.md#signed-updates)).
+From then on a panel installs only an image signed with his key, from GitHub and from its own page.
+
 ## Build and flash
 
 Requires [PlatformIO](https://platformio.org/) (VS Code extension or `pio` CLI). The toolchain is
@@ -120,15 +126,34 @@ scan the first to join it, the second to open the setup page, then pick your Wi-
 the network and type its password on the panel itself.
 
 Once it is on your network the panel looks for your music server by itself, and for a TextFromTrack
-companion if you run one. Everything that has to be typed — where the music comes from, the lyrics
+companion if you run one: a new panel takes the music server when it finds one, otherwise the
+companion. A panel updated from an earlier release keeps the source it was using; nothing moves it
+silently. Everything that has to be typed — where the music comes from, the lyrics
 server, the weather town, a news feed — is on the panel's own page at `http://tft-panel-xxxx.local`,
 which its settings screen shows as a QR code. The
 page names the panel, its board, its address and its firmware, so several panels are told apart; a
 change asks once for the six digits shown on that panel's screen, then remembers your browser.
 
+## For contributors
+
+No board needed to work on the interface or the logic:
+
+```bash
+pio test -e native                    # host tests (a plain `pio test` runs none, by design)
+sim/shoot.sh [OUT_DIR] [SCREEN,...]   # every screen as a PNG at 800x480 and 1024x600, in en or fr
+pio run -e sim && .pio/build/sim/program --window   # click through the screens (or -e sim-1024)
+```
+
+The simulator runs the real screens on the showcase data, so every picture is shareable; it needs
+SDL2 and zlib ([sim/README.md](sim/README.md)). On the CrowPanel, the console's `flush cpu|dma|dma2`
+switches how the screen is filled, to compare on the board
+([docs/ARCHITECTURE.md](docs/ARCHITECTURE.md), [docs/HARDWARE_TEST.md](docs/HARDWARE_TEST.md)).
+What only a real board can prove goes into the hardware test.
+
 ## Documentation
 
 - [User guide](docs/USER_GUIDE.md) — install, Wi-Fi setup, screens, gestures, settings, updates
+- [Simulator](sim/README.md) — the screens on a computer, one command
 - [Architecture](docs/ARCHITECTURE.md) — how the panel talks to the companion, firmware layers, technical choices
 - [Hardware](docs/HARDWARE.md) — pin map, bring-up log, pitfalls
 - [Hardware test](docs/HARDWARE_TEST.md) — the checklist a maintainer runs on each board to validate a change
