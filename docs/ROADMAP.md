@@ -168,15 +168,23 @@ nobody has to unlock, that happens to show lyrics — a bigger audience than lyr
 one firmware, two modes; the README, the site landing and the guide's opening were rewritten to lead
 with that, and lyrics became a section. What is still missing to be a credible remote:
 
-- [ ] The queue: what is next, reorder, clear (`subscribe_queue`; the companion already exposes it,
-      `tft-core-client` does not)
-- [ ] Zone grouping / ungrouping (the protocol has it, neither client uses it yet)
-- [x] Scrub on the progress bar (tap or drag; companion `POST /api/roon/seek`, direct `seek()`; to confirm on the boards)
+- [x] The queue, read and play-from-here (2026-11-16): the controls bar opens the zone's queue, a tap
+      plays from that track. P4 boards, whenever the panel plays through the companion, Auto included (the
+      companion already exposes it, `tft-core-client` does not, so none in direct mode). Still open: reorder, clear
+- [ ] Maintainer's check of the queue on a board (`docs/HARDWARE_TEST.md`, *Queue and zone grouping*)
+- [x] Zone grouping (2026-11-16): the zone picker's *Add to <followed zone>* and *Ungroup*. P4 boards,
+      through the companion only (`POST /api/roon/group`, `/ungroup`; none in direct mode)
+- [ ] Maintainer's check of grouping on a board (`docs/HARDWARE_TEST.md`, *Queue and zone grouping*)
+- [x] Scrub on the progress bar (2026-11-16): tap or drag, on both views and all three boards;
+      companion `POST /api/roon/seek`, direct `seek()`
+- [ ] Maintainer's check of the seek on a board (`docs/HARDWARE_TEST.md`)
 - [ ] Output standby and convenience switch
 - [x] First run should not ask "companion or direct": the panel can look for both and say what it
       found, so a newcomer never has to understand the project's history to hear music
       (`source auto`, the default on a new panel; a panel updated from an earlier release keeps the
-      companion it was using)
+      companion it was using); with both answering, the music server plays and the companion
+      gives the lyrics
+- [ ] Maintainer's check of the first run on a new panel (`docs/HARDWARE_TEST.md`)
 
 🪤 None of this fits the CrowPanel: it is at **97.6 % of its OTA slot, 47 KiB left**. These are P4
 screens; the S3 stays the panel it already is — and the next thing added to it has to pay for
@@ -206,6 +214,25 @@ would install.
 - [ ] The update screen comes out turquoise on the Waveshare during an upload. The framebuffer
       reads black, so it is below the app; four explanations were disproved by experiment
       (`docs/HARDWARE.md`). **Kept**: it shows plainly that something is happening
+
+## Gold standard (2026-11-16)
+
+Work towards one pull request upstream, done without a board: every claim below was proved by host
+tests or by the simulator, so what only glass, Wi-Fi and a finger can show is left as an open box
+for the maintainer (`docs/HARDWARE_TEST.md`).
+
+- [x] The screens run on a computer (`sim/`): a picture of every view at 800×480 and 1024×600 (French at
+      1024×600 only, as on the boards), with the showcase data only
+- [x] Host tests of the logic: lyrics timing, position clock, update checks, strings, seek mapping,
+      source choice, queue parsing, signature (`pio test -e native`)
+- [x] French on the P4 boards (the CrowPanel stays English: `I18N_NO_FR`, no flash left); another
+      language is a column in `src/app/i18n_strings.inc`
+- [ ] Maintainer's check of the French interface on a P4 board (restart, saved language, the page)
+- [x] Signed updates: ECDSA P-256 over the published digest, on the GitHub path and the upload page;
+      dormant until the maintainer runs `tools/signing-key.sh` and commits the public key
+- [ ] Maintainer's check of signed updates with a test key (`docs/HARDWARE_TEST.md`)
+- [x] CrowPanel render A/B: `flush cpu|dma|dma2` (`cpu` at each boot), the P4 PPA draw unit waits for IDF 6
+- [ ] Maintainer's comparison of the three flush modes on the CrowPanel, and a pick
 
 ## Other boards (not started)
 

@@ -50,8 +50,8 @@ the settings too — a restored panel rejoins your Wi-Fi and finds its music ser
 set up again, because the copy holds the panel's whole memory. Which is also why the file deserves
 the same care as a password, and should never be attached to a bug report.
 
-It is also the only thing that tells the two ESP32-P4 boards apart before you flash them — the
-browser installer sees one chip for both, and the wrong image leaves the screen dark. If you
+It also tells the two ESP32-P4 boards apart before you flash them: the browser installer sees one
+chip for both and asks you which you have, and the wrong image leaves the screen dark. If you
 already flashed and the screen stayed black, plug in the USB cable and read the serial console
 (`pio device monitor`): the firmware says **WRONG BOARD** and names the image you need.
 
@@ -120,7 +120,9 @@ it does, and it is nothing to worry about for the first few seconds:
 ![Looking for your music server](images/searching.png)
 
 It finds the music server, or the companion, by itself: with both on the network, music comes from
-the server and lyrics from the companion; **Settings > Music from** says what it found. Only 2.4 GHz networks
+the server and lyrics from the companion; **Settings > Music from** says what it found. This is
+for a new panel. A panel updated from an earlier release keeps the source it was using, and
+nothing moves it behind your back: change it on purpose in **Music from**, or on the panel's page. Only 2.4 GHz networks
 work (most routers offer both). To move the panel to another network later: **Settings > Wi-Fi >
 Change...**. If the companion is
 on another network segment, its address (and its access token, if you set one) can be typed on
@@ -164,10 +166,32 @@ play/pause, next, volume − / +, settings.
 
   ![Volume](images/volume.png)
 
+- **Progress bar**: touch the bar under the title, on the lyrics or the cover view, to jump to that
+  point of the song; drag to choose, and it jumps when you lift. The touch area is taller than the
+  thin bar, so a finger is enough. A bar you cannot jump on (a stream the zone cannot seek in, or
+  nothing playing) simply does not react. It follows the zone the panel follows, with either
+  source.
+
 - **Lyrics timing**: if the lyrics run early or late for a song, **press and hold** the lyrics,
   then *Earlier* / *Later* (by 0.25 s) or *Reset*. It is saved for that song.
 
   ![Lyrics timing](images/lyrics-timing.png)
+
+## The play queue, and grouping zones
+
+On the Waveshare and the VIEWE, whenever the panel plays through the companion, the controls bar has
+a **note** button between the library and the settings (whatever **Music from** says, **Automatic**
+included). It opens the queue of the zone the panel follows: the track playing, then **Up next**, in
+the order Roon has them. Tap a track to play from there. The list follows the zone and refreshes by
+itself every 5 seconds; if the companion does not answer, it says so and keeps the list.
+
+The zone list does the grouping, in the same case. On a zone other than the one the panel follows,
+**+ Add to <the followed zone>** joins it to that zone's group; on a group, **Ungroup** splits it.
+The zone button then shows the group's name once Roon has reported it.
+
+The button and the two actions are hidden when the panel gets its music straight from the music
+server, including when both are found and the companion only gives the lyrics: only the companion
+exposes them. The CrowPanel has neither (its flash is full).
 
 ## Find music
 
@@ -260,7 +284,9 @@ The panel looks for a new version every day. When there is one, **Update** appea
 ![Update available](images/update-available.png)
 
 Tap it and confirm. The panel downloads the update, **checks its sha256 against the one published
-with the release** and refuses it if a single byte differs, then restarts (about a minute).
+with the release** and refuses it if a single byte differs, then restarts (about a minute). Once the
+maintainer has built his signing key into the firmware, it also checks the release's **signature**
+and refuses an unsigned update; until then that check is dormant and changes nothing for you.
 Don't unplug it meanwhile — the screen says so, and shows how far it has got. There is nothing to
 back up first: the version you are running stays in the other half of the flash, and the panel
 returns to it by itself if the new one never starts properly.
