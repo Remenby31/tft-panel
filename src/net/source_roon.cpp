@@ -191,6 +191,7 @@ void DirectSource::publishEverything(const tftcore::ZoneList &zones, const tftco
     np.canPause = z->canPause;
     np.canNext = z->canNext;
     np.canPrevious = z->canPrevious;
+    np.canSeek = z->canSeek;
     for (const tftcore::Output &o : z->outputs) {
         OutputInfo oi;
         oi.id = o.id.c_str();
@@ -237,6 +238,8 @@ void DirectSource::command(const Command &c) {
         tftcore::Client::Reply r = g_client.control(zoneId.c_str(), c.arg);
         if (r.ok) Serial.printf("[net] control %s ok\n", c.arg);
         else report((String("Control ") + c.arg).c_str(), r);
+    } else if (c.type == CmdType::Seek) {
+        report("Seek", g_client.seek(zoneId.c_str(), "absolute", (int32_t)(c.value / 1000)));
     } else if (c.type == CmdType::VolumeSet) {
         for (const OutputInfo &o : outputs) {
             if (o.volumeType != "number" && o.volumeType != "db") continue;

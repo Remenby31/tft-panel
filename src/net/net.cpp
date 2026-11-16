@@ -525,6 +525,7 @@ void publishNowPlaying(NowPlaying np) {
         s.canPause = np.canPause;
         s.canNext = np.canNext;
         s.canPrevious = np.canPrevious;
+        s.canSeek = np.canSeek;
         if (newTrack) {
             s.lyricsStatus = LyricsStatus::Loading;
             s.lyrics.reset();
@@ -628,6 +629,16 @@ void handleCommand(const Command &c) {
         Serial.printf("[net] zone %s\n", c.arg[0] ? c.arg : "auto (follow the playing zone)");
         source().zoneSelectionChanged();   // re-pick at once
         return;
+    }
+    if (c.type == CmdType::Seek) {
+        // The position is ours to move before the server confirms: its next report would be read
+        // as a seek (empty window) anyway, but a screen waiting for it shows the old second.
+        g_clock.reset();
+        update([&](Snapshot &s) {
+            s.positionMs = (int32_t)c.value / 1000 * 1000;   // the server seeks in whole seconds
+            s.positionAtMs = millis();
+            s.positionUncertaintyMs = -1;
+        });
     }
     source().command(c);
 }
@@ -870,6 +881,7 @@ void selectZone(const String &zoneId) { enqueue(CmdType::Zone, zoneId.c_str(), 0
 void volumeSet(float value) { enqueue(CmdType::VolumeSet, nullptr, 0, value); }
 void mute(bool on) { enqueue(CmdType::Mute, nullptr, on ? 1 : 0); }
 void setOffset(int32_t ms) { enqueue(CmdType::Offset, nullptr, 0, (float)ms); }
+void seek(int32_t ms) { enqueue(CmdType::Seek, nullptr, 0, (float)ms); }
 void library(LibOp op, int index, const String &text) {
     if (board::HAS_LIBRARY) enqueue(CmdType::Library, text.c_str(), (int8_t)op, (float)index);
 }

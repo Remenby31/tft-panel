@@ -162,7 +162,7 @@ with that, and lyrics became a section. What is still missing to be a credible r
 - [ ] The queue: what is next, reorder, clear (`subscribe_queue`; the companion already exposes it,
       `tft-core-client` does not)
 - [ ] Zone grouping / ungrouping (the protocol has it, neither client uses it yet)
-- [ ] Scrub on the progress bar (`tft-core-client` has `seek()`, the UI does not expose it)
+- [x] Scrub on the progress bar (tap or drag; companion `POST /api/roon/seek`, direct `seek()`; to confirm on the boards)
 - [ ] Output standby and convenience switch
 - [ ] First run should not ask "companion or direct": the panel can look for both and say what it
       found, so a newcomer never has to understand the project's history to hear music

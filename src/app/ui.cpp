@@ -1,4 +1,5 @@
 #include "ui.h"
+#include "seek_map.h"
 
 #include <Arduino.h>
 #include <esp_timer.h>
@@ -220,6 +221,104 @@ void setHidden(lv_obj_t *o, bool hidden) {
 void fmtTime(char *buf, size_t n, uint32_t ms) {
     uint32_t s = ms / 1000;
     snprintf(buf, n, "%u:%02u", (unsigned)(s / 60), (unsigned)(s % 60));
+}
+
+// Seek by touching the progress bar. While the finger is down the bar and the elapsed label show
+// the target; the seek goes out on release. After it, tickProgress leaves the bar alone until the
+// snapshot carries a position stamped after the release (the net task applied the seek) or
+// SEEK_HOLD_MAX_MS passed. The override is display-only: net state is never written from here.
+constexpr uint32_t SEEK_HOLD_MAX_MS = 5000;
+lv_obj_t *g_seekBar = nullptr;   // the bar being dragged, nullptr when idle
+int32_t g_seekTargetMs = 0;
+String g_seekTrack;              // what the finger pressed on: a seek lands only on that track
+bool g_seekHeld = false;
+uint32_t g_seekReleasedAt = 0;
+
+bool canSeekNow() { return g_s.phase == net::Phase::Playing && g_s.canSeek && g_s.durationMs && !g_demo; }
+
+String seekTrackKey() { return g_s.zoneName + "\x1f" + g_s.title + "\x1f" + String(g_s.durationMs); }
+
+lv_obj_t *g_seekKnob = nullptr;   // one round marker, moved to whichever bar is being touched
+
+lv_obj_t *seekElapsed(lv_obj_t *bar) { return bar == g_cvBar ? g_cvElapsed : g_elapsed; }
+
+// While the finger is on the bar the target is a visible dot and a bright time; idle, nothing shows.
+void endSeekDrag() {
+    if (g_seekBar) setTextColour(seekElapsed(g_seekBar), COL_DIM);
+    g_seekBar = nullptr;
+    if (g_seekKnob) setHidden(g_seekKnob, true);
+}
+
+bool seekHolding(uint32_t now) {
+    if (g_seekHeld && ((int32_t)(g_s.positionAtMs - g_seekReleasedAt) >= 0 || now - g_seekReleasedAt > SEEK_HOLD_MAX_MS))
+        g_seekHeld = false;
+    return g_seekBar || g_seekHeld;
+}
+
+void showSeekTarget(lv_obj_t *bar, int32_t ms) {
+    bool cover = bar == g_cvBar;
+    lv_bar_set_value(bar, (int32_t)((int64_t)ms * 1000 / g_s.durationMs), LV_ANIM_OFF);
+    char t[12];
+    fmtTime(t, sizeof t, ms);
+    setText(cover ? g_cvElapsed : g_elapsed, t);
+    setTextColour(cover ? g_cvElapsed : g_elapsed, COL_TEXT);
+    if (!g_seekKnob) {
+        g_seekKnob = lv_obj_create(lv_obj_get_parent(bar));
+        lv_obj_remove_style_all(g_seekKnob);
+        lv_obj_set_size(g_seekKnob, S(14), S(14));
+        lv_obj_set_style_radius(g_seekKnob, LV_RADIUS_CIRCLE, 0);
+        lv_obj_set_style_bg_color(g_seekKnob, lv_color_hex(COL_ACCENT), 0);
+        lv_obj_set_style_bg_opa(g_seekKnob, LV_OPA_COVER, 0);
+        lv_obj_set_clickable(g_seekKnob, false);
+    }
+    if (lv_obj_get_parent(g_seekKnob) != lv_obj_get_parent(bar)) lv_obj_set_parent(g_seekKnob, lv_obj_get_parent(bar));
+    lv_area_t a;
+    lv_obj_get_coords(bar, &a);
+    lv_obj_t *parent = lv_obj_get_parent(bar);
+    lv_area_t pa;
+    lv_obj_get_coords(parent, &pa);
+    int32_t cx = a.x1 + (int32_t)((int64_t)ms * lv_area_get_width(&a) / g_s.durationMs);
+    int32_t cy = (a.y1 + a.y2) / 2;
+    lv_obj_set_pos(g_seekKnob, cx - pa.x1 - S(7), cy - pa.y1 - S(7));
+    setHidden(g_seekKnob, false);
+}
+
+void onSeekBar(lv_event_t *e) {
+    lv_obj_t *bar = (lv_obj_t *)lv_event_get_target(e);
+    lv_event_code_t code = lv_event_get_code(e);
+    if (code == LV_EVENT_PRESSED) {
+        if (!canSeekNow()) return;
+        g_seekBar = bar;
+        g_seekTrack = seekTrackKey();
+    }
+    if (g_seekBar != bar) return;
+    if (code == LV_EVENT_PRESS_LOST || !canSeekNow() || seekTrackKey() != g_seekTrack) {   // track or zone moved under the finger
+        endSeekDrag();
+        return;
+    }
+    lv_indev_t *indev = lv_indev_active();
+    if (!indev) return;
+    lv_point_t p;
+    lv_indev_get_point(indev, &p);
+    lv_area_t a;
+    lv_obj_get_coords(bar, &a);
+    g_seekTargetMs = seekTargetMs(p.x, a.x1, lv_area_get_width(&a), g_s.durationMs);
+    showSeekTarget(bar, g_seekTargetMs);
+    if (code == LV_EVENT_RELEASED) {
+        endSeekDrag();
+        g_seekHeld = true;
+        g_seekReleasedAt = millis();
+        net::seek(g_seekTargetMs);
+    }
+}
+
+// A finger needs more than 4 px: the hit area grows, the drawing does not. No event bubbling:
+// the bar keeps its taps and long presses from the screen's handlers.
+void makeSeekable(lv_obj_t *bar) {
+    lv_obj_set_clickable(bar, true);
+    lv_obj_set_ext_click_area(bar, Y(22));
+    for (lv_event_code_t c : {LV_EVENT_PRESSED, LV_EVENT_PRESSING, LV_EVENT_RELEASED, LV_EVENT_PRESS_LOST})
+        lv_obj_add_event_cb(bar, onSeekBar, c, nullptr);
 }
 
 // Escapes ; , : \ " for the WIFI: QR format.
@@ -537,6 +636,7 @@ void buildCoverView() {
     g_cvBar = progressBar(g_coverView);
     lv_obj_set_size(g_cvBar, CV_COL_W, S(4));
     lv_obj_set_pos(g_cvBar, CV_COL_X, barY);
+    makeSeekable(g_cvBar);
     g_cvElapsed = label(g_coverView, fonts::ui16, COL_DIM);
     lv_obj_set_pos(g_cvElapsed, CV_COL_X, barY + Y(10));
     g_cvTotal = label(g_coverView, fonts::ui16, COL_DIM);
@@ -678,6 +778,7 @@ void onLibraryLink(lv_event_t *e) {
 void onGesture(lv_event_t *) {
     lv_indev_t *indev = lv_indev_active();
     if (!indev || g_s.portalActive || !isHidden(g_picker) || settingsui::isOpen() || wifiui::isOpen() || libui::isOpen()) return;
+    if (seekHolding(millis())) return;   // a drag on the bar is not a swipe
     lv_dir_t dir = lv_indev_get_gesture_dir(indev);
     if (dir != LV_DIR_LEFT && dir != LV_DIR_RIGHT) return;
     // No click at the end of a swipe, on the screen or on a button the finger started on.
@@ -1197,6 +1298,7 @@ void build() {
     lv_bar_set_range(g_bar, 0, 1000);
     lv_obj_set_style_bg_color(g_bar, lv_color_hex(0x2E2E32), LV_PART_MAIN);
     lv_obj_set_style_bg_color(g_bar, lv_color_hex(COL_ACCENT), LV_PART_INDICATOR);
+    makeSeekable(g_bar);
     g_elapsed = label(g_lyricsView, fonts::ui16, COL_DIM);
     lv_obj_align(g_elapsed, LV_ALIGN_BOTTOM_LEFT, X(24), -Y(10));
     g_total = label(g_lyricsView, fonts::ui16, COL_DIM);
@@ -1461,6 +1563,7 @@ void tickLyrics(uint32_t now) {
 
 void tickProgress(uint32_t now) {
     if (g_s.portalActive || !g_s.durationMs || now - g_lastProgress < 250) return;
+    if (seekHolding(now)) return;   // the finger's target wins
     g_lastProgress = now;
     int32_t pos = g_s.positionAt(now);
     // Only the visible view: hidden widgets would still cost a redraw when shown again anyway.
@@ -1664,6 +1767,7 @@ bool showcase(const String &what) {
         closePicker();
         showControls(false);
         g_clockForced = false;
+        endSeekDrag();
         // The showcase clock froze the ticker on invented headlines; nothing else would start the
         // real one again until the feed refreshes, a quarter of an hour later. A flag, not a
         // serial: inside the showcase `g_s` is the invented snapshot, so its counters say nothing
@@ -1675,7 +1779,14 @@ bool showcase(const String &what) {
     }
     if (!g_demo) return false;
     if (what == "lyrics" || what == "cover") showView(what == "cover" ? View::Cover : View::Lyrics);
-    else if (what == "clockview") showView(View::Clock);
+    else if (what == "seek") {   // the bar mid-drag, at 40 % of the track
+        showView(View::Lyrics);
+        g_seekBar = g_bar;
+        showSeekTarget(g_bar, (int32_t)(g_s.durationMs * 2 / 5));
+        char total[12];
+        fmtTime(total, sizeof total, g_s.durationMs);
+        setText(g_total, total);
+    } else if (what == "clockview") showView(View::Clock);
     else if (what == "controls") showControls(true);
     else if (what == "settings") {
         settingsui::open();
