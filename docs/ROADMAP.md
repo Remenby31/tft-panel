@@ -184,8 +184,8 @@ Work towards one pull request upstream, done without a board: every claim below 
 tests or by the simulator, so what only glass, Wi-Fi and a finger can show is left as an open box
 for the maintainer (`docs/HARDWARE_TEST.md`).
 
-- [x] The screens run on a computer (`sim/`): a picture of every view at 800×480 and 1024×600, in
-      English and in French, with the showcase data only
+- [x] The screens run on a computer (`sim/`): a picture of every view at 800×480 and 1024×600 (French at
+      1024×600 only, as on the boards), with the showcase data only
 - [x] Host tests of the logic: lyrics timing, position clock, update checks, strings, seek mapping,
       source choice, queue parsing, signature (`pio test -e native`)
 - [x] French on the P4 boards (the CrowPanel stays English: `I18N_NO_FR`, no flash left); another

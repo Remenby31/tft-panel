@@ -140,7 +140,7 @@ No board needed to work on the interface or the logic:
 
 ```bash
 pio test -e native                    # host tests (a plain `pio test` runs none, by design)
-sim/shoot.sh [OUT_DIR] [SCREEN,...]   # every screen as a PNG at 800x480 and 1024x600, in en or fr
+sim/shoot.sh [OUT_DIR] [SCREEN,...]   # screens as PNGs at 800x480 and 1024x600 (French: 1024x600 only)
 pio run -e sim && .pio/build/sim/program --window   # click through the screens (or -e sim-1024)
 ```
 
