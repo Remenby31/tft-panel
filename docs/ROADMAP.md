@@ -205,6 +205,30 @@ would install.
       reads black, so it is below the app; four explanations were disproved by experiment
       (`docs/HARDWARE.md`). **Kept**: it shows plainly that something is happening
 
+## First outside contribution: PR #2 (2026-11-16)
+
+Seek, a first run that picks its own source, French, queue + zone grouping, ECDSA-signed updates, a
+GDMA render A/B, host tests and an SDL simulator of the real `src/app` screens — 4,669 lines in one
+pull request, to be taken as **seven batches** instead: tooling and tests first, signed updates
+last, each merged once its checklist has run on a board. The order and the reasons are the review
+comment on the PR.
+
+What a board still has to say, and nothing else is blocking:
+
+- [x] Seek by finger on the VIEWE (2026-11-17): tap and drag on the progress bar both behave
+- [ ] Seek against the offset popup: a drag that starts where the popup opens, on each screen
+- [ ] Tap a queue row to play it
+- [ ] Group and ungroup two real zones
+- [ ] A signed install end to end — before any private key is compiled into a release, because a
+      panel that ships with one stops accepting unsigned updates for good
+- [ ] The render A/B on the CrowPanel: `flush cpu|dma|dma2`, watching for tearing and for a torn
+      strip after a backdrop change; `cpu` stays the default until a measurement says otherwise
+
+Not a hardware question but open: queue and grouping go through the companion only, so they are
+dark in direct mode, which is what a new panel now chooses. The review asks for `subscribe_queue`
+and grouping in `tft-core-client` first so both modes gain them — undecided, and the contributor's
+call whether that is a detour worth taking.
+
 ## Other boards (not started)
 
 - **Guition JC1060P470C** (ESP32-P4, JD9165, 16 MB flash) — asked by a user 2026-11-11; about half a day
