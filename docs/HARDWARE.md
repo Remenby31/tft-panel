@@ -316,8 +316,10 @@ What stays true:
   vendor's own choice, the driver default reference at 600 Mbps, works.
 - 🪤 **Its CH340 drops bytes on a long transfer**: a 16 MB read died after 284 KB at 460800 and
   again at 230400 in one go. Reading in retryable 512 KB pieces at 230400 works (one retry in 32).
-  Flashing at 230400 is reliable. Opening the port resets the board, so a pending-verify OTA
-  window must be left alone.
+  Flashing at 230400 is reliable. Opening the port resets the board **even with DTR and RTS both
+  deasserted** (2026-11-16): the trick that lets a CrowPanel be watched without restarting it does
+  not work here, so every console command on this board costs a reboot and about 30 s before it has
+  rejoined Wi-Fi, re-paired and found its zone again. A pending-verify OTA window must be left alone.
 - 🪤 **16 MB of flash**: the image header has to say 16 MB or the bootloader refuses to probe.
 - 🪤 **Vendor sources beat look-alike sources.** Every published table, timing, reset pin, pixel
   format, lane rate and clock source for boards with the same controller was tried and none of it
