@@ -171,7 +171,8 @@ with that, and lyrics became a section. What is still missing to be a credible r
 - [ ] The queue: what is next, reorder, clear (`subscribe_queue`; the companion already exposes it,
       `tft-core-client` does not)
 - [ ] Zone grouping / ungrouping (the protocol has it, neither client uses it yet)
-- [ ] Scrub on the progress bar (`tft-core-client` has `seek()`, the UI does not expose it)
+- [x] Scrub on the progress bar: written in PR #2 (batch 2) and tried by finger on the VIEWE
+      2026-11-17 — tap and drag both behave; it reaches main with that batch
 - [ ] Output standby and convenience switch
 - [ ] First run should not ask "companion or direct": the panel can look for both and say what it
       found, so a newcomer never has to understand the project's history to hear music
