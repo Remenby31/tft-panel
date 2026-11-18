@@ -198,6 +198,7 @@ constexpr FlushMode FLUSH_MODES[] = {{"cpu", 1, false}, {"dma", 1, true}, {"dma2
 const FlushMode *g_mode = &FLUSH_MODES[0];
 
 uint8_t *g_drawBuf = nullptr;
+bool g_drawBufAligned = false;   // the GDMA can read it: the dma modes need this
 constexpr size_t DRAW_BUF_BYTES = LCD_H_RES * DRAW_BUF_LINES * sizeof(uint16_t);
 constexpr size_t FB_BYTES = (size_t)LCD_H_RES * LCD_V_RES * sizeof(uint16_t);
 constexpr size_t GDMA_BURST = 64;
@@ -212,25 +213,38 @@ uint16_t *g_copyDst = nullptr;
 size_t g_copyBytes = 0;
 int64_t g_flushT0 = 0;
 
-// Cache maintenance over the framebuffer, 32 KB at a time: each call masks interrupts, and the
-// bounce-buffer refill must not wait long (a late refill shifts the image).
-void syncFramebuffer(int dir) {
+// Cache maintenance, 32 KB at a time: each call masks interrupts, and the bounce-buffer refill
+// must not wait long (a late refill shifts the image).
+void syncRange(void *p, size_t n, int dir) {
     constexpr size_t CHUNK = 32 * 1024;
-    for (size_t off = 0; off < FB_BYTES; off += CHUNK)
-        esp_cache_msync((uint8_t *)g_fb + off, std::min(CHUNK, FB_BYTES - off), dir);
+    for (size_t off = 0; off < n; off += CHUNK) esp_cache_msync((uint8_t *)p + off, std::min(CHUNK, n - off), dir);
 }
 
-// Before the CPU reads the framebuffer (screenshot, update screen): the last strip copied, and
-// no line cached while the GDMA wrote under it. Nothing to do in cpu mode.
+void syncFramebuffer(int dir) { syncRange(g_fb, FB_BYTES, dir); }
+
+// Before the CPU reads the framebuffer (screenshot, update screen), in a dma mode only: it waits
+// for the one strip still in flight (up to 77 KB by GDMA, so a few ms; never measured), then drops
+// every cached framebuffer line, because the bounce refill may have cached a line the GDMA then
+// wrote under. Without the wait the reader gets half of the previous strip; without the drop it
+// gets stale lines. The time is logged so the board can say how long this is.
 void settleFramebuffer() {
+    if (!g_mode->dma) return;
+    int64_t t0 = esp_timer_get_time();
     while (g_copying) delay(1);
-    if (g_mode->dma) syncFramebuffer(ESP_CACHE_MSYNC_FLAG_DIR_M2C);
+    syncFramebuffer(ESP_CACHE_MSYNC_FLAG_DIR_M2C);
+    Serial.printf("[board] settle: %u us\n", (unsigned)(esp_timer_get_time() - t0));
 }
 
+// GDMA interrupt. esp_cache_msync is safe here in ESP-IDF v5.5.5, the IDF pioarduino 55.03.312-1
+// ships: it is linked in IRAM (components/esp_mm/linker.lf:6), skips its mutex when it cannot
+// yield and takes an ISR-safe critical section (components/esp_mm/esp_cache_msync.c:73-136),
+// Espressif's own test calls it from an ISR timer (esp_mm/test_apps/mm/main/test_cache_msync.c:62),
+// and it may run during flash operations with XIP from PSRAM, which this env sets
+// (components/esp_mm/include/esp_cache.h:68).
 bool copyDone(async_memcpy_handle_t, async_memcpy_event_t *, void *disp) {
     // The driver invalidated these lines before the copy; the bounce refill may have cached some
     // since, still holding the previous frame.
-    esp_cache_msync(g_copyDst, g_copyBytes, ESP_CACHE_MSYNC_FLAG_DIR_M2C);
+    syncRange(g_copyDst, g_copyBytes, ESP_CACHE_MSYNC_FLAG_DIR_M2C);
     g_flushUs += (uint32_t)(esp_timer_get_time() - g_flushT0);
     g_flushCount++;
     g_copying = false;
@@ -255,8 +269,12 @@ void flushCb(lv_display_t *disp, const lv_area_t *area, uint8_t *px) {
     const uint16_t *src = (const uint16_t *)px;
     for (int y = area->y1; y <= area->y2; y++, src += w) memcpy(g_fb + y * LCD_H_RES + area->x1, src, w * 2);
     // In a dma mode (an area invalidated before the switch, or a refused copy): written back now,
-    // or a dirty line evicted later would land over a newer GDMA copy.
-    if (g_mode->dma) esp_cache_msync(dst, n, ESP_CACHE_MSYNC_FLAG_DIR_C2M | ESP_CACHE_MSYNC_FLAG_UNALIGNED);
+    // or a dirty line evicted later would land over a newer GDMA copy. The rows span the full
+    // width between the area's first and last pixel.
+    if (g_mode->dma)
+        syncRange(g_fb + area->y1 * LCD_H_RES + area->x1,
+                  ((size_t)(area->y2 - area->y1) * LCD_H_RES + w) * sizeof(uint16_t),
+                  ESP_CACHE_MSYNC_FLAG_DIR_C2M | ESP_CACHE_MSYNC_FLAG_UNALIGNED);
     g_flushUs += (uint32_t)(esp_timer_get_time() - t0);
     g_flushCount++;
     lv_display_flush_ready(disp);
@@ -292,8 +310,14 @@ bool createLvgl() {
     lv_init();
     lv_tick_set_cb([]() -> uint32_t { return millis(); });
 
-    // 64-byte aligned: the GDMA reads the strips' rows in the dma modes.
-    g_drawBuf = (uint8_t *)heap_caps_aligned_alloc(64, DRAW_BUF_BYTES, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
+    // 64-byte aligned: the GDMA reads the strips' rows in the dma modes. The cpu mode needs no
+    // alignment, so a fragmented heap still gets a screen, without the dma modes.
+    g_drawBuf = (uint8_t *)heap_caps_aligned_alloc(GDMA_BURST, DRAW_BUF_BYTES, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
+    g_drawBufAligned = g_drawBuf != nullptr;
+    if (!g_drawBuf) {
+        g_drawBuf = (uint8_t *)heap_caps_malloc(DRAW_BUF_BYTES, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
+        if (g_drawBuf) Serial.println("[board] draw buffer: no aligned block, plain one used (flush cpu only)");
+    }
     if (!g_drawBuf) {
         g_info.error = "LVGL draw buffers: out of internal RAM";
         return false;
@@ -504,6 +528,7 @@ String setFlushMode(const char *name) {
         if (!strcmp(f.name, name)) m = &f;
     if (!m) return "unknown flush mode (cpu, dma, dma2)";
     if (m == g_mode || !g_disp) return "";
+    if (m->dma && !g_drawBufAligned) return "the draw buffer is not 64-byte aligned (see the boot log): cpu only";
     while (g_copying) delay(1);   // the last strip of the previous frame may still be on its way
 
     if (m->dma && !g_mcp) {

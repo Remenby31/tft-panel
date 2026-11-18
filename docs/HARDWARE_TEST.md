@@ -92,6 +92,8 @@ Waveshare's with `--dtr 1 --rts 0`, or it restarts. Opening the VIEWE's restarts
 
 Each change that needs the board adds a heading here with its steps when it lands (docs/ROADMAP.md).
 
+### Render speed: P4 draw unit, S3 DMA flush
+
 P4 boards: nothing to test. The LVGL PPA draw unit needs IDF 6 (docs/ARCHITECTURE.md).
 
 CrowPanel only: three flush modes, switchable live with `flush cpu|dma|dma2`.
@@ -115,8 +117,12 @@ strip and only swaps the CPU copy for the GDMA one. `cpu` stays the default unti
    offered). The update screen must show the current text, not the previous screen's.
 9. If a mode answers `[cmd] flush: not enough internal RAM ...`, note the KB figure. The mode is
    then unusable as is.
+10. Still in `dma2`, with lyrics scrolling: `shots on`, then for one minute
+    `for i in $(seq 15); do curl -s -o /dev/null http://<panel>/screenshot; done`. Each screenshot
+    first waits for the strip in flight and drops the cached framebuffer, and logs
+    `[board] settle: N us`. Note the largest N. Expected a few ms, never measured.
 
-Report the three modes' `[ui] scroll:` lines and what you saw. If `dma` or `dma2` wins without
+Report the three modes' `[ui] scroll:` lines, the largest `settle`, and what you saw. If `dma` or `dma2` wins without
 artefacts, its name becomes the default in `g_mode` (`src/board/board_crowpanel7.cpp`).
 
 ## Results block

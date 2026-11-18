@@ -478,8 +478,9 @@ void start() {
     });
     g_server->on("/update", HTTP_POST, handleUploadDone, handleUpload);
     g_server->on("/screenshot", HTTP_GET, []() {
-        const uint16_t *fb = board::frameBuffer();
-        if (!g_shots || !fb) {
+        // Shots first: reading the framebuffer waits for the GDMA and syncs the cache (CrowPanel dma modes).
+        const uint16_t *fb = g_shots ? board::frameBuffer() : nullptr;
+        if (!fb) {
             g_server->send(403, "text/plain", "Screenshots are off (console: shots on).");
             return;
         }
