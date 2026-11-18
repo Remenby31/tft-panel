@@ -37,6 +37,8 @@ constexpr uint8_t DEFAULT_WARMTH = 0;
 constexpr bool OTA_DOWNLOAD_FIRST = true;
 // Music library browsing (search, browse, play) from the panel.
 constexpr bool HAS_LIBRARY = true;
+// The play queue of the followed zone (companion source): see it, play from any item.
+constexpr bool HAS_QUEUE = true;
 
 // ---- Panel supply: raised before anything else touches the display ----
 constexpr int PANEL_POWER_GPIO_1 = 4;     // LCM 1.8 V
