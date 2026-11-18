@@ -19,6 +19,11 @@ if you want them.
 No computer left running, no app to launch, no account, no cloud. It talks only to machines on
 your own network.
 
+<p align="center">
+  <img src="docs/media/in-use.jpg" alt="TFT Panel on a hi-fi rack, above a turntable and a network audio player, showing the lyrics of the track that is playing" width="420"><br>
+  <em>At home, on the rack, beside the network player it follows. The lyrics are blurred: they are not ours to publish.</em>
+</p>
+
 > 🚧 **Early development** — it runs every day on the developer's panels, but expect rough edges.
 > See [docs/ROADMAP.md](docs/ROADMAP.md).
 
