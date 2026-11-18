@@ -21,7 +21,7 @@ for dirpath, _, files in os.walk(os.path.join(root, "src")):
 problems = [f"LV_SYMBOL_{n} is used in {p} but not listed in tools/fonts/symbols.txt"
             for n, p in sorted(used.items()) if n not in listed]
 fonts_dir = os.path.join(root, "src", "app", "symbol_fonts")
-for f in sorted(os.listdir(fonts_dir)):
+for f in sorted(f for f in os.listdir(fonts_dir) if f.endswith(".c")):   # not the licence texts
     m = re.search(r"^// symbols: (.*)$", open(os.path.join(fonts_dir, f)).read(), re.M)
     if not m or sorted(m.group(1).split()) != sorted(set(listed)):
         problems.append(f"src/app/symbol_fonts/{f} does not hold the symbols of tools/fonts/symbols.txt")
