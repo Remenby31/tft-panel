@@ -152,7 +152,7 @@ void fakePortal(net::Snapshot &s) {
 
 void fakePairingHint(net::Snapshot &s) {
     sourcechoice::Seen seen;
-    seen.companion = seen.server = true;
+    seen.companion = seen.server = seen.waiting = true;
     sourcechoice::Chooser c(settings::SourceKind::Auto, false);
     c.step(seen, 1000);
     char line[200];
