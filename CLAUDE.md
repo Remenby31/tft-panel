@@ -70,7 +70,10 @@ over Wi-Fi) drive it.
 Docs/promo media: `tools/showcase.py --port … --host <panel IP>` (console `demo` showcase: invented
 song, lyrics, zones, generated cover; frames over Wi-Fi with `shots on`, ~4 s each) → `docs/images/`;
 `uv run --with pillow==11.0.0 tools/promo.py` (device frame, hero/square/banner/grid) and
-`tools/animate.sh` (MP4 + GIF) → `docs/media/`. Only showcase pictures may be committed.
+`tools/animate.sh` (MP4 + GIF) → `docs/media/`. Only showcase pictures may be committed — one
+deliberate exception: `docs/media/in-use.jpg` and its 1280×640 crop `social.jpg` (the repo's social
+preview) are a real photo of the panel at home, kept because the lyrics and cover on its screen are
+blurred until unreadable. Keep them; any new real photo needs the same blur before it is committed.
 Website (GitHub Pages, gh-pages): `tools/site.sh` republishes landing + guide (+ installer, firmware kept);
 `tools/release.sh` calls it with the new firmware.
 Fonts: `tools/fonts/build_fonts.sh` rebuilds `assets/fonts/` (never `npx` a converter: run-time tiny_ttf).
