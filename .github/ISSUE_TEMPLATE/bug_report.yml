@@ -7,7 +7,7 @@ body:
       value: |
         Before you write: the [troubleshooting table](https://github.com/r45635/tft-panel/blob/main/docs/USER_GUIDE.md#troubleshooting) answers the usual questions.
 
-        **A VIEWE screen that stays dark after the web installer** is known: the installer gives every ESP32-P4 board the Waveshare firmware. Flash it over USB instead (see [Build and flash](https://github.com/r45635/tft-panel#build-and-flash)).
+        **A screen that stays dark right after flashing** has usually been given another board's firmware: run the [web installer](https://r45635.github.io/tft-panel/install.html) again and check the screen you pick — the two ESP32-P4 boards share a chip, so it cannot tell them apart by itself.
 
         **Another board** — even with the same chip — is not supported: open a *New board* issue instead.
 
