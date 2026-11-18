@@ -38,6 +38,42 @@ and nothing more:
   behind the code on the screen, still installs an older signed release or another board's.
   Secure boot and flash encryption are not used: they burn eFuses, which cannot be undone.
 
+## Turning signed updates on
+
+A panel without a key installs any update whose SHA-256 matches its release. So the build that
+first carries the key is installed on that trust alone, and whatever key it carries, the panel
+trusts from then on. That build must come from a release the maintainer built and signed on
+their own machine.
+
+1. **Create the key**, once: `tools/signing-key.sh`. The private key lands in
+   `~/.config/tft-panel/signing-key.pem`, outside the repository. Put two copies offline (a USB
+   stick and a password manager, say) before going further. Commit `src/net/signing_key.h`.
+2. **Publish the first keyed release yourself**: `tools/release.sh`, on your machine, with that
+   private key. It checks that the key matches the header, signs every `.bin`, verifies each
+   signature with `openssl` and uploads the `.sig` beside it. Nobody else and no CI builds this one.
+3. **Check what GitHub serves**, right after publishing: download each board's `.bin` and `.sig`
+   from the release and run
+   `openssl dgst -sha256 -verify <(openssl pkey -in ~/.config/tft-panel/signing-key.pem -pubout) -signature <base>-<tag>.sig <base>-<tag>.bin`.
+   It must print `Verified OK`. If it does not, delete the release at once: panels look for a new
+   one 30 s after boot and every 24 h.
+4. **From then on, every release goes through `tools/release.sh` with the key.** A panel that
+   installed step 2's release, or any later one, accepts only images that key signed.
+
+When a signature is missing or wrong, nothing is installed and the panel keeps running its version:
+
+- **Update from GitHub**: a release without a `.sig` shows no update badge. *Settings › Updates*
+  reads `Last attempt failed: update vX.Y.Z is not signed, so it is not installed`, or, when the
+  `.sig` does not match, `Last attempt failed: signature does not match: nothing installed`.
+- **The panel's upload page**: the browser says `No signature: nothing installed` or
+  `Signature does not match: nothing installed`, and the screen says
+  `That file came without its signature: nothing installed.` or
+  `That file is not signed by the maintainer: nothing installed.`
+
+**A lost private key means USB only, for good.** No update over the air can replace the key without
+a signature from it, so every panel built with it takes new firmware only by USB (`pio run -t upload`
+or the browser installer). **A leaked key** lets its holder sign updates for every panel: publish
+at once a release, signed with the old key, that carries a new one, and tell users to update.
+
 ## A full-flash backup is a secret
 
 `tools/backup-firmware.py` copies the whole flash, which is what makes it restorable — and that

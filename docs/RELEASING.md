@@ -64,7 +64,8 @@ an image signed by the maintainer, from GitHub and from its own upload page alik
    its pair (before tagging), signs each `.bin`, verifies the signature with `openssl` and uploads
    the `.sig` with the other files.
 
-The first release that carries the key is installed on trust like any before it; from then on,
+The first release that carries the key is installed on trust like any before it (SECURITY.md,
+*Turning signed updates on*, says how to roll it out); from then on,
 panels refuse unsigned or badly signed images. Signing covers the image, not the bootloader:
 secure boot and flash encryption burn eFuses for good and stay out of scope.
 

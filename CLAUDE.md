@@ -27,6 +27,7 @@ pio run -e p4-s070-wba -t upload --upload-port /dev/cu.usbserial-*     # VIEWE P
 pio device monitor                                   # 115200, exception decoder on
 PLATFORMIO_BUILD_FLAGS="-DTOUCH_DIAG" pio run -t upload   # touch reset diagnostic at boot
 pio test -e native                                   # host tests (test/); a plain `pio test` runs none, by design
+pio test -e native-signature                         # release-signature suite: needs a system mbedTLS (platformio.ini)
 sim/shoot.sh [OUT_DIR] [SCREEN,...]                  # simulator PNGs at 800x480 and 1024x600 (default sim/out/)
 pio run -e sim && .pio/build/sim/program --window    # click through the screens (or -e sim-1024)
 ```
