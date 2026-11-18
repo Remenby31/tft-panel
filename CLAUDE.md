@@ -60,7 +60,9 @@ preview) are a real photo of the panel at home, kept because the lyrics and cove
 blurred until unreadable. Keep them; any new real photo needs the same blur before it is committed.
 Website (GitHub Pages, gh-pages): `tools/site.sh` republishes landing + guide (+ installer, firmware kept);
 `tools/release.sh` calls it with the new firmware.
-Fonts: `tools/fonts/build_fonts.sh` rebuilds `assets/fonts/` (never `npx` a converter: run-time tiny_ttf).
+Fonts: `tools/fonts/build_fonts.sh` rebuilds `assets/fonts/` (never `npx` a converter: run-time tiny_ttf)
+and the symbol-only Montserrat in `src/app/symbol_fonts/`; `build_fonts.sh symbols` does only those, after a
+new `LV_SYMBOL_*` is added to `tools/fonts/symbols.txt` (a build that uses one not listed fails).
 
 ## Rules
 

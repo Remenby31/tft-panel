@@ -1,0 +1,27 @@
+# The LV_SYMBOL glyphs the firmware draws: the only ones src/app/symbol_fonts/ keeps.
+# One LVGL symbol name per line (lv_symbol_def.h, without LV_SYMBOL_). tools/fonts/check_symbols.py
+# fails the build when src/ uses one that is missing; tools/fonts/build_fonts.sh regenerates.
+# Used in src/:
+CLOSE
+DIRECTORY
+DOWNLOAD
+LEFT
+LIST
+MINUS
+MUTE
+NEXT
+OK
+PAUSE
+PLAY
+PLUS
+PREV
+REFRESH
+RIGHT
+SETTINGS
+VOLUME_MAX
+# Drawn by LVGL's own widgets: the keyboard (BACKSPACE, KEYBOARD, NEW_LINE, LEFT, RIGHT, OK),
+# the dropdown's arrow (DOWN) and the message box's close button (CLOSE).
+BACKSPACE
+DOWN
+KEYBOARD
+NEW_LINE

@@ -26,18 +26,18 @@
 #define LV_USE_SYSMON 0
 #define LV_USE_PERF_MONITOR 0
 
-// Fonts. LVGL's built-in Montserrat is ASCII + symbols only: no accents.
-// Lyrics use the embedded Noto Sans through tiny_ttf; Montserrat stays for symbols.
-#define LV_FONT_MONTSERRAT_14 1
-#define LV_FONT_MONTSERRAT_20 1
-#define LV_FONT_MONTSERRAT_28 1
-#define LV_FONT_MONTSERRAT_48 0   /* 97 KB of flash; only a symbol fallback, 28 does it */
-// Larger screens scale the interface (src/layout.h): symbol fallbacks to match (fonts.cpp).
-#if defined(BOARD_WAVESHARE_P4_7B)
-#define LV_FONT_MONTSERRAT_18 1
-#define LV_FONT_MONTSERRAT_24 1
-#define LV_FONT_MONTSERRAT_36 1
-#endif
+// Fonts. All text is the embedded Noto Sans through tiny_ttf (src/app/fonts.cpp). LVGL's
+// Montserrat stays for its symbols only (play, volume, settings...): src/app/symbol_fonts/ keeps
+// the ones tools/fonts/symbols.txt lists, byte for byte, under the same names, and LVGL's own
+// files (letters included, ~60 KB more on the CrowPanel) are off.
+#define LV_FONT_MONTSERRAT_14 0
+#define LV_FONT_MONTSERRAT_20 0
+#define LV_FONT_MONTSERRAT_28 0
+#define LV_FONT_MONTSERRAT_48 0
+#define LV_FONT_CUSTOM_DECLARE LV_FONT_DECLARE(lv_font_montserrat_14) LV_FONT_DECLARE(lv_font_montserrat_18) \
+    LV_FONT_DECLARE(lv_font_montserrat_20) LV_FONT_DECLARE(lv_font_montserrat_24)                        \
+    LV_FONT_DECLARE(lv_font_montserrat_28) LV_FONT_DECLARE(lv_font_montserrat_36)
+// Symbols only: what is drawn before the theme gets Noto Sans (src/app/ui.cpp) shows no letters.
 #define LV_FONT_DEFAULT &lv_font_montserrat_20
 
 // Run-time TTF rendering for the embedded Noto Sans (src/app/fonts.cpp). Glyph and

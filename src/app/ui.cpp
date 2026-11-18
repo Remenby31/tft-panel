@@ -1102,7 +1102,7 @@ void build() {
     // not the default blue.
     lv_display_t *disp = lv_display_get_default();
     lv_display_set_theme(disp, lv_theme_default_init(disp, lv_color_hex(COL_ACCENT), lv_color_hex(COL_PRIMARY), false,
-                                                     LV_FONT_DEFAULT));
+                                                     fonts::ui20));   // LV_FONT_DEFAULT has no letters
     g_scr = lv_obj_create(nullptr);
     lv_obj_set_style_bg_color(g_scr, lv_color_hex(COL_BG), 0);
     lv_obj_set_style_text_color(g_scr, lv_color_hex(COL_TEXT), 0);

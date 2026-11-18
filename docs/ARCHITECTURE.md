@@ -271,8 +271,11 @@ carries `zone_or_output_id` = the followed zone, so actions play there.
   Two weights subset to Latin + Latin Extended-A + typographic punctuation weigh 23 KB each, against
   ~220 KB of bitmaps for four fixed sizes, and any size stays possible. Glyphs are cached (256 per
   font). Built by `tools/fonts/build_fonts.sh` (pinned google/fonts commit and fonttools), embedded
-  with `board_build.embed_files`. Montserrat stays as the fallback for LVGL symbols. CJK can later come
-  from the microSD card the same way.
+  with `board_build.embed_files`. Montserrat stays as the fallback for LVGL symbols, and for nothing
+  else: `src/app/symbol_fonts/` keeps only the symbols of `tools/fonts/symbols.txt` from LVGL's own
+  font files, byte for byte (the same script, pinned LVGL commit), which saves ~60 KB of the
+  CrowPanel's OTA slot. A build that uses a symbol not listed fails (`tools/fonts/check_symbols.py`).
+  CJK can later come from the microSD card the same way.
 - **ArduinoJson 7.4.2** for the companion's JSON.
 - **Memory**: internal RAM is kept for the Wi-Fi/lwIP stack and the two LVGL draw strips. LVGL
   (objects, texts, glyph caches) uses a PSRAM allocator (`LV_STDLIB_CUSTOM`,

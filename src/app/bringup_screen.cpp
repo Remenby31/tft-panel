@@ -5,6 +5,7 @@
 
 #include "../board/board.h"
 #include "../board/board_pins.h"
+#include "fonts.h"
 
 namespace bringup {
 namespace {
@@ -62,7 +63,7 @@ void show() {
 
     lv_obj_t *title = lv_label_create(scr);
     lv_label_set_text(title, "TFT Panel - hardware bring-up");
-    lv_obj_set_style_text_font(title, &lv_font_montserrat_28, 0);
+    lv_obj_set_style_text_font(title, fonts::ui20, 0);
     lv_obj_set_pos(title, 20, 16);
 
     char buf[512];
@@ -81,7 +82,7 @@ void show() {
              info.error.length() ? "ERROR  " : "", info.error.c_str());
     lv_obj_t *infoLabel = lv_label_create(scr);
     lv_label_set_text(infoLabel, buf);
-    lv_obj_set_style_text_font(infoLabel, &lv_font_montserrat_20, 0);
+    lv_obj_set_style_text_font(infoLabel, fonts::ui20, 0);
     lv_obj_set_pos(infoLabel, 20, 70);
     if (info.error.length()) lv_obj_set_style_text_color(infoLabel, lv_color_hex(0xFFB0A0), 0);
 
@@ -115,7 +116,7 @@ void show() {
     lv_obj_set_pos(g_touchLabel, 420, 430);
 
     g_heapLabel = lv_label_create(scr);
-    lv_obj_set_style_text_font(g_heapLabel, &lv_font_montserrat_14, 0);
+    lv_obj_set_style_text_font(g_heapLabel, fonts::ui16, 0);
     lv_obj_set_pos(g_heapLabel, 420, 90);
 
     g_dot = lv_obj_create(lv_layer_top());
