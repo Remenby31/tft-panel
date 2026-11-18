@@ -1429,6 +1429,7 @@ void applySnapshot() {
         g_hintSince = millis();
     }
     g_hintShown = g_s.pairingHint.length() && millis() - g_hintSince < PAIRING_HINT_MS && !bad && !g_errorShown;
+    for (lv_obj_t *dot : g_pageDots) setHidden(dot, g_hintShown);   // the hint scrolls across them
     // The bars say "playing" better than the word did, and only that: every other state - paused,
     // an error, a zone with nothing in it - still has words, which the bars would not carry.
     bool eqOn = g_s.phase == net::Phase::Playing && g_s.playing() && !bad && !g_errorShown && !g_hintShown;
