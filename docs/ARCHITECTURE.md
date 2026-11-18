@@ -50,6 +50,7 @@ own extension of the music server, through `tft-core-client`, and needs no compa
 | Now playing | `GET /api/roon/now-playing?zone_id=` | position in whole seconds → extrapolate locally |
 | Lyrics | `GET /api/lyrics/current?zone_id=` | `offset_ms` > 0 = shown later → lyric time = position − offset |
 | Control | `POST /api/roon/control` | always send `zone_id`; 404 on an idle zone |
+| Seek | `POST /api/roon/seek` `{zone_id, how: "absolute", seconds}` | whole seconds; only when now-playing says `is_seek_allowed` |
 | Cover | `GET /api/roon/image/:key?scale=fit&width=&height=` | ask for the exact pixel size; JPEG decoded on device |
 
 Rules learned on the watch client:

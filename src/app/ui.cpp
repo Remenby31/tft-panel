@@ -233,7 +233,9 @@ String g_seekTrack;              // what the finger pressed on: a seek lands onl
 bool g_seekHeld = false;
 uint32_t g_seekReleasedAt = 0;
 
-bool canSeekNow() { return g_s.phase == net::Phase::Playing && g_s.canSeek && g_s.durationMs && !g_demo; }
+bool canSeekNow() {
+    return g_s.phase == net::Phase::Playing && g_s.state != "stopped" && g_s.canSeek && g_s.durationMs && !g_demo;
+}
 
 String seekTrackKey() { return g_s.zoneName + "\x1f" + g_s.title + "\x1f" + String(g_s.durationMs); }
 

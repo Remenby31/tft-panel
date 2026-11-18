@@ -108,10 +108,11 @@ are enough.
    A horizontal drag that starts on the bar does not switch views. A swipe elsewhere still does.
    Run this step on all three boards: a drag that starts where the popup opens is the check still
    open in docs/ROADMAP.md.
-5. Pause, then tap the bar: it seeks and stays paused. Stop playback: the bar is hidden, nothing to tap.
+5. Pause, then tap the bar: it seeks and stays paused. Stop playback: touching the bar does nothing.
 6. A zone that cannot seek (some streams): touching the bar does nothing, no error.
 7. Watch for a one-second jump back right after a seek in `companion` mode: its poll can answer
-   with the old position before Roon applied the seek. Note it if seen and how often.
+   with the old position before Roon applied the seek, or a poll already on its way when the finger
+   lifts can. Note it if seen and how often.
 8. Note `[net] ... Seek` lines in the console if a seek fails (toast on screen too).
 
 ## Results block

@@ -144,6 +144,9 @@ dimmed; they slide up as the song goes.
 A song without lyrics shows the cover view by itself, and returns to the lyrics as soon as
 there are some.
 
+**Tap the progress bar** to jump there, or drag along it and lift where the song should go on.
+Some streams cannot seek: the bar then does nothing.
+
 ![Cover view](images/cover-view.png)
 
 ![Scrolling lyrics](media/lyrics.gif)
