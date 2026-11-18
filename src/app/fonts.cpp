@@ -18,8 +18,9 @@ const lv_font_t *ui20 = &lv_font_montserrat_20;
 const lv_font_t *ui16 = &lv_font_montserrat_14;
 const lv_font_t *clock = &lv_font_montserrat_28;
 
-// Symbol fallbacks (LVGL's Montserrat has fixed sizes): the closest to the scaled text.
-#if LV_FONT_MONTSERRAT_36
+// Symbol fallbacks (LVGL's Montserrat has fixed sizes): the closest to the scaled text. Larger
+// screens scale the interface (src/layout.h).
+#if defined(BOARD_WAVESHARE_P4_7B)
 const lv_font_t *icons = &lv_font_montserrat_36;
 #define SYM_BIG &lv_font_montserrat_36
 #define SYM_MID &lv_font_montserrat_24
@@ -38,7 +39,8 @@ const lv_font_t *make(const uint8_t *start, const uint8_t *end, int32_t px, cons
     // Glyph cache per font: one lyrics screen holds ~150 distinct glyphs per size.
     lv_font_t *f = lv_tiny_ttf_create_data_ex(start, end - start, px, LV_FONT_KERNING_NORMAL, 256);
     if (!f) {
-        Serial.printf("[fonts] ERROR: tiny_ttf could not load the %d px font, using Montserrat (no accents)\n", (int)px);
+        // The Montserrat left has symbols only (tools/fonts/symbols.txt): text in this size goes blank.
+        Serial.printf("[fonts] ERROR: tiny_ttf could not load the %d px font: its text will not show\n", (int)px);
         ok = false;
         return fallbackIfFailed;
     }
