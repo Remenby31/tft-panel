@@ -30,8 +30,7 @@ static int lines(const char *s) {
 }
 
 // Identical in both languages on purpose.
-static const char *const SAME[] = {"Zone",    "QR code", "Volume",  "Instrumental", "Signature",
-                                   "Cyan",    "Magenta", "Olive",   "Excellent"};
+static const char *const SAME[] = {"Zone", "QR code", "Volume", "Instrumental", "Cyan", "Magenta", "Olive", "Excellent"};
 
 void test_every_string_has_french_with_the_same_arguments_and_items() {
     for (int id = 0; id < (int)i18n::S::Count; id++) {
