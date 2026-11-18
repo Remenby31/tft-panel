@@ -178,7 +178,7 @@ the pages on a phone and the texts that only real Wi-Fi, a real server and a rea
 
 The status line while the panel looks for the music, the pairing hint and the seek error are in
 French too; error details from a server (lyrics, update, images) may still be English: note which.
-Known: an update sent from a browser says *Mise à jour vers the firmware you sent* (src/net/ota.cpp).
+An update sent from a browser reads *Réception du logiciel envoyé…* then *Installation du logiciel envoyé*.
 Report anything cut off, overlapping or left in English, with a `screenshot` (`backdrop off` first).
 ## Results block
 

@@ -104,6 +104,7 @@ X(FwUpToDate, "Up to date", "À jour")
 X(FwUpToDateLatest, "Up to date (latest %s)", "À jour (dernière version : %s)")
 X(FwAvailable, "%s is available.", "La version %s est disponible.")
 X(FwDownloading, "Downloading %s... %d %%", "Téléchargement de %s… %d %%")
+X(FwDownloadingSent, "Receiving the firmware you sent... %d %%", "Réception du logiciel envoyé… %d %%")
 X(FwInstalled, "Installed, restarting...", "Installée, redémarrage…")
 X(FwFailed, "Last attempt failed: %s", "Échec de la dernière tentative : %s")
 X(FwInstall, "Install %s", "Installer %s")
@@ -141,6 +142,8 @@ X(OtaConfirm,
   "Installer TFT Panel %s ?\n\nLe téléchargement prend environ une minute, puis le panneau redémarre. Si "
   "la nouvelle version ne démarre pas correctement, le panneau revient de lui-même à la version %s.")
 X(OtaUpdating, "Updating to %s\nDo not unplug the panel", "Mise à jour vers %s\nNe débranchez pas le panneau")
+X(OtaUpdatingSent, "Installing the firmware you sent\nDo not unplug the panel",
+  "Installation du logiciel envoyé\nNe débranchez pas le panneau")
 X(OtaFailed, "Update failed: %s\n\nStill running %s.", "Échec de la mise à jour : %s\n\nLe panneau reste en version %s.")
 X(LyricsLoading, "Looking for lyrics...", "Recherche des paroles…")
 X(Instrumental, "Instrumental", "Instrumental")

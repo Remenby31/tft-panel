@@ -63,6 +63,17 @@ void test_the_chosen_language_fills_screens_and_pages() {
     TEST_ASSERT_EQUAL_STRING("<button>Enregistrer</button>", page.c_str());
 }
 
+// A firmware sent from the panel's page has no version yet: its lines are whole sentences in each
+// language, never a translated frame around an English name.
+void test_a_firmware_sent_from_the_page_reads_whole_in_each_language() {
+    TEST_ASSERT_EQUAL_STRING("Receiving the firmware you sent... 42 %",
+                             i18n::fmt(i18n::S::FwDownloadingSent, 42).c_str());
+    TEST_ASSERT_EQUAL_STRING("Installing the firmware you sent\nDo not unplug the panel", tr(i18n::S::OtaUpdatingSent));
+    i18n::setLang(Lang::Fr);
+    TEST_ASSERT_EQUAL_STRING("Réception du logiciel envoyé… 42\u00a0%", i18n::fmt(i18n::S::FwDownloadingSent, 42).c_str());
+    TEST_ASSERT_EQUAL_STRING("Installation du logiciel envoyé\nNe débranchez pas le panneau", tr(i18n::S::OtaUpdatingSent));
+}
+
 // What the English-only build (I18N_PAGE) does to a template, at compile time.
 void test_the_english_only_build_fills_a_template_at_compile_time() {
     static constexpr char tpl[] = "<html lang=\"%PgLang%\">%NAME%<button>%PgSave%</button>";
@@ -75,6 +86,7 @@ int main() {
     UNITY_BEGIN();
     RUN_TEST(test_every_string_has_french_with_the_same_arguments_and_items);
     RUN_TEST(test_the_chosen_language_fills_screens_and_pages);
+    RUN_TEST(test_a_firmware_sent_from_the_page_reads_whole_in_each_language);
     RUN_TEST(test_the_english_only_build_fills_a_template_at_compile_time);
     return UNITY_END();
 }

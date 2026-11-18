@@ -189,6 +189,7 @@ bool installOnce(bool &retryable) {
     uint8_t want[32];
     update([](Status &s) {
         s.state = State::Downloading;
+        s.sent = false;
         s.percent = 0;
         s.error = "";
     });
@@ -391,7 +392,7 @@ void tick(bool wifiUp) {
 void uploadStarted() {
     update([](Status &s) {
         s.state = State::Downloading;
-        s.latest = "the firmware you sent";
+        s.sent = true;
         s.percent = 0;
         s.error = "";
     });

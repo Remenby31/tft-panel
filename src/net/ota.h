@@ -21,6 +21,7 @@ enum class State : uint8_t { Idle, Checking, UpToDate, Available, Downloading, I
 struct Status {
     State state = State::Idle;
     String latest;        // newest release tag seen ("v0.2.0")
+    bool sent = false;    // Downloading a firmware sent from the panel's page: no version to show
     int percent = 0;      // while Downloading
     String error;         // when Failed
 };

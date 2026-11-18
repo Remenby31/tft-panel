@@ -1147,7 +1147,8 @@ void applyOta() {
             setHidden(g_otaProgress, false);
             setHidden(g_otaClose, true);
             setHidden(g_otaBar, false);
-            setText(g_otaProgressText, i18n::fmt(Str::OtaUpdating, g_ota.latest.c_str()).c_str());
+            setText(g_otaProgressText, (g_ota.sent ? String(tr(Str::OtaUpdatingSent))
+                                                   : i18n::fmt(Str::OtaUpdating, g_ota.latest.c_str())).c_str());
             lv_bar_set_value(g_otaBar, 0, LV_ANIM_OFF);
             lv_refr_now(nullptr);
             lv_area_t t, b;

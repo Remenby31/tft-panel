@@ -595,7 +595,10 @@ void refresh(const net::Snapshot &s, const ota::Status &o) {
             status = o.latest.length() ? i18n::fmt(Str::FwUpToDateLatest, o.latest.c_str()) : String(tr(Str::FwUpToDate));
             break;
         case ota::State::Available: status = i18n::fmt(Str::FwAvailable, o.latest.c_str()); break;
-        case ota::State::Downloading: status = i18n::fmt(Str::FwDownloading, o.latest.c_str(), (int)o.percent); break;
+        case ota::State::Downloading:
+            status = o.sent ? i18n::fmt(Str::FwDownloadingSent, (int)o.percent)
+                            : i18n::fmt(Str::FwDownloading, o.latest.c_str(), (int)o.percent);
+            break;
         case ota::State::Installed: status = tr(Str::FwInstalled); break;
         case ota::State::Failed: status = i18n::fmt(Str::FwFailed, o.error.c_str()); break;
     }
