@@ -91,8 +91,12 @@ keeps the music off, since the server's pairing goes on behind the companion (th
 is asked quietly: what it would publish is dropped). Either one stopping for 15 s hands over to
 the other, and after falling back the server is not taken again for 60 s. A panel paired before
 waits up to 12 s for its server, so it does not start on the companion and switch a moment later.
-The hand-over keeps the zone and the track: the net task sees the same track key, so neither the
-position clock, the cover nor the lyrics start again. A panel updated from a release without
+The hand-over keeps the zone and the track as long as both sources describe the track alike (zone
+id, title, artist, album, duration: the net task's track key), which they should, both reading the
+server's own fields; then neither the position clock, the cover nor the lyrics start again. Only a
+board can confirm it (docs/HARDWARE_TEST.md). While the server plays, the companion is not polled;
+once the server stops answering, the companion is asked for its zones every 5 s, so a companion
+that went away meanwhile is not fallen back on. A panel updated from a release without
 `auto` has its companion written down on first start, so an update never moves it.
 
 **Boards.** `board.h` is the only interface the rest of the firmware sees; each board compiles

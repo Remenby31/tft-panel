@@ -129,7 +129,7 @@ The console logs `[net] auto: playing through the server|companion` at each hand
 3. **Music server only** (companion stopped): *Found the music server "…". One step left: in its
    Settings > Extensions, enable "TFT Panel xxxx"*, in grey, not red. Enable it: the zone plays.
 4. **Both, never paired**: music starts through the companion at once. Top right, in grey, for
-   20 s and once only: *Playing through the TextFromTrack companion. To play straight from your
+   20 s and once only, while the page dots step aside: *Playing through the TextFromTrack companion. To play straight from your
    music server, enable "TFT Panel xxxx" in its Settings > Extensions.* Leave it 5 min: nothing else
    appears. Then enable the panel in Roon while a song with lyrics plays, and watch the screen:
    the track does not restart, the lyrics stay, the cover does not go blank, and the time does not
@@ -141,12 +141,15 @@ The console logs `[net] auto: playing through the server|companion` at each hand
    would silence the companion too). About 15 s later music goes on through the companion
    (`[net] auto: playing through the companion`). Lift the rule at once: the panel stays on the companion for a minute, then moves back to the server,
    once, without restarting the track.
-7. **Memory, both clients alive**: in case 4 before enabling the panel (companion playing, the
+7. **Companion gone, then the server**: with case 5 playing, stop the companion, then cut the panel
+   off from the Core as in case 6. The panel does not move to the companion: it shows the
+   server's own error until the Core is reachable again.
+8. **Memory, both clients alive**: in case 4 before enabling the panel (companion playing, the
    server's pairing waiting behind it), after 10 min type `status`. Report the `heap int … KB
    (min …)` figures; the CrowPanel's minimum must stay above 30 KB.
-8. **A choice made by hand stays**: `source companion` with both running: after the restart
+9. **A choice made by hand stays**: `source companion` with both running: after the restart
    `status` shows `source=companion`, no `auto:` line, and no hint. `source auto` gives case 5 again.
-9. **An updated panel keeps its source**: flash the previous release, set Wi-Fi, leave the
+10. **An updated panel keeps its source**: flash the previous release, set Wi-Fi, leave the
    source untouched, then update to this one. `status` shows `source=companion`, not `auto`.
 
 ## Results block

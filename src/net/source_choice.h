@@ -51,11 +51,13 @@ constexpr uint32_t FALLBACK_MS = 15000;
 // that comes and goes cannot make the panel switch back and forth.
 constexpr uint32_t HOLD_MS = 60000;
 
-// What answers right now. `approved`: the server accepted this panel and sends its zones.
+// What answers right now. `approved`: the server accepted this panel and sends its zones;
+// `waiting`: the server answered and waits for someone to enable the panel in its settings.
 struct Seen {
     bool companion = false;
     bool server = false;
     bool approved = false;
+    bool waiting = false;
 };
 
 enum class Active : uint8_t { Looking, Companion, Direct };
@@ -78,12 +80,17 @@ class Chooser {
             companionSeen_ = true;
             companionSince_ = nowMs;
         }
+        if (seen.server && !serverSeen_) {
+            serverSeen_ = true;
+            serverSince_ = nowMs;
+        }
         switch (active_) {
             case Active::Looking:
                 if (seen.approved) take(Active::Direct);
                 else if (seen.companion && (!pairedBefore_ || nowMs - companionSince_ >= PAIRED_WAIT_MS))
                     take(Active::Companion);
-                else if (seen.server && !seen.companion) take(Active::Direct);
+                else if (seen.server && !seen.companion && (!pairedBefore_ || nowMs - serverSince_ >= PAIRED_WAIT_MS))
+                    take(Active::Direct);
                 break;
             case Active::Direct:
                 if (seen.approved || !seen.companion) {
@@ -111,9 +118,9 @@ class Chooser {
     }
 
     Active active() const { return active_; }
-    // Auto, playing through the companion, a server answered and has not accepted the panel yet.
+    // Auto, playing through the companion, and the server waits for the panel to be enabled.
     bool awaitingApproval() const {
-        return setting_ == SourceKind::Auto && active_ == Active::Companion && seen_.server && !seen_.approved;
+        return setting_ == SourceKind::Auto && active_ == Active::Companion && seen_.waiting;
     }
 
   private:
@@ -134,8 +141,8 @@ class Chooser {
     bool pairedBefore_;
     Active active_ = Active::Looking;
     Seen seen_;
-    bool companionSeen_ = false, losing_ = false, held_ = false, approvedHere_ = false;
-    uint32_t companionSince_ = 0, lostSince_ = 0, heldSince_ = 0;
+    bool companionSeen_ = false, serverSeen_ = false, losing_ = false, held_ = false, approvedHere_ = false;
+    uint32_t companionSince_ = 0, serverSince_ = 0, lostSince_ = 0, heldSince_ = 0;
 };
 
 // The line that says what the automatic choice found, for someone who has never heard of either.

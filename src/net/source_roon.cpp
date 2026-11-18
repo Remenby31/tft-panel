@@ -112,6 +112,8 @@ bool DirectSource::serverFound() const {
     }
 }
 
+bool DirectSource::awaitingApproval() const { return g_client.state() == tftcore::State::NeedsApproval; }
+
 void DirectSource::bringForward() {
     if (g_client.state() != tftcore::State::Paired) {
         onState(this, g_client.state(), "");

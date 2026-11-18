@@ -12,6 +12,7 @@ class CompanionSource : public Source {
     Capabilities caps() const override { return {true, true}; }
 
     bool ready() const override { return baseUrl_.length() > 0; }
+    const String &url() const { return baseUrl_; }
     bool connect(uint32_t now) override;
     void reset() override;
 

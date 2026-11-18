@@ -26,6 +26,7 @@ class DirectSource : public Source {
 
     // For the automatic choice (source_choice.h): a server answered, and giving up on it.
     bool serverFound() const;
+    bool awaitingApproval() const;
     // Made the source in use while already connected behind another one: publishes what it has.
     void bringForward();
 

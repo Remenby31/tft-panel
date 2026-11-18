@@ -847,6 +847,11 @@ Source &source() { return *g_source; }
 namespace {
 sourcechoice::Chooser g_chooser(settings::SourceKind::Companion, false);
 String g_sourceLine;
+// While the server plays, the companion is not polled, so its stored address says nothing about
+// whether it still answers. Once the server stops, it is asked for its zones every few seconds.
+constexpr uint32_t COMPANION_CHECK_MS = 5000;
+uint32_t g_companionCheckedAt = 0;
+bool g_companionAnswers = false;
 
 template <class F>
 void quietly(F &&fn) {
@@ -867,12 +872,23 @@ bool chooseSource(uint32_t now) {
     if (was != Active::Direct) quietly([&] { g_direct.connect(now); });
     seen.server = g_direct.serverFound();
     seen.approved = g_direct.ready();
+    seen.waiting = g_direct.awaitingApproval();
 #endif
     if (was == Active::Companion) {
         seen.companion = g_companion.ready();
+    } else if (was == Active::Looking) {
+        quietly([&] { seen.companion = g_companion.ready() || g_companion.connect(now); });
+    } else if (seen.approved) {
+        g_companionCheckedAt = 0;   // not needed while the server plays
+        g_companionAnswers = false;
     } else {
-        bool needed = !(was == Active::Direct && seen.approved);
-        quietly([&] { seen.companion = g_companion.ready() || (needed && g_companion.connect(now)); });
+        if (!g_companionCheckedAt || now - g_companionCheckedAt >= COMPANION_CHECK_MS) {
+            g_companionCheckedAt = now ? now : 1;
+            quietly([&] {
+                g_companionAnswers = (g_companion.ready() || g_companion.connect(now)) && g_companion.refreshZones();
+            });
+        }
+        seen.companion = g_companionAnswers;
     }
     Active active = g_chooser.step(seen, millis());
 
@@ -897,6 +913,7 @@ bool chooseSource(uint32_t now) {
             g_direct.bringForward();
         } else if (active == Active::Companion) {
             g_source = &g_companion;
+            internal::publishServer(g_companion.url());
             g_companion.zoneSelectionChanged();   // ask for what is playing at once
         }
 #endif
