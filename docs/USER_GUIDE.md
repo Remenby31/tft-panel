@@ -170,8 +170,8 @@ play/pause, next, volume − / +, settings.
 
 ## Find music
 
-The controls bar has a **folder** button: the music library (both screens, since v0.1.17 on the
-CrowPanel).
+The controls bar has a **folder** button: the music library (on all three screens; on the
+CrowPanel since v0.1.17).
 
 ![Library](images/library.png)
 

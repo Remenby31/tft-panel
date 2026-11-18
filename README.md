@@ -63,7 +63,7 @@ other mode, and the panel asks nothing of Roon then.
 | Screen | 800×480 RGB, GT911 touch | 1024×600 MIPI-DSI, GT911 touch | 1024×600 MIPI-DSI (JD9165), GT911 touch |
 | Build | `pio run -e crowpanel7` | `pio run -e waveshare-p4-7b` | `pio run -e p4-s070-wba` |
 
-The interface is drawn on an 800×480 grid and scaled to the screen, so both look the same.
+The interface is drawn on an 800×480 grid and scaled to the screen, so all three look the same.
 
 All three install from the browser. The installer asks **which screen you have** rather than guessing:
 it only sees the chip, and both ESP32-P4 boards answer to the same one, so guessing would hand one of

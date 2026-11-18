@@ -1,8 +1,11 @@
 # TFT Panel — notes for agents
 
-ESP32 firmware showing synced lyrics + Roon controls on two 7" screens — Elecrow CrowPanel 7"
-DIS08070H V3.0 (ESP32-S3, env `crowpanel7`, the default) and Waveshare ESP32-P4-WIFI6-Touch-LCD-7B
-(env `waveshare-p4-7b`) — as a client of the TextFromTrack Roon Companion HTTP API. Public repo, MIT.
+ESP32 firmware showing synced lyrics + Roon controls on three 7" screens — Elecrow CrowPanel 7"
+DIS08070H V3.0 (ESP32-S3, env `crowpanel7`, the default), Waveshare ESP32-P4-WIFI6-Touch-LCD-7B
+(env `waveshare-p4-7b`) and VIEWE ESP32-P4 7" UEP4S070H1024V600C-WB-C (env `p4-s070-wba`). It reads
+what is playing either as its own extension of the music server (direct mode) or as a client of the
+TextFromTrack Roon Companion HTTP API (companion mode); lyrics come from a companion, any
+LRCLIB-compatible server, or nowhere. Public repo, MIT.
 
 Read first: `docs/ARCHITECTURE.md` (API contract, choices), `docs/HARDWARE.md` (pins, pitfalls,
 bring-up log), `docs/ROADMAP.md` (current phase).
@@ -15,6 +18,7 @@ tools/backup-firmware.py --port /dev/cu.usbserial-*  # identify the board, dump 
 pio run                                              # CrowPanel build (first build ~6 min + framework rebuild ~2 min, then ~30 s)
 pio run -t upload --upload-port /dev/cu.usbserial-*  # CrowPanel flash; 921600 fails on this board, 460800 works
 pio run -e waveshare-p4-7b -t upload --upload-port /dev/cu.usbmodem*   # Waveshare P4 (native USB, 921600 fine)
+pio run -e p4-s070-wba -t upload --upload-port /dev/cu.usbserial-*     # VIEWE P4 (CH340, 230400)
 pio device monitor                                   # 115200, exception decoder on
 PLATFORMIO_BUILD_FLAGS="-DTOUCH_DIAG" pio run -t upload   # touch reset diagnostic at boot
 ```
