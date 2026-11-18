@@ -96,6 +96,7 @@ void setOffset(int32_t) {}
 void seek(int32_t) {}
 void library(LibOp, int, const String &) {}
 void queue(QueueOp, uint32_t) {}
+void groupZone(const String &, const String &) {}
 
 namespace weather {
 const char *describe(uint8_t, i18n::Lang lang) { return i18n::tr(Str::WxClear, lang); }

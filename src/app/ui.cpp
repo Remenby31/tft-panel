@@ -97,7 +97,7 @@ constexpr uint32_t CONTROLS_HIDE_MS = 6000;
 constexpr uint32_t COMMAND_ERROR_MS = 5000;
 // The pairing hint (net.h) shows this long, once per start, then lives on in Settings only.
 constexpr uint32_t PAIRING_HINT_MS = 20000;
-lv_obj_t *g_controls = nullptr, *g_btnZone = nullptr, *g_zoneBtnLabel = nullptr;
+lv_obj_t *g_controls = nullptr, *g_btnZone = nullptr, *g_zoneBtnLabel = nullptr, *g_btnQueue = nullptr;
 lv_obj_t *g_btnPrev = nullptr, *g_btnPlay = nullptr, *g_btnNext = nullptr, *g_playIcon = nullptr;
 lv_obj_t *g_btnVolDown = nullptr, *g_btnVolUp = nullptr, *g_volLabel = nullptr;
 lv_obj_t *g_picker = nullptr, *g_pickerList = nullptr;
@@ -442,6 +442,18 @@ void onPickZone(lv_event_t *e) {
     showControls(false);
 }
 
+#if BOARD_HAS_GROUPING
+// Group / Ungroup on a zone row: the user data is the row's index in g_pickerIds.
+void onGroupZone(lv_event_t *e, bool join) {
+    intptr_t i = (intptr_t)lv_event_get_user_data(e);
+    if (live() && i >= 0 && i < (intptr_t)g_pickerIds.size()) net::groupZone(g_pickerIds[i], join ? g_s.zoneId : String());
+    closePicker();   // the zone button shows the group's name once the zone list has it
+    showControls(false);
+}
+void onGroup(lv_event_t *e) { onGroupZone(e, true); }
+void onUngroup(lv_event_t *e) { onGroupZone(e, false); }
+#endif
+
 void fillPicker() {
     lv_obj_clean(g_pickerList);
     g_pickerIds.clear();
@@ -453,13 +465,42 @@ void fillPicker() {
         lv_obj_set_style_bg_color(b, lv_color_hex(0x18181B), 0);
         lv_obj_set_style_bg_color(b, lv_color_hex(0x2C2C30), LV_STATE_PRESSED);
         lv_obj_set_style_pad_ver(b, Y(16), 0);
+#if BOARD_HAS_GROUPING   // room for a Group / Ungroup button at the end of the row
+        lv_obj_set_flex_flow(b, LV_FLEX_FLOW_ROW);
+        lv_obj_set_flex_align(b, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+#endif
         lv_obj_t *l = label(b, fonts::ui20, current ? COL_ACCENT : COL_TEXT);
+#if BOARD_HAS_GROUPING
+        lv_obj_set_flex_grow(l, 1);
+#else
         lv_obj_set_width(l, lv_pct(100));
+#endif
         marquee(l);
         setText(l, ((current ? String(LV_SYMBOL_OK "  ") : String("     ")) + text).c_str());
         lv_obj_add_event_cb(b, onPickZone, LV_EVENT_CLICKED, (void *)(intptr_t)g_pickerIds.size());
         g_pickerIds.push_back(id);
+        return b;
     };
+#if BOARD_HAS_GROUPING
+    // A small button at the end of a zone row; a tap on it does not pick the zone.
+    auto groupButton = [](lv_obj_t *row, const char *text, bool join) {
+        lv_obj_t *g = lv_button_create(row);
+        lv_obj_set_style_radius(g, S(18), 0);
+        lv_obj_set_style_shadow_width(g, 0, 0);
+        lv_obj_set_style_bg_color(g, lv_color_hex(0x2C2C30), 0);
+        lv_obj_set_style_bg_color(g, lv_color_hex(COL_ACCENT), LV_STATE_PRESSED);
+        lv_obj_set_style_pad_hor(g, X(16), 0);
+        lv_obj_set_style_pad_ver(g, Y(4), 0);
+        lv_obj_t *l = label(g, fonts::ui16, COL_TEXT);
+        lv_obj_set_style_max_width(l, X(240), 0);   // one line: a long zone name ends in "..."
+        lv_obj_set_style_max_height(l, lv_font_get_line_height(fonts::ui16), 0);
+        lv_label_set_long_mode(l, LV_LABEL_LONG_MODE_DOTS);
+        lv_obj_center(l);
+        setText(l, text);
+        lv_obj_add_event_cb(g, join ? onGroup : onUngroup, LV_EVENT_CLICKED, (void *)(intptr_t)(g_pickerIds.size() - 1));
+    };
+    bool grouping = g_s.viaCompanion;
+#endif
     add("", tr(Str::ZoneFollow), !g_s.zonePinned);
     if (!g_s.zones) return;
     for (const net::ZoneInfo &z : *g_s.zones) {
@@ -472,7 +513,15 @@ void fillPicker() {
             if (z.state == STATES[i]) state = SHOWN[i];
         String t = z.name + "  -  " + state;
         if (z.title.length()) t += "  -  " + z.title + (z.artist.length() ? " (" + z.artist + ")" : "");
-        add(z.id, t, g_s.zonePinned && z.id == g_s.zoneId);
+        lv_obj_t *row = add(z.id, t, g_s.zonePinned && z.id == g_s.zoneId);
+#if BOARD_HAS_GROUPING
+        if (!grouping) continue;
+        if (z.outputIds.size() > 1) groupButton(row, tr(Str::ZoneUngroup), false);
+        else if (g_s.zoneId.length() && z.id != g_s.zoneId)
+            groupButton(row, (String(LV_SYMBOL_PLUS "  ") + i18n::fmt(Str::ZoneAddTo, g_s.zoneName.c_str())).c_str(), true);
+#else
+        (void)row;
+#endif
     }
 }
 
@@ -526,26 +575,18 @@ void buildControls() {
             showControls(false);
             libui::open();
         });
-    bool queue = board::HAS_QUEUE && settings::source() == settings::SourceKind::Companion;
-    if (queue)   // what plays next (the companion's queue)
-        roundButton(g_controls, LV_SYMBOL_AUDIO, nullptr, [](lv_event_t *) {
+    if (board::HAS_QUEUE) {   // what plays next: shown once the source in use is the companion
+        g_btnQueue = roundButton(g_controls, LV_SYMBOL_AUDIO, nullptr, [](lv_event_t *) {
             showControls(false);
             queueui::open();
         });
+        setHidden(g_btnQueue, true);
+    }
     roundButton(g_controls, LV_SYMBOL_SETTINGS, nullptr, [](lv_event_t *) {
         showControls(false);
         settingsui::open();
         settingsui::refresh(g_s, g_ota);
     });
-    if (queue) {   // nine controls: a little narrower each, so the gaps stay those of eight
-        for (uint32_t i = 0; i < lv_obj_get_child_count(g_controls); i++) {
-            lv_obj_t *c = lv_obj_get_child(g_controls, i);
-            if (c != g_btnZone && c != g_volLabel) lv_obj_set_size(c, S(70), S(70));
-        }
-        lv_obj_set_width(g_btnZone, X(130));
-        lv_obj_set_width(g_zoneBtnLabel, X(104));
-        lv_obj_set_width(g_volLabel, X(70));
-    }
     setHidden(g_controls, true);
 
     // Zone picker: full-screen list.
@@ -1434,7 +1475,25 @@ void applyCover(bool track) {
     placeTrackText(thumb);
 }
 
+// The queue button adds one control to the bar: each a little narrower, so the gaps stay as they
+// were. Follows the source in use, which an automatic choice only knows after a while.
+void fitQueueButton() {
+#if BOARD_HAS_QUEUE
+    if (isHidden(g_btnQueue) != g_s.viaCompanion) return;
+    bool more = g_s.viaCompanion;
+    setHidden(g_btnQueue, !more);
+    for (uint32_t i = 0; i < lv_obj_get_child_count(g_controls); i++) {
+        lv_obj_t *c = lv_obj_get_child(g_controls, i);
+        if (c != g_btnZone && c != g_volLabel) lv_obj_set_size(c, S(more ? 70 : 76), S(more ? 70 : 76));
+    }
+    lv_obj_set_width(g_btnZone, X(more ? 130 : 150));
+    lv_obj_set_width(g_zoneBtnLabel, X(more ? 104 : 124));
+    lv_obj_set_width(g_volLabel, X(more ? 70 : 80));
+#endif
+}
+
 void applySnapshot() {
+    fitQueueButton();
     // Setup overlay
     bool setup = g_s.portalActive;
     if (setup) applyCover(false);
