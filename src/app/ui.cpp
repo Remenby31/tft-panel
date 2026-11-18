@@ -150,7 +150,7 @@ bool g_offsetPending = false;
 String g_offsetTrack;
 
 // Code for the local upload page (http://tft-panel-xxxx.local/update), shown while valid.
-lv_obj_t *g_codePopup = nullptr, *g_codeValue = nullptr;
+lv_obj_t *g_codePopup = nullptr, *g_codeValue = nullptr, *g_codeName = nullptr;
 uint32_t g_shownCode = 0;
 
 uint32_t g_seenVersion = UINT32_MAX;
@@ -906,6 +906,11 @@ void buildCodePopup() {
     lv_obj_align(t, LV_ALIGN_CENTER, 0, -Y(110));
     g_codeValue = label(g_codePopup, fonts::clock, COL_TEXT);
     lv_obj_align(g_codeValue, LV_ALIGN_CENTER, 0, Y(10));
+    // Which panel is asking. Several screens on one network draw six digits that look alike, and
+    // the browser cannot tell you which one lit up: this name is also the page's heading and the
+    // mDNS name, so the two sides can be matched.
+    g_codeName = label(g_codePopup, fonts::ui20, COL_MID);
+    lv_obj_align(g_codeName, LV_ALIGN_CENTER, 0, Y(100));
     lv_obj_t *cancel = textButton(g_codePopup, "Cancel", 0x232326, [](lv_event_t *) { webupdate::cancelCode(); });
     lv_obj_align(cancel, LV_ALIGN_CENTER, 0, Y(150));
 }
@@ -919,6 +924,7 @@ void tickCode() {
         char buf[12];
         snprintf(buf, sizeof buf, "%06u", (unsigned)code);
         setText(g_codeValue, buf);
+        setText(g_codeName, net::displayName().c_str());
         g_activeAt = millis();   // wake the screen: the user is in front of it
         settingsui::closePageQr();   // the QR that opened the page would hide the code
     }
@@ -1717,6 +1723,7 @@ bool showcase(const String &what) {
         wifiui::showcase(what == "wifi-password");
     } else if (what == "code") {
         setText(g_codeValue, "482913");
+        setText(g_codeName, "TFT Panel 7a31");   // invented: a real name carries two MAC bytes
         setHidden(g_codePopup, false);
     } else return false;
     return true;
