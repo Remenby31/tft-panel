@@ -61,7 +61,12 @@ void load() {
     bool failed = false;
     if (zone.length()) {
         HttpResult r = source().queue(zone, items);
-        if (r.code == 202) {   // asked for and on its way (pushed): keep the screen as it is
+        if (r.code == 202) {   // asked for and on its way (pushed)
+            if (zone != page()->zoneId) {   // another zone's list must not take a tap meant for this one
+                page()->items.clear();
+                page()->zoneId = zone;
+                page()->id = g_nextId++;
+            }
             page()->loading = page()->items.empty();
             g_loadedAt = millis() - REFRESH_MS + ASKED_RETRY_MS;
             if (!g_loadedAt) g_loadedAt = 1;

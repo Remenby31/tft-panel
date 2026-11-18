@@ -580,7 +580,7 @@ void buildControls() {
             showControls(false);
             libui::open();
         });
-    if (board::HAS_QUEUE) {   // what plays next: shown once the source in use is the companion
+    if (board::HAS_QUEUE) {   // what plays next: shown once the source in use offers it
         g_btnQueue = roundButton(g_controls, LV_SYMBOL_AUDIO, nullptr, [](lv_event_t *) {
             showControls(false);
             queueui::open();

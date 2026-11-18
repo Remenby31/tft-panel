@@ -195,7 +195,9 @@ playing and more tracks queued, and at least two other zones.
 4. Close the queue. In direct mode the console shows no more queue traffic (`[queue]` lines stop).
 5. Open the zone picker. Every zone the followed one can play with shows *+ Add to <followed zone>*;
    in direct mode, a zone the Roon app will not let you group with it (another kind of device, if
-   you have one) shows none. In companion mode every other zone shows it.
+   you have one) shows none. In companion mode the same, if the companion passes the server's
+   `can_group_with_output_ids` on; if it does not, every other zone shows it and a refusal reads
+   *Group failed*.
 6. *+ Add to* on one: within ~2 s both zones play the followed zone's track, and the zone button
    shows the group's name. Open the picker again: the group offers *Ungroup*. Tap it: the zones
    split, the followed one plays on.

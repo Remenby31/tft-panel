@@ -9,6 +9,7 @@
 #include "../app/lyrics.h"
 #include "../board/board_pins.h"
 #include "queue_parse.h"
+#include "zone_group.h"
 #include "settings.h"
 
 namespace net {
@@ -143,13 +144,17 @@ bool CompanionSource::refreshZones() {
         // can_group_with_output_ids is what the music server says; companions that do not pass it
         // on leave `groupableKnown` false, and the panel offers every zone (a refusal then shows).
         ZoneInfo &zi = list->back();
+        std::vector<String> lists;
         for (JsonObjectConst o : z["outputs"].as<JsonArrayConst>()) {
             zi.outputIds.push_back(o["output_id"] | "");
             JsonArrayConst with = o["can_group_with_output_ids"].as<JsonArrayConst>();
             if (with.isNull()) continue;
             zi.groupableKnown = true;
-            for (JsonVariantConst id : with) zi.groupable.push_back(id | "");
+            String mine;
+            for (JsonVariantConst id : with) mine += (mine.length() ? " " : "") + String(id | "");
+            lists.push_back(mine);
         }
+        if (zi.groupableKnown) zi.groupable = group::groupableByAll(lists);
 #endif
     }
     if (!publishZones(list)) {

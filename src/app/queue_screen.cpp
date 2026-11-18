@@ -23,7 +23,7 @@ constexpr uint32_t MESSAGE_MS = 5000;
 
 lv_obj_t *g_root = nullptr, *g_zone = nullptr, *g_list = nullptr, *g_info = nullptr, *g_toast = nullptr;
 // Function-local, as in net/queue.cpp: a board without HAS_QUEUE drops them at link time.
-std::vector<lv_obj_t *> &thumbs() {   // one per item, at most 20 (the companion's limit)
+std::vector<lv_obj_t *> &thumbs() {   // one per item, at most 20 (net.h QueuePage)
     static std::vector<lv_obj_t *> v;
     return v;
 }

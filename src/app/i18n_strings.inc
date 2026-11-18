@@ -425,6 +425,7 @@ X(QueueEmpty, "Nothing in the queue", "La file d’attente est vide")
 X(QueueCannotLoad, "Could not load the queue: %s", "Impossible de charger la file d’attente : %s")
 X(QueuePlaying, "Playing %s", "Lecture de %s")
 X(QueueCannotPlay, "Could not play from here: %s", "Impossible de lire à partir d’ici : %s")
+X(QueueNoAnswer, "the music server did not answer", "le serveur de musique n’a pas répondu")
 X(QueueNoSource, "no queue with this source", "pas de file d’attente avec cette source")
 
 // Direct source (no companion)

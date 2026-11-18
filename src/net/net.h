@@ -38,9 +38,10 @@ struct ZoneInfo {
     String id, name, state, title, artist;
 #if BOARD_HAS_GROUPING
     std::vector<String> outputIds;   // more than one = a group
-    // The outputs this zone's outputs can share a group with, as the music server says
-    // (can_group_with_output_ids); `groupableKnown` false = the source did not say.
-    std::vector<String> groupable;
+    // The outputs every one of this zone's outputs can share a group with, as the music server
+    // says (can_group_with_output_ids), space-separated: one allocation per zone, not one per id.
+    // `groupableKnown` false = the source did not say.
+    String groupable;
     bool groupableKnown = false;
 #endif
 };
@@ -89,8 +90,8 @@ struct LibraryPage {
 // Find = Search then open the one exact match (index 0 artist, 1 album; text "<name>\n<artist>").
 enum class LibOp : uint8_t { Open, Close, Search, Browse, Find, Drill, Back, More, Actions, Action, CloseActions };
 
-// The followed zone's play queue (HAS_QUEUE boards, companion source): the playing track first,
-// then what comes next. At most 20 items, the companion's own limit.
+// The followed zone's play queue (HAS_QUEUE boards, either source): the playing track first, then
+// what comes next. At most 20 items: the companion's own limit, and what the server is asked for.
 struct QueueItem {
     uint32_t id = 0;          // queue_item_id: what "play from here" sends back
     PStr title, artist, imageKey;
@@ -207,7 +208,7 @@ void mute(bool on);                  // every output of the zone
 // Saves the current track's lyrics offset in the companion (> 0 = lyrics later).
 void setOffset(int32_t ms);
 void seek(int32_t ms);   // absolute position in the followed zone; the clock shows it at once
-// Zone grouping (HAS_GROUPING boards, companion source): adds zone `zoneId` to `hostId` (the
+// Zone grouping (HAS_GROUPING boards, either source): adds zone `zoneId` to `hostId` (the
 // followed zone, as the picker showed it), or with an empty `hostId` splits group `zoneId` back into
 // its zones. The outputs are read from the zone list when the command runs.
 void groupZone(const String &zoneId, const String &hostId = String());

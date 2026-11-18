@@ -34,7 +34,7 @@ void test_only_a_group_can_be_split() {
 
 // "+ Add to <followed zone>" only where the server says the outputs can share a group.
 void test_a_zone_is_offered_only_if_the_server_says_its_outputs_can_join() {
-    Ids living = {"out-living", "out-kitchen", "out-dining", "out-office"};   // can_group_with_output_ids
+    String living = "out-living out-kitchen out-dining out-office";   // can_group_with_output_ids
     TEST_ASSERT_TRUE(canJoin(living, true, {"out-office"}));
     TEST_ASSERT_TRUE(canJoin(living, true, {"out-kitchen", "out-dining"}));
     TEST_ASSERT_FALSE(canJoin(living, true, {"out-garden"}));                 // another kind of device
@@ -44,8 +44,19 @@ void test_a_zone_is_offered_only_if_the_server_says_its_outputs_can_join() {
 
 // A companion that does not pass can_group_with_output_ids on: every zone is offered.
 void test_a_source_that_does_not_say_offers_every_zone() {
-    TEST_ASSERT_TRUE(canJoin({}, false, {"out-garden"}));
-    TEST_ASSERT_FALSE(canJoin({}, false, {}));
+    TEST_ASSERT_TRUE(canJoin("", false, {"out-garden"}));
+    TEST_ASSERT_FALSE(canJoin("", false, {}));
+}
+
+// A zone of two outputs can take in only what both of them list: the server groups an output
+// with outputs that list it, so one output that cannot is enough to refuse.
+void test_a_grouped_zone_can_take_in_only_what_every_output_lists() {
+    String both = net::group::groupableByAll(Ids{"out-kitchen out-dining out-office out-garden",
+                                                 "out-dining out-kitchen out-office"});
+    TEST_ASSERT_TRUE(canJoin(both, true, {"out-office"}));
+    TEST_ASSERT_FALSE(canJoin(both, true, {"out-garden"}));   // only the kitchen lists it
+    TEST_ASSERT_FALSE(canJoin(both, true, {"out-off"}));      // a prefix is not an id
+    TEST_ASSERT_EQUAL_STRING("out-kitchen", net::group::groupableByAll(Ids{"out-kitchen"}).c_str());
 }
 
 int main() {
@@ -55,5 +66,6 @@ int main() {
     RUN_TEST(test_only_a_group_can_be_split);
     RUN_TEST(test_a_zone_is_offered_only_if_the_server_says_its_outputs_can_join);
     RUN_TEST(test_a_source_that_does_not_say_offers_every_zone);
+    RUN_TEST(test_a_grouped_zone_can_take_in_only_what_every_output_lists);
     return UNITY_END();
 }

@@ -1,4 +1,4 @@
-// The followed zone's play queue on the panel (boards with HAS_QUEUE, companion source): what is
+// The followed zone's play queue on the panel (boards with HAS_QUEUE, either source): what is
 // playing and what comes next; a tap plays from that item. Opened from the controls bar. The net
 // task loads it (net/queue).
 #pragma once

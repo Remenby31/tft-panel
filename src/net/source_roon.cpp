@@ -10,6 +10,7 @@
 #include "../app/i18n.h"
 #include "lyrics_source.h"
 #include "queue_parse.h"
+#include "zone_group.h"
 #include "settings.h"
 #include "version.h"
 
@@ -187,17 +188,12 @@ void DirectSource::publishEverything(const tftcore::ZoneList &zones, const tftco
 #if BOARD_HAS_GROUPING
             ZoneInfo &zi = list->back();
             zi.groupableKnown = true;
+            std::vector<String> lists;   // tftcore::Output::canGroupWith is already space-separated
             for (const tftcore::Output &o : z.outputs) {
                 zi.outputIds.push_back(o.id.c_str());
-                // Space-separated ids (tftcore::Output::canGroupWith).
-                const std::string &w = o.canGroupWith;
-                for (size_t at = 0; at < w.size();) {
-                    size_t end = w.find(' ', at);
-                    if (end == std::string::npos) end = w.size();
-                    if (end > at) zi.groupable.push_back(String(w.substr(at, end - at).c_str()));
-                    at = end + 1;
-                }
+                lists.push_back(o.canGroupWith.c_str());
             }
+            zi.groupable = group::groupableByAll(lists);
 #endif
         }
         if (!publishZones(list)) {
@@ -259,36 +255,60 @@ void DirectSource::publishEverything(const tftcore::ZoneList &zones, const tftco
 
 // ---- Queue and grouping ----
 
-void DirectSource::onQueue(void *ctx, const char *, const tftcore::QueueList &) {
-    static_cast<DirectSource *>(ctx)->queueSerial_++;
+namespace {
+// A refusal reads in the panel's language; the server's own reply name (English) follows it.
+HttpResult replyResult(const tftcore::Client::Reply &r) {
+    if (r.ok) return {200, "", ""};
+    return {-1, "", *r.name ? String(tr(Str::LibRefused)) + " (" + r.name + ")" : String(tr(Str::QueueNoAnswer))};
+}
+}  // namespace
+
+void DirectSource::onQueue(void *ctx, const char *zoneOrOutputId, const tftcore::QueueList &) {
+    DirectSource *self = static_cast<DirectSource *>(ctx);
+    self->queueSerial_++;
+    self->queueFor_ = zoneOrOutputId;   // whose queue the client now holds
 }
 
 HttpResult DirectSource::queue(const String &zoneId, QueueItems &out) {
     if constexpr (!board::HAS_QUEUE) return Source::queue(zoneId, out);
-    if (!g_client.followQueue(zoneId.c_str(), 20)) return {500, "", tr(Str::QueueNoSource)};
-    // Asked once; following the same zone again changes nothing until the server answers.
-    if (!g_client.queueSubscribed()) return {202, "", ""};
-    q::fromCore(g_client.queue(), out);
-    return {200, "", ""};
+    uint32_t now = millis();
+    if (strcmp(g_client.queueTarget(), zoneId.c_str())) {   // another zone: ask for its own queue
+        if (!g_client.followQueue(zoneId.c_str(), 20)) return {500, "", tr(Str::QueueNoSource)};
+        queueAskedAt_ = now;
+        return {202, "", ""};
+    }
+    // Only items the server sent for this very zone: until then the client may still hold the
+    // previous zone's, and a tap would play one zone's item on another.
+    if (g_client.queueSubscribed() && queueFor_ == zoneId) {
+        q::fromCore(g_client.queue(), out);
+        return {200, "", ""};
+    }
+    if (now - queueAskedAt_ < QUEUE_ANSWER_MS) return {202, "", ""};
+    // Refused, or never answered: following the same zone again would change nothing, so let it
+    // go and ask once more, and say so.
+    g_client.followQueue("");
+    g_client.followQueue(zoneId.c_str(), 20);
+    queueAskedAt_ = now;
+    return {504, "", tr(Str::QueueNoAnswer)};
 }
 
 void DirectSource::queueClosed() {
-    if (board::HAS_QUEUE) g_client.followQueue("");   // the block goes back to PSRAM
+    if (!board::HAS_QUEUE) return;
+    g_client.followQueue("");   // the block goes back to PSRAM
+    queueFor_ = "";
 }
 
 HttpResult DirectSource::playFromHere(const String &zoneId, uint32_t queueItemId) {
     if constexpr (!board::HAS_QUEUE) return Source::playFromHere(zoneId, queueItemId);
-    tftcore::Client::Reply r = g_client.playFromHere(zoneId.c_str(), queueItemId);
-    return r.ok ? HttpResult{200, "", ""} : HttpResult{-1, "", *r.name ? r.name : r.error};
+    return replyResult(g_client.playFromHere(zoneId.c_str(), queueItemId));
 }
 
 #if BOARD_HAS_GROUPING
 HttpResult DirectSource::groupOutputs(const std::vector<String> &outputIds, bool group) {
     std::vector<const char *> ids;
     for (const String &id : outputIds) ids.push_back(id.c_str());
-    tftcore::Client::Reply r =
-        group ? g_client.groupOutputs(ids.data(), ids.size()) : g_client.ungroupOutputs(ids.data(), ids.size());
-    return r.ok ? HttpResult{200, "", ""} : HttpResult{-1, "", *r.name ? r.name : r.error};
+    return replyResult(group ? g_client.groupOutputs(ids.data(), ids.size())
+                             : g_client.ungroupOutputs(ids.data(), ids.size()));
 }
 #endif
 

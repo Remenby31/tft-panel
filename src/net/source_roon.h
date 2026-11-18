@@ -71,6 +71,9 @@ class DirectSource : public Source {
     bool healthy_ = false;      // the first full zone list confirms a freshly installed image
     String trackKey_;           // to spot a track change before publishing
     uint32_t queueSerial_ = 0;  // bumped by every queue push
+    String queueFor_;           // the zone of the last queue push
+    uint32_t queueAskedAt_ = 0;
+    static constexpr uint32_t QUEUE_ANSWER_MS = 8000;   // a queue not sent by then is asked again
 };
 
 }  // namespace net

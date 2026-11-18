@@ -124,7 +124,7 @@ net::Snapshot make(int32_t positionMs) {
         for (size_t i = 0; i < zones->size(); i++)
             for (const char *o : outputs[i])
                 if (o) (*zones)[i].outputIds.push_back(o);
-        (*zones)[0].groupable = {"out-living", "out-kitchen", "out-dining", "out-office"};
+        (*zones)[0].groupable = "out-living out-kitchen out-dining out-office";
         (*zones)[0].groupableKnown = true;
     }
 #endif
