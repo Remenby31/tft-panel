@@ -76,12 +76,12 @@ a{color:#6db56d}</style></head><body>
 </body></html>)HTML";
 
 const char PAGE[] PROGMEM = R"HTML(<!doctype html><html lang="en"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1"><title>TFT Panel update</title>
+<meta name="viewport" content="width=device-width, initial-scale=1"><title>%NAME% update</title>
 <style>body{font:17px/1.5 system-ui,sans-serif;max-width:560px;margin:32px auto;padding:0 16px;background:#15161a;color:#f6f4ee}
 input,button{font:inherit;padding:10px;border-radius:8px;border:1px solid #2f3037;background:#202127;color:#f6f4ee}
 button{background:#6db56d;color:#15161a;border:0;padding:10px 24px}#msg{margin-top:16px;color:#a9aaa6}
-a{color:#6db56d}</style></head><body>
-<h1>Update TFT Panel</h1><p>Running <b>%VERSION%</b>. Choose a firmware file (<code>tft-panel-vX.Y.Z.bin</code>)
+a{color:#6db56d}h1{margin-bottom:2px}.who{color:#8a8b87;font-size:14px;margin-top:0}</style></head><body>
+<h1>Update %NAME%</h1><p class=who>%WHO%</p><p>Running <b>%VERSION%</b>. Choose a firmware file (<code>tft-panel-vX.Y.Z.bin</code>)
 and type the code shown on the panel's screen.</p>
 <p><input id="code" inputmode="numeric" maxlength="6" placeholder="6-digit code" autocomplete="off"></p>
 <p><input id="file" type="file" accept=".bin"></p>
@@ -468,6 +468,10 @@ void start() {
     g_server->on("/update", HTTP_GET, []() {
         newCode();                                 // shown on the panel, typed in the browser
         String page = FPSTR(PAGE);
+        // The same name the panel now prints under its code, so the right six digits go to the
+        // right page; the board and MAC say which image this one takes.
+        page.replace("%NAME%", esc(net::displayName()));
+        page.replace("%WHO%", esc(board::BOARD_NAME) + " &middot; " + esc(net::macAddress()));
         page.replace("%VERSION%", FW_VERSION);
         page.replace("%ASSET%", board::BOARD_ASSET);
         g_server->send(200, "text/html", page);
