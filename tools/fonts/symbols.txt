@@ -2,6 +2,7 @@
 # One LVGL symbol name per line (lv_symbol_def.h, without LV_SYMBOL_). tools/fonts/check_symbols.py
 # fails the build when src/ uses one that is missing; tools/fonts/build_fonts.sh regenerates.
 # Used in src/:
+AUDIO
 CLOSE
 DIRECTORY
 DOWNLOAD
