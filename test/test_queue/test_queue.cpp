@@ -1,6 +1,7 @@
 #include <net/queue_parse.h>
 #include <unity.h>
 
+#include <cstring>
 #include <string>
 #include <vector>
 
@@ -60,6 +61,37 @@ void test_items_without_an_integer_id_are_left_out() {
     TEST_ASSERT_EQUAL_STRING("Kept", items[0].title.c_str());
 }
 
+// The music server's own list (tft-core-client's QueueItem: fixed char arrays) gives the screen
+// the same items as the companion's body for the same queue: the screen never knows the source.
+struct CoreItem {
+    uint32_t id = 0, lengthSec = 0;
+    char title[128] = {0}, artist[128] = {0}, album[128] = {0}, imageKey[48] = {0};
+};
+
+void test_the_servers_own_queue_gives_the_same_items_as_the_companions() {
+    std::vector<CoreItem> core(2);
+    core[0].id = 12;
+    core[0].lengthSec = 214;
+    strcpy(core[0].title, "Neon Autumn");
+    strcpy(core[0].artist, "The Demo Lights");
+    strcpy(core[0].imageKey, "img-a");
+    core[1].id = 13;
+    strcpy(core[1].title, "Harbour Fog");
+    std::vector<Item> direct = {{7, "stale"}};
+    net::q::fromCore(core, direct);
+    auto companion = parse(R"({"items":[
+        {"queue_item_id":12,"title":"Neon Autumn","artist":"The Demo Lights","duration_seconds":214,"image_key":"img-a"},
+        {"queue_item_id":13,"title":"Harbour Fog","artist":null,"duration_seconds":null,"image_key":null}]})");
+    TEST_ASSERT_EQUAL(companion.size(), direct.size());
+    for (size_t i = 0; i < direct.size(); i++) {
+        TEST_ASSERT_EQUAL_UINT32(companion[i].id, direct[i].id);
+        TEST_ASSERT_EQUAL_STRING(companion[i].title.c_str(), direct[i].title.c_str());
+        TEST_ASSERT_EQUAL_STRING(companion[i].artist.c_str(), direct[i].artist.c_str());
+        TEST_ASSERT_EQUAL_STRING(companion[i].imageKey.c_str(), direct[i].imageKey.c_str());
+        TEST_ASSERT_EQUAL_UINT32(companion[i].durationS, direct[i].durationS);
+    }
+}
+
 void test_an_error_body_is_no_queue() {
     bool ok = true;
     auto items = parse(R"({"success":false,"error":{"code":"NO_CURRENT_TRACK"}})", &ok);
@@ -76,5 +108,6 @@ int main() {
     RUN_TEST(test_missing_fields_read_as_empty);
     RUN_TEST(test_items_without_an_integer_id_are_left_out);
     RUN_TEST(test_an_error_body_is_no_queue);
+    RUN_TEST(test_the_servers_own_queue_gives_the_same_items_as_the_companions);
     return UNITY_END();
 }

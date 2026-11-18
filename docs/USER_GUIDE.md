@@ -165,6 +165,11 @@ play/pause, next, volume − / +, settings.
 
   ![Zones](images/zones.png)
 
+- **Queue**: the note button shows what plays next in the zone; tap a track to play from it.
+
+- **Group zones**: in the zone list, *+ Add to <zone>* plays the zone you follow there too (only
+  where the music server says the two can play together); *Ungroup* splits a group again.
+
 - **Volume**: tap the number between − and + for a slider and **Mute**.
 
   ![Volume](images/volume.png)

@@ -411,11 +411,21 @@ X(LibChooseZone, "Choose a zone first (controls bar)", "Choisissez d’abord une
 X(CmdLyricsOffset, "Lyrics offset", "Décalage des paroles")
 P(PgUpTabTitle, "%NAME% update", "Mise à jour de %NAME%")
 X(CmdSeek, "Seek", "Déplacement dans le titre")
-// Zone grouping (zone picker, P4 boards): the button and, in "%s failed", the command
+// Zone grouping (zone picker): the button and, in "%s failed", the command
 X(ZoneGroup, "Group", "Grouper")
 X(ZoneUngroup, "Ungroup", "Dégrouper")
 X(ZoneAddTo, "Add to %s", "Ajouter à %s")
 X(ZonesChanged, "the zones changed, try again", "les zones ont changé, réessayez")
+
+// Queue screen
+X(QueueTitle, "Queue", "File d’attente")
+X(QueueNowPlaying, "Now playing", "En cours de lecture")
+X(QueueUpNext, "Up next", "À suivre")
+X(QueueEmpty, "Nothing in the queue", "La file d’attente est vide")
+X(QueueCannotLoad, "Could not load the queue: %s", "Impossible de charger la file d’attente : %s")
+X(QueuePlaying, "Playing %s", "Lecture de %s")
+X(QueueCannotPlay, "Could not play from here: %s", "Impossible de lire à partir d’ici : %s")
+X(QueueNoSource, "no queue with this source", "pas de file d’attente avec cette source")
 
 // Direct source (no companion)
 X(StLookingServer, "Looking for the music server on the network...", "Recherche du serveur de musique sur le réseau…")

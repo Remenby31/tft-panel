@@ -1,5 +1,6 @@
-// GET /api/roon/queue's body into items, in its order: the playing track first. Generic over the
-// item (net::QueueItem on the panel) so the host tests build it without LVGL or the network.
+// A zone's queue into items, in its order, the playing track first: from the companion's
+// GET /api/roon/queue body, or from the music server's own list. Generic over the item
+// (net::QueueItem on the panel) so the host tests build it without LVGL or the network.
 #pragma once
 
 #include <ArduinoJson.h>
@@ -25,6 +26,22 @@ bool parse(JsonVariantConst body, Items &out) {
         out.push_back(std::move(q));
     }
     return true;
+}
+
+// The music server's own queue (tft-core-client's QueueList, direct source) into the same items,
+// so the screen and the play command never know which source filled them.
+template <class CoreList, class Items>
+void fromCore(const CoreList &in, Items &out) {
+    out.clear();
+    for (const auto &c : in) {
+        typename Items::value_type q;
+        q.id = c.id;
+        q.title = c.title;
+        q.artist = c.artist;
+        q.imageKey = c.imageKey;
+        q.durationS = c.lengthSec;
+        out.push_back(std::move(q));
+    }
 }
 
 }  // namespace net::q

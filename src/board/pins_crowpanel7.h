@@ -23,11 +23,12 @@ constexpr uint8_t DEFAULT_WARMTH = 75;
 constexpr bool OTA_DOWNLOAD_FIRST = false;
 // Music library browsing (search, browse, play on the followed zone).
 constexpr bool HAS_LIBRARY = true;
-// The play queue: none here, the firmware slot is full (P4 boards only).
-#define BOARD_HAS_QUEUE 0   // also for #if: what the CrowPanel never compiles
+// The play queue of the followed zone: see it, play from any item. 0 compiles it out (#if too),
+// should the firmware slot run short.
+#define BOARD_HAS_QUEUE 1
 constexpr bool HAS_QUEUE = BOARD_HAS_QUEUE;
-// Zone grouping: none here either, same reason.
-#define BOARD_HAS_GROUPING 0
+// Zone grouping from the zone picker; 0 compiles it out.
+#define BOARD_HAS_GROUPING 1
 constexpr bool HAS_GROUPING = BOARD_HAS_GROUPING;
 
 // ---- RGB LCD (800x480, RGB565, EK9716BD3 + EK73002ACGB) ----

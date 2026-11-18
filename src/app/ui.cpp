@@ -11,6 +11,7 @@
 #include "../net/ota.h"
 #include "../net/web_update.h"
 #include "../net/settings.h"
+#include "../net/zone_group.h"
 #include "../board/board.h"
 #include "../board/board_pins.h"
 #include "../layout.h"
@@ -499,7 +500,11 @@ void fillPicker() {
         setText(l, text);
         lv_obj_add_event_cb(g, join ? onGroup : onUngroup, LV_EVENT_CLICKED, (void *)(intptr_t)(g_pickerIds.size() - 1));
     };
-    bool grouping = g_s.viaCompanion;
+    bool grouping = g_s.canQueueAndGroup;
+    const net::ZoneInfo *host = nullptr;   // the followed zone: whom "+ Add to" joins
+    if (g_s.zones)
+        for (const net::ZoneInfo &z : *g_s.zones)
+            if (z.id == g_s.zoneId) host = &z;
 #endif
     add("", tr(Str::ZoneFollow), !g_s.zonePinned);
     if (!g_s.zones) return;
@@ -517,7 +522,7 @@ void fillPicker() {
 #if BOARD_HAS_GROUPING
         if (!grouping) continue;
         if (z.outputIds.size() > 1) groupButton(row, tr(Str::ZoneUngroup), false);
-        else if (g_s.zoneId.length() && z.id != g_s.zoneId)
+        else if (host && z.id != host->id && net::group::canJoin(host->groupable, host->groupableKnown, z.outputIds))
             groupButton(row, (String(LV_SYMBOL_PLUS "  ") + i18n::fmt(Str::ZoneAddTo, g_s.zoneName.c_str())).c_str(), true);
 #else
         (void)row;
@@ -1479,8 +1484,8 @@ void applyCover(bool track) {
 // were. Follows the source in use, which an automatic choice only knows after a while.
 void fitQueueButton() {
 #if BOARD_HAS_QUEUE
-    if (isHidden(g_btnQueue) != g_s.viaCompanion) return;
-    bool more = g_s.viaCompanion;
+    if (isHidden(g_btnQueue) != g_s.canQueueAndGroup) return;
+    bool more = g_s.canQueueAndGroup;
     setHidden(g_btnQueue, !more);
     for (uint32_t i = 0; i < lv_obj_get_child_count(g_controls); i++) {
         lv_obj_t *c = lv_obj_get_child(g_controls, i);

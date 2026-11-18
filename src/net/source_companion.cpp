@@ -8,6 +8,7 @@
 
 #include "../app/lyrics.h"
 #include "../board/board_pins.h"
+#include "queue_parse.h"
 #include "settings.h"
 
 namespace net {
@@ -139,7 +140,16 @@ bool CompanionSource::refreshZones() {
         list->push_back({z["zone_id"] | "", z["display_name"] | "", z["state"] | "",
                          z["now_playing_title"] | "", z["now_playing_artist"] | ""});
 #if BOARD_HAS_GROUPING
-        for (JsonObjectConst o : z["outputs"].as<JsonArrayConst>()) list->back().outputIds.push_back(o["output_id"] | "");
+        // can_group_with_output_ids is what the music server says; companions that do not pass it
+        // on leave `groupableKnown` false, and the panel offers every zone (a refusal then shows).
+        ZoneInfo &zi = list->back();
+        for (JsonObjectConst o : z["outputs"].as<JsonArrayConst>()) {
+            zi.outputIds.push_back(o["output_id"] | "");
+            JsonArrayConst with = o["can_group_with_output_ids"].as<JsonArrayConst>();
+            if (with.isNull()) continue;
+            zi.groupableKnown = true;
+            for (JsonVariantConst id : with) zi.groupable.push_back(id | "");
+        }
 #endif
     }
     if (!publishZones(list)) {
@@ -335,9 +345,12 @@ HttpResult CompanionSource::browseLoad(JsonDocument &body, JsonDocument &resp) {
 
 // Not on the boards without HAS_QUEUE (their firmware slot is full): the request code after the
 // early return is dead there, and the optimizer drops it.
-HttpResult CompanionSource::queue(const String &zoneId, JsonDocument &resp) {
-    if constexpr (!board::HAS_QUEUE) return Source::queue(zoneId, resp);
-    return getJson("/api/roon/queue?zone_id=" + zoneId, resp, 8000);   // Roon may take 5 s to subscribe
+HttpResult CompanionSource::queue(const String &zoneId, QueueItems &out) {
+    if constexpr (!board::HAS_QUEUE) return Source::queue(zoneId, out);
+    JsonDocument resp(psram());
+    HttpResult r = getJson("/api/roon/queue?zone_id=" + zoneId, resp, 8000);   // Roon may take 5 s to subscribe
+    if (r.code == 200) q::parse(resp.as<JsonVariantConst>(), out);
+    return r;
 }
 
 HttpResult CompanionSource::playFromHere(const String &zoneId, uint32_t queueItemId) {

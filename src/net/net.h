@@ -36,8 +36,12 @@ enum class LyricsStatus : uint8_t { None, Loading, Found, NotFound, Instrumental
 
 struct ZoneInfo {
     String id, name, state, title, artist;
-#if BOARD_HAS_GROUPING   // not even the field elsewhere: the CrowPanel's firmware slot is full
-    std::vector<String> outputIds;   // more than one = a group (companion source only)
+#if BOARD_HAS_GROUPING
+    std::vector<String> outputIds;   // more than one = a group
+    // The outputs this zone's outputs can share a group with, as the music server says
+    // (can_group_with_output_ids); `groupableKnown` false = the source did not say.
+    std::vector<String> groupable;
+    bool groupableKnown = false;
 #endif
 };
 
@@ -121,7 +125,7 @@ struct Snapshot {
     String sourceNote;        // what the automatic choice found; empty when chosen by hand
     String pairingHint;       // playing through the companion while the server waits for its approval
 #if BOARD_HAS_QUEUE || BOARD_HAS_GROUPING
-    bool viaCompanion = false;   // the source in use is the companion: queue and zone grouping
+    bool canQueueAndGroup = false;   // the source in use offers the queue and zone grouping
 #endif
 
     // Last Wi-Fi scan (setup portal, on-screen Wi-Fi setup). `networksSerial` changes with it.

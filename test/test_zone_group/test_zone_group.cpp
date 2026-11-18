@@ -1,6 +1,7 @@
 #include <net/zone_group.h>
 #include <unity.h>
 
+using net::group::canJoin;
 using net::group::joinOutputs;
 using net::group::splitOutputs;
 using Ids = std::vector<String>;
@@ -31,10 +32,28 @@ void test_only_a_group_can_be_split() {
     assertIds({}, splitOutputs({"out-office"}));
 }
 
+// "+ Add to <followed zone>" only where the server says the outputs can share a group.
+void test_a_zone_is_offered_only_if_the_server_says_its_outputs_can_join() {
+    Ids living = {"out-living", "out-kitchen", "out-dining", "out-office"};   // can_group_with_output_ids
+    TEST_ASSERT_TRUE(canJoin(living, true, {"out-office"}));
+    TEST_ASSERT_TRUE(canJoin(living, true, {"out-kitchen", "out-dining"}));
+    TEST_ASSERT_FALSE(canJoin(living, true, {"out-garden"}));                 // another kind of device
+    TEST_ASSERT_FALSE(canJoin(living, true, {"out-kitchen", "out-garden"}));  // one output is enough to refuse
+    TEST_ASSERT_FALSE(canJoin(living, true, {}));                             // no output to send
+}
+
+// A companion that does not pass can_group_with_output_ids on: every zone is offered.
+void test_a_source_that_does_not_say_offers_every_zone() {
+    TEST_ASSERT_TRUE(canJoin({}, false, {"out-garden"}));
+    TEST_ASSERT_FALSE(canJoin({}, false, {}));
+}
+
 int main() {
     UNITY_BEGIN();
     RUN_TEST(test_joining_puts_the_followed_zones_outputs_first);
     RUN_TEST(test_joining_a_zone_already_in_the_group_does_nothing);
     RUN_TEST(test_only_a_group_can_be_split);
+    RUN_TEST(test_a_zone_is_offered_only_if_the_server_says_its_outputs_can_join);
+    RUN_TEST(test_a_source_that_does_not_say_offers_every_zone);
     return UNITY_END();
 }

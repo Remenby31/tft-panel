@@ -180,6 +180,28 @@ The status line while the panel looks for the music, the pairing hint and the se
 French too; error details from a server (lyrics, update, images) may still be English: note which.
 An update sent from a browser reads *Réception du logiciel envoyé…* then *Installation du logiciel envoyé*.
 Report anything cut off, overlapping or left in English, with a `screenshot` (`backdrop off` first).
+### Queue and zone grouping
+
+All three boards, once with `source companion` and once with `source direct`: a zone with an album
+playing and more tracks queued, and at least two other zones.
+
+1. Tap the screen, then the note button in the controls bar. The Queue screen lists the playing
+   track under *Now playing* and the rest under *Up next*, in the order the Roon app shows,
+   thumbnails filling in. In direct mode it appears within a second; in companion mode within 8 s.
+2. Tap the third *Up next* row. Within ~2 s the zone plays that track, *Playing <title>* shows, and
+   the list moves on. Nothing changes on any other zone.
+3. Leave the screen open and skip a track from the Roon app: direct mode follows at once, companion
+   mode within ~5 s.
+4. Close the queue. In direct mode the console shows no more queue traffic (`[queue]` lines stop).
+5. Open the zone picker. Every zone the followed one can play with shows *+ Add to <followed zone>*;
+   in direct mode, a zone the Roon app will not let you group with it (another kind of device, if
+   you have one) shows none. In companion mode every other zone shows it.
+6. *+ Add to* on one: within ~2 s both zones play the followed zone's track, and the zone button
+   shows the group's name. Open the picker again: the group offers *Ungroup*. Tap it: the zones
+   split, the followed one plays on.
+7. CrowPanel: after 10 min with the queue open in direct mode, `status` reports `heap int … (min …)`:
+   the minimum stays above 30 KB.
+
 ## Results block
 
 Copy once per board, fill in, paste into the pull request.

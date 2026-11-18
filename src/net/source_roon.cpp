@@ -9,6 +9,7 @@
 #include "../app/cover.h"
 #include "../app/i18n.h"
 #include "lyrics_source.h"
+#include "queue_parse.h"
 #include "settings.h"
 #include "version.h"
 
@@ -80,6 +81,7 @@ void DirectSource::begin() {
     g_client.onZones(onZones, this);
     g_client.onToken(onToken, this);
     g_client.onState(onState, this);
+    if (board::HAS_QUEUE) g_client.onQueue(onQueue, this);
     g_client.begin(info);
 }
 
@@ -178,10 +180,26 @@ void DirectSource::onZones(void *ctx, const tftcore::ZoneList &zones, const tftc
 void DirectSource::publishEverything(const tftcore::ZoneList &zones, const tftcore::ZoneDelta &delta) {
     if (delta.full || delta.listChanged) {
         auto list = std::make_shared<std::vector<ZoneInfo>>();
-        for (const tftcore::Zone &z : zones.zones())
+        for (const tftcore::Zone &z : zones.zones()) {
             list->push_back({z.id.c_str(), z.name.c_str(), z.state.c_str(),
                              z.nowPlaying.present ? z.nowPlaying.title.c_str() : "",
                              z.nowPlaying.present ? z.nowPlaying.artist.c_str() : ""});
+#if BOARD_HAS_GROUPING
+            ZoneInfo &zi = list->back();
+            zi.groupableKnown = true;
+            for (const tftcore::Output &o : z.outputs) {
+                zi.outputIds.push_back(o.id.c_str());
+                // Space-separated ids (tftcore::Output::canGroupWith).
+                const std::string &w = o.canGroupWith;
+                for (size_t at = 0; at < w.size();) {
+                    size_t end = w.find(' ', at);
+                    if (end == std::string::npos) end = w.size();
+                    if (end > at) zi.groupable.push_back(String(w.substr(at, end - at).c_str()));
+                    at = end + 1;
+                }
+            }
+#endif
+        }
         if (!publishZones(list)) {
             setPhase(Phase::Idle, tr(Str::StServerNoZone));
             return;
@@ -238,6 +256,41 @@ void DirectSource::publishEverything(const tftcore::ZoneList &zones, const tftco
     trackKey_ = np.title + "\x1f" + np.artist;
     publishNowPlaying(std::move(np));
 }
+
+// ---- Queue and grouping ----
+
+void DirectSource::onQueue(void *ctx, const char *, const tftcore::QueueList &) {
+    static_cast<DirectSource *>(ctx)->queueSerial_++;
+}
+
+HttpResult DirectSource::queue(const String &zoneId, QueueItems &out) {
+    if constexpr (!board::HAS_QUEUE) return Source::queue(zoneId, out);
+    if (!g_client.followQueue(zoneId.c_str(), 20)) return {500, "", tr(Str::QueueNoSource)};
+    // Asked once; following the same zone again changes nothing until the server answers.
+    if (!g_client.queueSubscribed()) return {202, "", ""};
+    q::fromCore(g_client.queue(), out);
+    return {200, "", ""};
+}
+
+void DirectSource::queueClosed() {
+    if (board::HAS_QUEUE) g_client.followQueue("");   // the block goes back to PSRAM
+}
+
+HttpResult DirectSource::playFromHere(const String &zoneId, uint32_t queueItemId) {
+    if constexpr (!board::HAS_QUEUE) return Source::playFromHere(zoneId, queueItemId);
+    tftcore::Client::Reply r = g_client.playFromHere(zoneId.c_str(), queueItemId);
+    return r.ok ? HttpResult{200, "", ""} : HttpResult{-1, "", *r.name ? r.name : r.error};
+}
+
+#if BOARD_HAS_GROUPING
+HttpResult DirectSource::groupOutputs(const std::vector<String> &outputIds, bool group) {
+    std::vector<const char *> ids;
+    for (const String &id : outputIds) ids.push_back(id.c_str());
+    tftcore::Client::Reply r =
+        group ? g_client.groupOutputs(ids.data(), ids.size()) : g_client.ungroupOutputs(ids.data(), ids.size());
+    return r.ok ? HttpResult{200, "", ""} : HttpResult{-1, "", *r.name ? r.name : r.error};
+}
+#endif
 
 // ---- Lyrics, from a server that has them ----
 

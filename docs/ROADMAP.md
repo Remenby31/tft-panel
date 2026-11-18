@@ -168,9 +168,9 @@ nobody has to unlock, that happens to show lyrics — a bigger audience than lyr
 one firmware, two modes; the README, the site landing and the guide's opening were rewritten to lead
 with that, and lyrics became a section. What is still missing to be a credible remote:
 
-- [ ] The queue: what is next, reorder, clear (`subscribe_queue`; the companion already exposes it,
-      `tft-core-client` does not)
-- [ ] Zone grouping / ungrouping (the protocol has it, neither client uses it yet)
+- [x] The queue: what is next, play from any track, in both modes (`subscribe_queue` in
+      `tft-core-client`, the companion's route); reorder and clear are still missing (neither offers them)
+- [x] Zone grouping / ungrouping, in both modes, offered only where the server says outputs can group
 - [x] Scrub on the progress bar: written in PR #2 (batch 2) and tried by finger on the VIEWE
       2026-11-17 — tap and drag both behave; it reaches main with that batch
 - [ ] Output standby and convenience switch
@@ -227,10 +227,8 @@ What a board still has to say, and nothing else is blocking:
 - [ ] The render A/B on the CrowPanel: `flush cpu|dma|dma2`, watching for tearing and for a torn
       strip after a backdrop change; `cpu` stays the default until a measurement says otherwise
 
-Not a hardware question but open: queue and grouping go through the companion only, so they are
-dark in direct mode, which is what a new panel now chooses. The review asks for `subscribe_queue`
-and grouping in `tft-core-client` first so both modes gain them — undecided, and the contributor's
-call whether that is a detour worth taking.
+Queue and grouping now work in both modes: `subscribe_queue` and grouping went into
+`tft-core-client` first (r45635/tft-core-client#1), and the panel's batch waits on that PR.
 
 ## Other boards (not started)
 

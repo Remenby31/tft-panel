@@ -52,9 +52,9 @@ own extension of the music server, through `tft-core-client`, and needs no compa
 | Control | `POST /api/roon/control` | always send `zone_id`; 404 on an idle zone |
 | Seek | `POST /api/roon/seek` `{zone_id, how: "absolute", seconds}` | whole seconds; only when now-playing says `is_seek_allowed` |
 | Cover | `GET /api/roon/image/:key?scale=fit&width=&height=` | ask for the exact pixel size; JPEG decoded on device |
-| Queue | `GET /api/roon/queue?zone_id=` | P4 boards; playing track first, at most 20 items; 404 = nothing loaded |
+| Queue | `GET /api/roon/queue?zone_id=` | playing track first, at most 20 items; 404 = nothing loaded |
 | Play from here | `POST /api/roon/queue/play` | `{queue_item_id, zone_id}`; no route removes, moves or clears items |
-| Group / ungroup | `POST /api/roon/group`, `/ungroup` | P4 boards; `{output_ids}` from `GET /zones`; the first output's queue plays on |
+| Group / ungroup | `POST /api/roon/group`, `/ungroup` | `{output_ids}` from `GET /zones`; the first output's queue plays on |
 
 Rules learned on the watch client:
 - **Always pass `zone_id`. Never call `POST /api/roon/active-zone`** — it is global to the
@@ -198,27 +198,34 @@ carries `zone_or_output_id` = the followed zone, so actions play there.
   find artist|album [name] | open <n> | back | more | actions <n> | show | ui [close]`
   (`lib action <n>` plays: not while someone listens).
 
-### Play queue (P4 boards, `HAS_QUEUE`)
+### Play queue (`HAS_QUEUE`)
 
-`src/net/queue.cpp` (net task) reads the followed zone's queue through the source
-(`Source::queue` / `playFromHere`; the direct source has none and answers 501, and the controls bar
-then has no queue button). Only while the screen is open: loaded on open, again every 5 s and when
-the followed zone changes, thumbnails one by one. A refresh that brings the same `queue_item_id`s
-keeps the page id, so the screen does not redraw. `src/net/queue_parse.h` turns the body into items
-(host test `test/test_queue`); `src/app/queue_screen.cpp` draws `Snapshot::queue`. Not on the
-CrowPanel: its firmware slot is full (`HAS_QUEUE` false compiles it out).
+`src/net/queue.cpp` (net task) reads the followed zone's queue through the source in use
+(`Source::queue` / `playFromHere`), only while the screen is open, thumbnails one by one. The
+companion is polled: on open, every 5 s and when the followed zone changes
+(`src/net/queue_parse.h` turns its body into items). The direct source subscribes
+(tft-core-client `followQueue`, at most 20 items in one PSRAM block, given back on close): the
+server pushes every change, `Source::queueSerial` says one came, and the screen redraws at once.
+Both fill the same items (host test `test/test_queue`), so `src/app/queue_screen.cpp` never knows
+which source drew them. A refresh that brings the same `queue_item_id`s keeps the page id, so the
+screen does not redraw. All three boards (`HAS_QUEUE` 0 compiles it out). Neither source can
+remove, move or clear items: the panel plays from one.
 
-### Zone grouping (P4 boards, `HAS_GROUPING`)
+### Zone grouping (`HAS_GROUPING`)
 
-In the zone picker, a zone that is a group (more than one output) offers "Ungroup", and any other
-zone but the followed one offers "+ Add to <followed zone>": join it to that zone. The command carries zone
-ids only (for a join, the followed zone as the picker showed it, so a zone that starts playing
-meanwhile is not the one grouped); the net task reads the outputs from the zone list as it is when
-the command runs. Roon may refuse an output (another kind of device): the companion's zone list does
-not say which, so the refusal shows as a "Group failed" message
-(`src/net/zone_group.h`, host test `test/test_zone_group`). The followed zone's outputs go first,
-because Roon keeps the first output's queue: what plays goes on in the whole group. Companion
-source only (`Source::groupOutputs`, 501 elsewhere).
+In the zone picker, a zone that is a group (more than one output) offers "Ungroup", and a zone the
+followed one can group with offers "+ Add to <followed zone>". Can: every one of its outputs is in
+the followed zone's `can_group_with_output_ids`, as the music server says (`ZoneInfo::groupable`,
+`net::group::canJoin`). The direct source always has the list; a companion that does not pass it on
+(the field is absent from its `GET /zones`) leaves `groupableKnown` false, and then every other
+zone is offered and a refusal shows as a "Group failed" message. The command carries zone ids only
+(for a join, the followed zone as the picker showed it); the net task reads the outputs from the
+zone list as it is when the command runs. The followed zone's outputs go first, because Roon keeps
+the first output's queue: what plays goes on in the whole group (`src/net/zone_group.h`, host test
+`test/test_zone_group`). Companion: `POST /api/roon/group` / `ungroup`; direct: `group_outputs` /
+`ungroup_outputs`. The queue button and the grouping buttons show when the source in use offers
+them (`Capabilities::queueAndGrouping`, `Snapshot::canQueueAndGroup`): both do; none while the
+panel still looks for one.
 
 ### Following the playback
 

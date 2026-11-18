@@ -17,7 +17,7 @@ class DirectSource : public Source {
   public:
     const char *name() const override { return "direct"; }
     // No lyrics at all: nothing here reads the music files or resolves anything.
-    Capabilities caps() const override { return {false, false}; }
+    Capabilities caps() const override { return {false, false, board::HAS_QUEUE || BOARD_HAS_GROUPING}; }
 
     bool ready() const override;
     bool connect(uint32_t now) override;
@@ -47,6 +47,16 @@ class DirectSource : public Source {
     internal::HttpResult browseLoad(JsonDocument &body, JsonDocument &resp) override;
     String imageUrl(const String &imageKey, int px) const override;
 
+    // The queue is subscribed to: the server pushes it, at most 20 items, kept in PSRAM by the
+    // client. Grouping goes by the server's own can_group_with_output_ids.
+    internal::HttpResult queue(const String &zoneId, QueueItems &out) override;
+    uint32_t queueSerial() const override { return queueSerial_; }
+    void queueClosed() override;
+    internal::HttpResult playFromHere(const String &zoneId, uint32_t queueItemId) override;
+#if BOARD_HAS_GROUPING
+    internal::HttpResult groupOutputs(const std::vector<String> &outputIds, bool group) override;
+#endif
+
   private:
     void begin();
     void publishEverything(const tftcore::ZoneList &zones, const tftcore::ZoneDelta &delta);
@@ -55,10 +65,12 @@ class DirectSource : public Source {
     static void onZones(void *ctx, const tftcore::ZoneList &zones, const tftcore::ZoneDelta &delta);
     static void onToken(void *ctx, const char *serverId, const char *token);
     static void onState(void *ctx, tftcore::State state, const char *detail);
+    static void onQueue(void *ctx, const char *zoneOrOutputId, const tftcore::QueueList &queue);
 
     bool started_ = false;
     bool healthy_ = false;      // the first full zone list confirms a freshly installed image
     String trackKey_;           // to spot a track change before publishing
+    uint32_t queueSerial_ = 0;  // bumped by every queue push
 };
 
 }  // namespace net

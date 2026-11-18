@@ -49,6 +49,7 @@ struct NowPlaying {
 struct Capabilities {
     bool lyrics = false;              // it can resolve lyrics at all
     bool lyricsOffsetPersist = false; // a per-track offset is remembered beyond this session
+    bool queueAndGrouping = false;    // the play queue and zone grouping
 };
 
 class Source {
@@ -88,12 +89,14 @@ class Source {
     virtual internal::HttpResult browseLoad(JsonDocument &body, JsonDocument &resp) = 0;
 
     // --- Play queue (HAS_QUEUE boards) ---
-    // The zone's queue as the companion's GET /api/roon/queue answers it, and playing it from one
-    // item. A source without a queue answers 501 and the panel never offers it.
-    virtual internal::HttpResult queue(const String &zoneId, JsonDocument &resp) {
-        (void)zoneId, (void)resp;
+    // The zone's queue, at most 20 items, the playing track first; 202 = asked for, not here yet.
+    // `queueSerial` changes when a pushed queue changed; `queueClosed` stops following it.
+    virtual internal::HttpResult queue(const String &zoneId, QueueItems &out) {
+        (void)zoneId, (void)out;
         return {501, "", "no queue with this source"};
     }
+    virtual uint32_t queueSerial() const { return 0; }
+    virtual void queueClosed() {}
     virtual internal::HttpResult playFromHere(const String &zoneId, uint32_t queueItemId) {
         (void)zoneId, (void)queueItemId;
         return {501, "", "no queue with this source"};

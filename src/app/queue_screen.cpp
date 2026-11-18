@@ -6,6 +6,7 @@
 
 #include "../layout.h"
 #include "fonts.h"
+#include "i18n.h"
 
 namespace queueui {
 namespace {
@@ -102,7 +103,7 @@ void fillRows() {
     lv_obj_clean(g_list);
     thumbs().clear();
     for (size_t i = 0; i < page()->items.size(); i++) {
-        if (i <= 1) label(g_list, fonts::ui16, COL_ACCENT, i ? "Up next" : "Now playing");
+        if (i <= 1) label(g_list, fonts::ui16, COL_ACCENT, i ? tr(Str::QueueUpNext) : tr(Str::QueueNowPlaying));
         addRow(i);
     }
     lv_obj_scroll_to_y(g_list, 0, LV_ANIM_OFF);
@@ -134,15 +135,15 @@ void applyPage() {
         g_shownMessageAt = page()->messageAt;
         showToast(page()->message, page()->error);
     }
-    const char *info = page()->loading ? "Loading..."
-                       : page()->items.empty() && !page()->failed ? "Nothing in the queue"
+    const char *info = page()->loading ? tr(Str::Loading)
+                       : page()->items.empty() && !page()->failed ? tr(Str::QueueEmpty)
                                                                  : "";
     lv_label_set_text(g_info, info);
     lv_obj_set_hidden(g_info, !*info);
 }
 
 void setZone(const String &name) {
-    String zone = name.length() ? name : String("No zone: pick one in the controls bar");
+    String zone = name.length() ? name : String(tr(Str::NoZone));
     if (strcmp(lv_label_get_text(g_zone), zone.c_str()) != 0) lv_label_set_text(g_zone, zone.c_str());
 }
 
@@ -157,7 +158,7 @@ void build(lv_obj_t *scr) {
     lv_obj_set_scrollable(g_root, false);
     lv_obj_set_clickable(g_root, true);   // modal
 
-    lv_obj_t *h = label(g_root, fonts::lyricsOther, COL_TEXT, "Queue");
+    lv_obj_t *h = label(g_root, fonts::lyricsOther, COL_TEXT, tr(Str::QueueTitle));
     lv_obj_set_pos(h, X(32), Y(20));
     lv_obj_t *x = lv_button_create(g_root);
     lv_obj_set_size(x, S(56), S(56));

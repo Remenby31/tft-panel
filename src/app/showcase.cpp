@@ -117,18 +117,21 @@ net::Snapshot make(int32_t positionMs) {
     zones->push_back({"zone-office", "Office", "stopped", "", ""});
     zones->push_back({"zone-garden", "Garden", "stopped", "", ""});
 #if BOARD_HAS_GROUPING
-    {   // Kitchen is a group of two outputs: the picker offers "Ungroup"
+    {   // Kitchen is a group of two outputs: the picker offers "Ungroup". The garden's speaker is
+        // another kind of device the server says the living room cannot group with: no "+ Add".
         (*zones)[1].name = "Kitchen + Dining Room";
         const char *outputs[][2] = {{"out-living"}, {"out-kitchen", "out-dining"}, {"out-office"}, {"out-garden"}};
         for (size_t i = 0; i < zones->size(); i++)
             for (const char *o : outputs[i])
                 if (o) (*zones)[i].outputIds.push_back(o);
+        (*zones)[0].groupable = {"out-living", "out-kitchen", "out-dining", "out-office"};
+        (*zones)[0].groupableKnown = true;
     }
 #endif
     s.zones = zones;
     s.zonesSerial = 1;
 #if BOARD_HAS_QUEUE || BOARD_HAS_GROUPING
-    s.viaCompanion = true;
+    s.canQueueAndGroup = true;
 #endif
     if (!g_cover.big) {
         const int n = net::COVER_BIG_PX;
@@ -177,7 +180,7 @@ void fakePairingHint(net::Snapshot &s) {
 void fakeSearching(net::Snapshot &s, const String &screen) {
     s.portalActive = false;
 #if BOARD_HAS_QUEUE || BOARD_HAS_GROUPING
-    s.viaCompanion = false;   // still looking: no source in use yet
+    s.canQueueAndGroup = false;   // still looking: no source in use yet
 #endif
     sourcechoice::Seen seen;
     seen.companion = screen == "found-companion";

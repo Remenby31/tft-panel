@@ -959,6 +959,7 @@ bool chooseSource(uint32_t now) {
     }
     if (active != was) {
 #if defined(SOURCE_ROON)
+        if (board::HAS_QUEUE) g_source->queueClosed();   // the next one follows it if the screen is open
         if (active == Active::Direct) {
             g_source = &g_direct;
             g_direct.bringForward();
@@ -969,6 +970,10 @@ bool chooseSource(uint32_t now) {
         }
 #endif
         Serial.printf("[net] auto: playing through the %s\n", active == Active::Direct ? "server" : "companion");
+#if BOARD_HAS_QUEUE || BOARD_HAS_GROUPING
+        bool can = active != Active::Looking && g_source->caps().queueAndGrouping;
+        update([&](Snapshot &s) { s.canQueueAndGroup = can; });
+#endif
     }
     g_probing = active == Active::Looking;
     if (g_probing) {
@@ -990,7 +995,7 @@ void begin() {
 #endif
     Serial.printf("[net] source: %s\n", g_probing ? "auto, looking for both" : g_source->name());
 #if BOARD_HAS_QUEUE || BOARD_HAS_GROUPING
-    g_snap.viaCompanion = !g_probing && g_source == &g_companion;   // no other task reads it yet
+    g_snap.canQueueAndGroup = !g_probing && g_source->caps().queueAndGrouping;   // no other task reads it yet
 #endif
     g_coverQueue = xQueueCreate(1, sizeof(CoverRequest));
     xTaskCreatePinnedToCore(coverTask, "cover", 8192, nullptr, 1, nullptr, 0);

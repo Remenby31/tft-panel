@@ -25,10 +25,10 @@ constexpr uint8_t DEFAULT_WARMTH = 0;
 constexpr bool OTA_DOWNLOAD_FIRST = true;
 // Music library browsing (search, browse, play) from the panel.
 constexpr bool HAS_LIBRARY = true;
-// The play queue of the followed zone (companion source): see it, play from any item.
-#define BOARD_HAS_QUEUE 1   // also for #if: what the CrowPanel never compiles
+// The play queue of the followed zone: see it, play from any item. 0 compiles it out (#if too).
+#define BOARD_HAS_QUEUE 1
 constexpr bool HAS_QUEUE = BOARD_HAS_QUEUE;
-// Zone grouping from the zone picker (companion source).
+// Zone grouping from the zone picker.
 #define BOARD_HAS_GROUPING 1
 constexpr bool HAS_GROUPING = BOARD_HAS_GROUPING;
 

@@ -9,7 +9,7 @@ namespace net {
 class CompanionSource : public Source {
   public:
     const char *name() const override { return "companion"; }
-    Capabilities caps() const override { return {true, true}; }
+    Capabilities caps() const override { return {true, true, board::HAS_QUEUE || BOARD_HAS_GROUPING}; }
 
     bool ready() const override { return baseUrl_.length() > 0; }
     const String &url() const { return baseUrl_; }
@@ -27,7 +27,7 @@ class CompanionSource : public Source {
 
     internal::HttpResult browse(JsonDocument &body, JsonDocument &resp) override;
     internal::HttpResult browseLoad(JsonDocument &body, JsonDocument &resp) override;
-    internal::HttpResult queue(const String &zoneId, JsonDocument &resp) override;
+    internal::HttpResult queue(const String &zoneId, QueueItems &out) override;
     internal::HttpResult playFromHere(const String &zoneId, uint32_t queueItemId) override;
 #if BOARD_HAS_GROUPING
     internal::HttpResult groupOutputs(const std::vector<String> &outputIds, bool group) override;
