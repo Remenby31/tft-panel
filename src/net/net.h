@@ -93,6 +93,7 @@ struct Snapshot {
     String staIp;
     String companion;         // base URL in use, empty if none yet
     String sourceNote;        // what the automatic choice found; empty when chosen by hand
+    String pairingHint;       // playing through the companion while the server waits for its approval
 
     // Last Wi-Fi scan (setup portal, on-screen Wi-Fi setup). `networksSerial` changes with it.
     std::shared_ptr<const std::vector<WifiNet>> networks;

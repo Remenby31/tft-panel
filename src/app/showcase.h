@@ -18,5 +18,7 @@ void fakePortal(net::Snapshot &s);
 // (nothing found yet), "found-companion" (waiting for a server too) or "pairing" (a server
 // found, waiting to be enabled in its settings).
 void fakeSearching(net::Snapshot &s, const String &screen);
+// Playing through the companion while the server waits for its approval: the one-time hint.
+void fakePairingHint(net::Snapshot &s);
 
 }  // namespace showcase

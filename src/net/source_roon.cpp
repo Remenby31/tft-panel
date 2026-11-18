@@ -112,7 +112,17 @@ bool DirectSource::serverFound() const {
     }
 }
 
-void DirectSource::stop() { g_client.disconnect(); }
+void DirectSource::bringForward() {
+    if (g_client.state() != tftcore::State::Paired) {
+        onState(this, g_client.state(), "");
+        return;
+    }
+    // No "Paired with" line on the way: the track goes on, so the phase stays Playing throughout.
+    char url[80];
+    snprintf(url, sizeof url, "http://%s:%u", g_client.serverHost(), (unsigned)g_client.serverHttpPort());
+    publishServer(url);
+    zoneSelectionChanged();
+}
 
 void DirectSource::zoneSelectionChanged() {
     // The zone list is already here: re-pick from it at once instead of waiting for a push.

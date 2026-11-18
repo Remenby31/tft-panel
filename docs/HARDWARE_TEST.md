@@ -117,24 +117,38 @@ are enough.
 
 ### First run finds the companion or the server
 
-Only a network can prove this: the choice logic is host-tested (`pio test -e native`), the
-discovery is not. Start each case with `erase-all`, then `wifi <ssid> <password>`; `status` prints
-`source=auto` and an `auto:` line once something is found.
+Only a network can prove this: the choice is host-tested (`pio test -e native`, test_source_choice),
+the discovery and the hand-over are not. Start each case with `erase-all`, then
+`wifi <ssid> <password>`; `status` prints `source=auto` and an `auto:` line once something is found.
+The console logs `[net] auto: playing through the server|companion` at each hand-over.
 
 1. **Nothing running** (companion stopped, music server unreachable): the screen says *Looking for
    your music server, or a TextFromTrack companion, on this Wi-Fi...* and stays on it.
-2. **Companion only** (server's network unreachable from the panel, or the server stopped):
-   *Found a TextFromTrack companion. Checking for a music server too...*, then about 12 s later
-   *Found a TextFromTrack companion: music and lyrics come from it.* Music and lyrics play.
+2. **Companion only** (server stopped): music and lyrics play within seconds, with no wait.
+   Settings → *Music from* says *Found a TextFromTrack companion: music and lyrics come from it.*
 3. **Music server only** (companion stopped): *Found the music server "…". One step left: in its
-   Settings > Extensions, enable "TFT Panel xxxx"*, in the normal grey, not red. Enable it: the zone plays. Settings → *Music
-   from* says *Found your music server: music comes from it directly.*
-4. **Both**: direct is picked; once enabled, Settings → *Music from* says *music from the server,
-   lyrics from the companion*, and a song with lyrics shows them.
-5. **A choice made by hand stays**: `source companion` with both running: after the restart
-   `status` shows `source=companion` and no `auto:` line. `source auto` gives case 4 again.
-6. **An updated panel keeps its source**: flash the previous release, set Wi-Fi, leave the
+   Settings > Extensions, enable "TFT Panel xxxx"*, in grey, not red. Enable it: the zone plays.
+4. **Both, never paired**: music starts through the companion at once. Top right, in grey, for
+   20 s and once only: *Playing through the TextFromTrack companion. To play straight from your
+   music server, enable "TFT Panel xxxx" in its Settings > Extensions.* Leave it 5 min: nothing else
+   appears. Then enable the panel in Roon while a song with lyrics plays, and watch the screen:
+   the track does not restart, the lyrics stay, the cover does not go blank, and the time does not
+   jump by more than a second. `[net] auto: playing through the server` in the console.
+5. **Both, paired before**: `restart`. The panel goes straight to the server (no companion first);
+   `status` shows the `auto:` line *music from the server, lyrics from the companion*.
+6. **Server lost**: with case 5 playing, cut the panel off from the Core only, so the companion
+   still reaches it (a firewall rule on the Core's machine for the panel's IP; stopping the Core
+   would silence the companion too). About 15 s later music goes on through the companion
+   (`[net] auto: playing through the companion`). Lift the rule at once: the panel stays on the companion for a minute, then moves back to the server,
+   once, without restarting the track.
+7. **Memory, both clients alive**: in case 4 before enabling the panel (companion playing, the
+   server's pairing waiting behind it), after 10 min type `status`. Report the `heap int … KB
+   (min …)` figures; the CrowPanel's minimum must stay above 30 KB.
+8. **A choice made by hand stays**: `source companion` with both running: after the restart
+   `status` shows `source=companion`, no `auto:` line, and no hint. `source auto` gives case 5 again.
+9. **An updated panel keeps its source**: flash the previous release, set Wi-Fi, leave the
    source untouched, then update to this one. `status` shows `source=companion`, not `auto`.
+
 ## Results block
 
 Copy once per board, fill in, paste into the pull request.

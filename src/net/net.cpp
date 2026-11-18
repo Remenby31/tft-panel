@@ -62,8 +62,10 @@ PositionClock g_clock;
 uint32_t g_lyricsFetchedAt = 0;
 int g_lyricsRetries = 0;
 // Auto (source_choice.h) and nothing picked yet this boot: the sources' own "looking for..."
-// lines would each name one of the two, so the probe's line replaces them.
+// lines would each name one of the two, so the chooser's line replaces them.
 bool g_probing = false;
+// A source asked something while the other one is in use: what it would publish is dropped.
+bool g_quiet = false;
 
 template <typename F>
 void update(F &&fn) {
@@ -78,7 +80,7 @@ void update(F &&fn) {
 namespace internal {
 
 void setPhase(Phase p, const String &status) {
-    if (g_probing && p == Phase::Discovering) return;
+    if (g_quiet || (g_probing && p == Phase::Discovering)) return;
     bool changed = false;
     xSemaphoreTake(g_lock, portMAX_DELAY);
     if (g_snap.phase != p || g_snap.status != status) {
@@ -92,6 +94,7 @@ void setPhase(Phase p, const String &status) {
 }
 
 void publishServer(const String &url) {
+    if (g_quiet) return;
     update([&](Snapshot &s) { s.companion = url; });
 }
 
@@ -465,6 +468,7 @@ void currentTrack(String &title, String &artist, String &album, uint32_t *durati
 // Picks the zone to follow: the pinned one if it exists, else keep the current zone
 // while it plays, else the first playing zone, else the first with a track, else the first.
 bool publishZones(std::shared_ptr<std::vector<ZoneInfo>> zones) {
+    if (g_quiet) return true;
     String pinned = settings::get().zoneId;
     String current = followedZoneId();
 
@@ -500,6 +504,7 @@ bool publishZones(std::shared_ptr<std::vector<ZoneInfo>> zones) {
 }
 
 void publishIdle() {
+    if (g_quiet) return;
     if (g_trackKey.length()) clearTrack();
     String zoneName;
     xSemaphoreTake(g_lock, portMAX_DELAY);
@@ -510,6 +515,7 @@ void publishIdle() {
 
 // The position clock, the track change, the cover and the lyrics: the same for every source.
 void publishNowPlaying(NowPlaying np) {
+    if (g_quiet) return;
     String key = np.zoneId + "\x1f" + np.title + "\x1f" + np.artist + "\x1f" + np.album + "\x1f" +
                  String(np.durationMs);
     bool newTrack = key != g_trackKey;
@@ -698,7 +704,7 @@ void tickScan() {
     update([](Snapshot &s) { s.scanning = true; });
 }
 
-bool probeSources(uint32_t now);   // below, next to the sources
+bool chooseSource(uint32_t now);   // below, next to the sources
 
 void task(void *) {
     bool wifiStarted = false;
@@ -789,7 +795,7 @@ void task(void *) {
         ota::tick(true);   // update check (boot + daily) and a confirmed install; no server needed
         weather::tick(now);   // for the idle clock; it has its own schedule and needs no source
         news::tick(now);
-        if (g_probing && !probeSources(now)) {
+        if (!chooseSource(now)) {
             delay(20);
             continue;
         }
@@ -839,55 +845,80 @@ Source *g_source = &g_companion;
 Source &source() { return *g_source; }
 
 namespace {
-sourcechoice::Probe g_probe;
+sourcechoice::Chooser g_chooser(settings::SourceKind::Companion, false);
+String g_sourceLine;
 
-// Both looked for at once until choose() picks one; the other one is let go. True once a
-// source is in use. The pick holds until the next start, like a choice made by hand.
-bool probeSources(uint32_t now) {
-    using sourcechoice::Pick;
-    if (!g_probe.companion && g_companion.connect(now)) {
-        g_probe.companion = true;
-        g_probe.companionAtMs = millis();
-    }
+template <class F>
+void quietly(F &&fn) {
+    g_quiet = true;
+    fn();
+    g_quiet = false;
+}
+
+// Auto: asks both sources whether they answer, lets the chooser pick (source_choice.h) and hands
+// the snapshot to the one it picked. The one not in use is asked quietly, so the server's pairing
+// goes on behind the companion's music. false while nothing plays yet.
+bool chooseSource(uint32_t now) {
+    using sourcechoice::Active;
+    if (settings::source() != settings::SourceKind::Auto) return true;
+    Active was = g_chooser.active();
+    sourcechoice::Seen seen;
 #if defined(SOURCE_ROON)
-    if (!g_probe.server) {
-        g_direct.connect(now);
-        g_probe.server = g_direct.serverFound();
-    }
+    if (was != Active::Direct) quietly([&] { g_direct.connect(now); });
+    seen.server = g_direct.serverFound();
+    seen.approved = g_direct.ready();
 #endif
-    Pick pick = sourcechoice::choose(settings::SourceKind::Auto, g_probe, millis());
-    char line[160];
-    if (pick == Pick::Looking) {
-        sourcechoice::describe(pick, g_probe, false, line, sizeof line);
-        g_probing = false;   // the probe's own line goes through
+    if (was == Active::Companion) {
+        seen.companion = g_companion.ready();
+    } else {
+        bool needed = !(was == Active::Direct && seen.approved);
+        quietly([&] { seen.companion = g_companion.ready() || (needed && g_companion.connect(now)); });
+    }
+    Active active = g_chooser.step(seen, millis());
+
+    settings::Settings st = settings::get();
+    // The lyrics' own default finds a companion by mDNS only, not at an address typed for the music.
+    bool companionLyrics = seen.companion && !st.lyricsUrl.length() && !st.companionUrl.length();
+    char line[200];
+    sourcechoice::describe(g_chooser, seen, companionLyrics, displayName().c_str(), line, sizeof line);
+    if (g_sourceLine != line) {
+        g_sourceLine = line;
+        Serial.printf("[net] auto: %s\n", line);
+        bool hint = g_chooser.awaitingApproval();
+        update([&](Snapshot &s) {
+            s.sourceNote = line;
+            s.pairingHint = hint ? line : "";
+        });
+    }
+    if (active != was) {
+#if defined(SOURCE_ROON)
+        if (active == Active::Direct) {
+            g_source = &g_direct;
+            g_direct.bringForward();
+        } else if (active == Active::Companion) {
+            g_source = &g_companion;
+            g_companion.zoneSelectionChanged();   // ask for what is playing at once
+        }
+#endif
+        Serial.printf("[net] auto: playing through the %s\n", active == Active::Direct ? "server" : "companion");
+    }
+    g_probing = active == Active::Looking;
+    if (g_probing) {
+        g_probing = false;   // the chooser's own line goes through
         internal::setPhase(Phase::Discovering, line);
         g_probing = true;
         return false;
     }
-    g_probing = false;
-    // The lyrics' own default finds a companion by mDNS only, not at an address typed for the music.
-    settings::Settings st = settings::get();
-    bool companionLyrics = g_probe.companion && !st.lyricsUrl.length() && !st.companionUrl.length();
-    sourcechoice::describe(pick, g_probe, companionLyrics, line, sizeof line);
-    Serial.printf("[net] auto: %s\n", line);
-#if defined(SOURCE_ROON)
-    if (pick == Pick::Direct) g_source = &g_direct;
-    else g_direct.stop();
-#endif
-    // A source that already says more (waiting for its approval, an error) keeps its line.
-    update([&](Snapshot &s) {
-        s.sourceNote = line;
-        if (s.phase == Phase::Discovering) s.status = line;
-    });
     return true;
 }
 }  // namespace
 
 void begin() {
-    sourcechoice::Pick pick = sourcechoice::choose(settings::source(), {}, 0);
-    g_probing = pick == sourcechoice::Pick::Looking;
+    settings::Settings st = settings::get();
+    g_chooser = sourcechoice::Chooser(st.source, st.serverToken.length() > 0);
+    g_probing = st.source == settings::SourceKind::Auto;
 #if defined(SOURCE_ROON)
-    if (pick == sourcechoice::Pick::Direct) g_source = &g_direct;
+    if (st.source == settings::SourceKind::Direct) g_source = &g_direct;
 #endif
     Serial.printf("[net] source: %s\n", g_probing ? "auto, looking for both" : g_source->name());
     g_coverQueue = xQueueCreate(1, sizeof(CoverRequest));

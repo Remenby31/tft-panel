@@ -26,7 +26,8 @@ class DirectSource : public Source {
 
     // For the automatic choice (source_choice.h): a server answered, and giving up on it.
     bool serverFound() const;
-    void stop();
+    // Made the source in use while already connected behind another one: publishes what it has.
+    void bringForward();
 
     // Nothing is polled: the server pushes, and pump() publishes what arrives.
     bool zonesDue(uint32_t) const override { return false; }

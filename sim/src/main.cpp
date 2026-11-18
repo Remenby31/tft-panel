@@ -146,7 +146,7 @@ int usage() {
             "       tft-sim --window                       SDL window, mouse as touch\n"
             "NAME: any showcase screen of the console's `show` command (lyrics, cover, clockview,\n"
             "controls, settings, colours, volume, offset, zones, clock, update, confirm, progress, seek,\n"
-            "setup, searching, library, library-actions, wifi, wifi-password, code)\n");
+            "setup, searching, found-companion, pairing, pairing-hint, library, library-actions, wifi, wifi-password, code)\n");
     return 2;
 }
 

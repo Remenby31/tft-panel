@@ -41,43 +41,122 @@ inline SourceKind fromStored(bool present, uint8_t value, bool wifiStored) {
     return SourceKind::Companion;
 }
 
-// After a companion answers, Auto waits this long for a music server too: the server's
-// discovery repeats every 10 s, so this covers a second try.
-constexpr uint32_t GRACE_MS = 12000;
+// A panel paired with its server before waits this long, once a companion answers, for the server
+// to take its stored pairing back: otherwise every start would play a few seconds through the
+// companion and then switch. The server's discovery repeats every 10 s, so this covers a second try.
+constexpr uint32_t PAIRED_WAIT_MS = 12000;
+// The source in use stopped answering and the other one is there: this long before switching.
+constexpr uint32_t FALLBACK_MS = 15000;
+// After falling back to the companion, the server is not taken again for this long, so a server
+// that comes and goes cannot make the panel switch back and forth.
+constexpr uint32_t HOLD_MS = 60000;
 
-struct Probe {
-    bool companion = false;       // a companion answered (or one is configured by address)
-    bool server = false;          // a music server answered its discovery (or one is configured)
-    uint32_t companionAtMs = 0;   // when the companion first answered
+// What answers right now. `approved`: the server accepted this panel and sends its zones.
+struct Seen {
+    bool companion = false;
+    bool server = false;
+    bool approved = false;
 };
 
-enum class Pick : uint8_t { Companion, Direct, Looking };
+enum class Active : uint8_t { Looking, Companion, Direct };
 
-// A choice made on purpose always wins. Otherwise a music server means Direct, for playback
-// (lyrics then come from a companion if there is one, through the lyrics setting's default);
-// a companion alone is taken once the grace is over; nothing found means look again.
-inline Pick choose(SourceKind setting, const Probe &p, uint32_t nowMs) {
-    if (setting == SourceKind::Companion) return Pick::Companion;
-    if (setting == SourceKind::Direct) return Pick::Direct;
-    if (p.server) return Pick::Direct;
-    if (p.companion && nowMs - p.companionAtMs >= GRACE_MS) return Pick::Companion;
-    return Pick::Looking;
-}
+// Which source plays, step by step as things answer or stop answering. A choice made by hand is
+// fixed. Auto plays through a companion as soon as one answers, keeps the server's pairing going
+// behind it, and moves to the server once it accepts the panel: waiting for that approval never
+// keeps the music off.
+class Chooser {
+  public:
+    Chooser(SourceKind setting, bool pairedBefore) : setting_(setting), pairedBefore_(pairedBefore) {
+        if (setting == SourceKind::Companion) active_ = Active::Companion;
+        if (setting == SourceKind::Direct) active_ = Active::Direct;
+    }
 
-// The status line for an automatic choice, in words for someone who has never heard of either.
+    Active step(const Seen &seen, uint32_t nowMs) {
+        seen_ = seen;
+        if (setting_ != SourceKind::Auto) return active_;
+        if (seen.companion && !companionSeen_) {
+            companionSeen_ = true;
+            companionSince_ = nowMs;
+        }
+        switch (active_) {
+            case Active::Looking:
+                if (seen.approved) take(Active::Direct);
+                else if (seen.companion && (!pairedBefore_ || nowMs - companionSince_ >= PAIRED_WAIT_MS))
+                    take(Active::Companion);
+                else if (seen.server && !seen.companion) take(Active::Direct);
+                break;
+            case Active::Direct:
+                if (seen.approved || !seen.companion) {
+                    losing_ = false;
+                    approvedHere_ = approvedHere_ || seen.approved;
+                } else if (!approvedHere_ && !pairedBefore_) {
+                    take(Active::Companion);   // still waiting for an approval: music first
+                } else if (lost(nowMs)) {
+                    take(Active::Companion);
+                    held_ = true;
+                    heldSince_ = nowMs;
+                }
+                break;
+            case Active::Companion:
+                if (seen.approved && (!held_ || nowMs - heldSince_ >= HOLD_MS)) {
+                    take(Active::Direct);
+                } else if (!seen.companion && seen.server) {
+                    if (lost(nowMs)) take(Active::Direct);
+                } else {
+                    losing_ = false;
+                }
+                break;
+        }
+        return active_;
+    }
+
+    Active active() const { return active_; }
+    // Auto, playing through the companion, a server answered and has not accepted the panel yet.
+    bool awaitingApproval() const {
+        return setting_ == SourceKind::Auto && active_ == Active::Companion && seen_.server && !seen_.approved;
+    }
+
+  private:
+    void take(Active a) {
+        active_ = a;
+        losing_ = false;
+        approvedHere_ = a == Active::Direct && seen_.approved;
+    }
+    bool lost(uint32_t nowMs) {
+        if (!losing_) {
+            losing_ = true;
+            lostSince_ = nowMs;
+        }
+        return nowMs - lostSince_ >= FALLBACK_MS;
+    }
+
+    SourceKind setting_;
+    bool pairedBefore_;
+    Active active_ = Active::Looking;
+    Seen seen_;
+    bool companionSeen_ = false, losing_ = false, held_ = false, approvedHere_ = false;
+    uint32_t companionSince_ = 0, lostSince_ = 0, heldSince_ = 0;
+};
+
+// The line that says what the automatic choice found, for someone who has never heard of either.
 // `companionLyrics`: the lyrics setting is left to find a companion, and one was found that way.
-inline void describe(Pick pick, const Probe &p, bool companionLyrics, char *out, size_t size) {
-    switch (pick) {
-        case Pick::Looking:
-            if (p.companion)
+inline void describe(const Chooser &c, const Seen &seen, bool companionLyrics, const char *panelName, char *out,
+                     size_t size) {
+    switch (c.active()) {
+        case Active::Looking:
+            if (seen.companion)
                 snprintf(out, size, "Found a TextFromTrack companion. Checking for a music server too...");
             else
                 snprintf(out, size, "Looking for your music server, or a TextFromTrack companion, on this Wi-Fi...");
             break;
-        case Pick::Companion:
-            snprintf(out, size, "Found a TextFromTrack companion: music and lyrics come from it.");
+        case Active::Companion:
+            if (c.awaitingApproval())
+                snprintf(out, size, "Playing through the TextFromTrack companion. To play straight from your "
+                                    "music server, enable \"%s\" in its Settings > Extensions.", panelName);
+            else
+                snprintf(out, size, "Found a TextFromTrack companion: music and lyrics come from it.");
             break;
-        case Pick::Direct:
+        case Active::Direct:
             if (companionLyrics)
                 snprintf(out, size, "Found your music server and a TextFromTrack companion: music from the "
                                     "server, lyrics from the companion.");

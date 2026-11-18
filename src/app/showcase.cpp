@@ -11,6 +11,7 @@
 
 namespace showcase {
 namespace {
+const char *const PANEL_NAME = "TFT Panel A1B2";   // invented: a real name carries two MAC bytes
 
 // Original lyrics written for the showcase (no rights attached), timed every ~4.6 s.
 const char *const LINES[] = {
@@ -149,18 +150,30 @@ void fakePortal(net::Snapshot &s) {
     s.apIp = "192.168.4.1";
 }
 
+void fakePairingHint(net::Snapshot &s) {
+    sourcechoice::Seen seen;
+    seen.companion = seen.server = true;
+    sourcechoice::Chooser c(settings::SourceKind::Auto, false);
+    c.step(seen, 1000);
+    char line[200];
+    sourcechoice::describe(c, seen, true, PANEL_NAME, line, sizeof line);
+    s.sourceNote = s.pairingHint = line;
+}
+
 void fakeSearching(net::Snapshot &s, const String &screen) {
     s.portalActive = false;
-    sourcechoice::Probe probe;
-    probe.companion = screen == "found-companion";
-    char line[160];
-    sourcechoice::describe(sourcechoice::Pick::Looking, probe, false, line, sizeof line);
+    sourcechoice::Seen seen;
+    seen.companion = screen == "found-companion";
+    sourcechoice::Chooser looking(settings::SourceKind::Auto, true);   // paired before: waits on a companion
+    looking.step(seen, 1000);
+    char line[200];
+    sourcechoice::describe(looking, seen, false, PANEL_NAME, line, sizeof line);
     s.phase = net::Phase::Discovering;
     s.status = line;
     if (screen == "pairing") {   // the direct source's line, with an invented server and panel
         s.phase = net::Phase::Pairing;
-        s.status = "Found the music server \"Living Room\". One step left: in its Settings > Extensions, "
-                   "enable \"TFT Panel A1B2\"";
+        s.status = String("Found the music server \"Living Room\". One step left: in its Settings > Extensions, "
+                          "enable \"") + PANEL_NAME + "\"";
     }
     s.state = "";
     s.title = s.artist = s.album = s.zoneName = "";

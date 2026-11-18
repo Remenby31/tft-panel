@@ -119,8 +119,10 @@ it does, and it is nothing to worry about for the first few seconds:
 
 ![Looking for your music server](images/searching.png)
 
-It finds the music server, or the companion, by itself: with both on the network, music comes from
-the server and lyrics from the companion; **Settings > Music from** says what it found. Only 2.4 GHz networks
+It finds the music server, or the companion, by itself. With both on the network, music starts
+through the companion at once, and a grey line says once how to let the server take over (enable
+the panel in its Settings > Extensions); once you do, music comes from the server and lyrics from
+the companion, without a break; **Settings > Music from** says what it found. Only 2.4 GHz networks
 work (most routers offer both). To move the panel to another network later: **Settings > Wi-Fi >
 Change...**. If the companion is
 on another network segment, its address (and its access token, if you set one) can be typed on

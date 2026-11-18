@@ -83,11 +83,17 @@ source only discovers a server, reads it, and calls the `publish*` functions of 
 It also builds the cover URLs, because the cover task runs on another core and must never read a
 source's address while the net task changes it.
 
-**Which source.** Chosen once per start. By hand (page, settings screen, console `source`) it is
-kept; `auto`, the default on a new panel, looks for both until `source_choice.h` picks: a music
-server means direct (lyrics then come from a companion through the lyrics setting's default),
-a companion alone is taken after a 12 s wait for a server. A panel updated from a release
-without `auto` has its companion written down on first start, so an update never moves it.
+**Which source.** Chosen by hand (page, settings screen, console `source`), it is fixed. `auto`,
+the default on a new panel, asks both all along and `sourcechoice::Chooser` (`source_choice.h`)
+decides: a companion plays at once; a music server that has accepted the panel takes over (lyrics
+then come from a companion through the lyrics setting's default); waiting for that approval never
+keeps the music off, since the server's pairing goes on behind the companion (the source not in use
+is asked quietly: what it would publish is dropped). Either one stopping for 15 s hands over to
+the other, and after falling back the server is not taken again for 60 s. A panel paired before
+waits up to 12 s for its server, so it does not start on the companion and switch a moment later.
+The hand-over keeps the zone and the track: the net task sees the same track key, so neither the
+position clock, the cover nor the lyrics start again. A panel updated from a release without
+`auto` has its companion written down on first start, so an update never moves it.
 
 **Boards.** `board.h` is the only interface the rest of the firmware sees; each board compiles
 its own file, chosen by the environment's `-DBOARD_…` flag: `board_crowpanel7.cpp` (ESP32-S3, RGB

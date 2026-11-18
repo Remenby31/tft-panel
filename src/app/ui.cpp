@@ -93,6 +93,8 @@ lv_obj_t *g_setup = nullptr, *g_qrWifi = nullptr, *g_qrUrl = nullptr, *g_setupTe
 // Controls bar (shown on a tap, hides itself) and zone picker
 constexpr uint32_t CONTROLS_HIDE_MS = 6000;
 constexpr uint32_t COMMAND_ERROR_MS = 5000;
+// The pairing hint (net.h) shows this long, once per start, then lives on in Settings only.
+constexpr uint32_t PAIRING_HINT_MS = 20000;
 lv_obj_t *g_controls = nullptr, *g_btnZone = nullptr, *g_zoneBtnLabel = nullptr;
 lv_obj_t *g_btnPrev = nullptr, *g_btnPlay = nullptr, *g_btnNext = nullptr, *g_playIcon = nullptr;
 lv_obj_t *g_btnVolDown = nullptr, *g_btnVolUp = nullptr, *g_volLabel = nullptr;
@@ -100,6 +102,8 @@ lv_obj_t *g_picker = nullptr, *g_pickerList = nullptr;
 std::vector<String> g_pickerIds;
 uint32_t g_controlsShownAt = 0;
 bool g_errorShown = false;
+bool g_hintStarted = false, g_hintShown = false;
+uint32_t g_hintSince = 0;
 
 // Smooth scroll: the stage slides up from where the next line was to its new place.
 // A full-stage frame costs ~88 ms (render ~68 + flush ~20, PSRAM-bound): ~11 fps. A longer
@@ -1420,12 +1424,20 @@ void applySnapshot() {
     bool bad = g_s.phase == net::Phase::WifiFailed || g_s.phase == net::Phase::CompanionError;
     g_errorShown = g_s.commandError.length() && millis() - g_s.commandErrorAt < COMMAND_ERROR_MS;
     setTextColour(g_status, bad || g_errorShown ? COL_ERROR : COL_DIM);
+    if (g_s.pairingHint.length() && !g_hintStarted) {
+        g_hintStarted = true;
+        g_hintSince = millis();
+    }
+    g_hintShown = g_s.pairingHint.length() && millis() - g_hintSince < PAIRING_HINT_MS && !bad && !g_errorShown;
     // The bars say "playing" better than the word did, and only that: every other state - paused,
     // an error, a zone with nothing in it - still has words, which the bars would not carry.
-    bool eqOn = g_s.phase == net::Phase::Playing && g_s.playing() && !bad && !g_errorShown;
+    bool eqOn = g_s.phase == net::Phase::Playing && g_s.playing() && !bad && !g_errorShown && !g_hintShown;
     setHidden(g_eq, !eqOn);
     eqRun(eqOn);
-    setText(g_status, g_errorShown ? g_s.commandError.c_str() : eqOn ? "" : g_s.status.c_str());
+    setText(g_status, g_errorShown  ? g_s.commandError.c_str()
+                      : g_hintShown ? g_s.pairingHint.c_str()
+                      : eqOn        ? ""
+                                    : g_s.status.c_str());
     updateControls();
 
     bool track = g_s.phase == net::Phase::Playing || (g_s.title.length() && bad);
@@ -1827,6 +1839,11 @@ bool showcase(const String &what) {
     } else if (what == "setup") {
         showcase::fakePortal(g_s);
         applySnapshot();
+    } else if (what == "pairing-hint") {
+        showView(View::Lyrics);
+        g_hintStarted = false;
+        showcase::fakePairingHint(g_s);
+        applySnapshot();
     } else if (what == "searching" || what == "found-companion" || what == "pairing") {
         showcase::fakeSearching(g_s, what);
         applySnapshot();
@@ -1884,6 +1901,7 @@ void tick() {
     if (!isHidden(g_controls) && isHidden(g_picker) && now - g_controlsShownAt > CONTROLS_HIDE_MS)
         showControls(false);
     if (g_errorShown && now - g_s.commandErrorAt >= COMMAND_ERROR_MS) applySnapshot();
+    if (g_hintShown && now - g_hintSince >= PAIRING_HINT_MS) applySnapshot();
     tickLyrics(now);
     tickProgress(now);
 }

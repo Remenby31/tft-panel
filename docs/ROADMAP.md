@@ -176,8 +176,8 @@ with that, and lyrics became a section. What is still missing to be a credible r
 - [ ] Output standby and convenience switch
 - [x] First run should not ask "companion or direct": the panel can look for both and say what it
       found, so a newcomer never has to understand the project's history to hear music
-      (`source auto`, the default on a new panel; a panel updated from an earlier release keeps the
-      companion it was using)
+      (`source auto`, the default on a new panel: music through the companion at once, the server
+      once it accepts the panel; a panel updated from an earlier release keeps the companion it was using)
 
 🪤 None of this fits the CrowPanel: it is at **97.6 % of its OTA slot, 47 KiB left**. These are P4
 screens; the S3 stays the panel it already is — and the next thing added to it has to pay for
