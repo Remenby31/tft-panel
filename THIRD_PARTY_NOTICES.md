@@ -15,6 +15,7 @@ licences.
 | — TJpgDec (in LVGL) | cover JPEG decoding | ChaN's free licence (BSD-style, see below) |
 | — QR Code generator (in LVGL) | setup QR codes | MIT |
 | [ArduinoJson](https://arduinojson.org) 7.4 | companion API | MIT |
+| [Font Awesome 5 Free](https://fontawesome.com), as bundled in LVGL's Montserrat fonts (symbols only, `src/app/symbol_fonts/`) | the play, volume, settings… icons | SIL Open Font License 1.1 ([OFL-FontAwesome.txt](src/app/symbol_fonts/OFL-FontAwesome.txt)); the font files around them are LVGL's, MIT ([LICENSE-LVGL.txt](src/app/symbol_fonts/LICENSE-LVGL.txt)) |
 | [Noto Sans](https://notofonts.github.io) (subset, `assets/fonts/`) | text font, embedded | SIL Open Font License 1.1 ([OFL.txt](assets/fonts/OFL.txt)) |
 | [ESP Web Tools](https://github.com/esphome/esp-web-tools) 10.4 | browser installer on the website (loaded from unpkg, not in the firmware) | Apache-2.0 |
 | [Python-Markdown](https://python-markdown.github.io) 3.7, [Pillow](https://python-pillow.org) 11.0 | build tools only (website, promo pictures) | BSD-3-Clause, MIT-CMU |

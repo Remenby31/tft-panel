@@ -58,6 +58,11 @@ lvgl_file() {   # path in the lvgl repo
     test -s "$WORK/${1##*/}" || { echo "download of $1 failed" >&2; exit 1; }
 }
 lvgl_file include/lvgl/font/lv_symbol_def.h
+# The licences that travel with the glyphs: LVGL's (MIT) and Font Awesome's, as LVGL ships it.
+lvgl_file LICENCE.txt
+cp "$WORK/LICENCE.txt" "$SYM_OUT/LICENSE-LVGL.txt"
+lvgl_file scripts/generators/built_in_font/font_license/FontAwesome5/LICENSE.txt
+cp "$WORK/LICENSE.txt" "$SYM_OUT/OFL-FontAwesome.txt"
 # 14/20/28 on the 800x480 screens, 18/24/36 on the Waveshare 7B (src/app/fonts.cpp).
 for size in 14 18 20 24 28 36; do
     lvgl_file "src/font/lv_font_montserrat_$size.c"
